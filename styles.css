@@ -984,3 +984,21 @@ body.virtual-log-view .pagination > .page-size:not(.render-mode) { opacity: .45;
 .project-row.is-archived{opacity:.62}.project-history{margin-top:7px}.project-history summary{cursor:pointer;color:var(--muted);font-size:12px}.project-history__grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px}.project-history__grid section{display:flex;flex-direction:column;gap:3px;padding:7px;border:1px solid var(--border);border-radius:8px}.project-history__grid small{overflow-wrap:anywhere}
 .checkpoint-diff{margin-top:6px}.checkpoint-diff summary{cursor:pointer;color:var(--muted);font-size:12px}.checkpoint-diff__grid{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.checkpoint-diff__grid>span{padding:4px 7px;border:1px solid var(--border);border-radius:999px;font-size:11px}.checkpoint-diff__grid strong{text-transform:capitalize}
 @media (max-width:760px){.baseline-history-row{grid-template-columns:1fr}.baseline-history__compare{align-items:stretch}.query-library-bulkbar>*{max-width:100%}.project-history__grid{grid-template-columns:1fr}.query-library-item{grid-template-columns:auto minmax(0,1fr)}.query-library-item>div:last-child{grid-column:1/-1}}
+
+
+/* SignalDock v2.6 accessibility and mobile hardening */
+html[data-input-modality="keyboard"] :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+html.has-coarse-pointer :where(.button, .icon-button, .nav-item, .source-button, .file-tab) {
+  min-height: 44px;
+}
+@media (max-width: 720px) {
+  dialog > section { max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); }
+  .matrix-table-wrap, .baseline-table-wrap, .trace-explorer-table-wrap, .trend-table-wrap, .health-table-wrap { overscroll-behavior-x: contain; }
+  .query-library-bulkbar, .baseline-history-toolbar { align-items: stretch; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

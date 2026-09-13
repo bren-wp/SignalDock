@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.5.0";
+  const APP_VERSION = "2.6.0";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -799,7 +799,7 @@
     state.serviceMatrixData = window.SignalDockServiceMatrix?.build?.(state.entries) || null;
     state.serviceHeatmapData = window.SignalDockServiceHeatmap?.build?.(state.entries, null, { bucketCount: 12 }) || null;
     state.serviceTrendsData = window.SignalDockServiceTrends?.compare?.(state.entries) || null;
-    state.traceExplorerData = window.SignalDockTraceExplorer?.build?.(state.entries) || null;
+    state.traceExplorerData = window.SignalDockTraceExplorer?.buildWindow?.(state.entries, null, { limit: 1000 }) || window.SignalDockTraceExplorer?.build?.(state.entries) || null;
     state.traceOutlierData = window.SignalDockTraceOutliers?.rank?.(state.entries, { limit: 250 }) || null;
     const traceIds = new Set((state.traceExplorerData?.rows || []).map((row) => row.traceId));
     state.traceCompareSelection = state.traceCompareSelection.filter((id) => traceIds.has(id)).slice(-2);
@@ -917,7 +917,7 @@
     if (el.serviceMatrixCount) el.serviceMatrixCount.textContent = (state.serviceMatrixData?.rows?.length || 0).toLocaleString();
     if (el.serviceHeatmapCount) el.serviceHeatmapCount.textContent = (state.serviceHeatmapData?.rows?.length || 0).toLocaleString();
     if (el.serviceTrendsCount) el.serviceTrendsCount.textContent = (state.serviceTrendsData?.summary?.changed || 0).toLocaleString();
-    if (el.traceExplorerCount) el.traceExplorerCount.textContent = (state.traceExplorerData?.rows?.length || 0).toLocaleString();
+    if (el.traceExplorerCount) el.traceExplorerCount.textContent = (state.traceExplorerData?.summary?.traces || state.traceExplorerData?.rows?.length || 0).toLocaleString();
     if (el.traceOutlierCount) el.traceOutlierCount.textContent = (state.traceOutlierData?.rows?.length || 0).toLocaleString();
     if (el.investigationCount) el.investigationCount.textContent = (state.investigation?.items?.length || 0).toLocaleString();
     if (el.exceptionGroupCount) el.exceptionGroupCount.textContent = (state.exceptionGroups?.length || 0).toLocaleString();
@@ -2043,8 +2043,8 @@
     if (!window.SignalDockTraceExplorer || !el.traceExplorerBody) return;
     state.traceExplorerScopeFiltered = Boolean(useFiltered);
     const scopedIndexes = state.traceExplorerScopeFiltered && state.filteredIndexes.length && state.filteredIndexes.length < state.entries.length ? state.filteredIndexes : null;
-    const data = scopedIndexes ? window.SignalDockTraceExplorer.build(state.entries, scopedIndexes) : (state.traceExplorerData || window.SignalDockTraceExplorer.build(state.entries));
-    if (el.traceExplorerMeta) el.traceExplorerMeta.textContent = `${state.traceExplorerScopeFiltered && scopedIndexes ? "Current filtered result" : "All loaded logs"} · explicit trace IDs only.`;
+    const data = scopedIndexes ? window.SignalDockTraceExplorer.buildWindow(state.entries, scopedIndexes, { limit: 1000 }) : (state.traceExplorerData || window.SignalDockTraceExplorer.buildWindow(state.entries, null, { limit: 1000 }));
+    if (el.traceExplorerMeta) el.traceExplorerMeta.textContent = `${state.traceExplorerScopeFiltered && scopedIndexes ? "Current filtered result" : "All loaded logs"} · explicit trace IDs only${data.summary.truncated ? ` · showing ${data.summary.returned.toLocaleString()} of ${data.summary.traces.toLocaleString()} ranked traces` : ""}.`;
     if (el.traceExplorerSummary) {
       el.traceExplorerSummary.replaceChildren();
       [["Traces", data.summary.traces], ["With errors", data.summary.errors], ["Incomplete", data.summary.incomplete], ["Services", data.summary.services]].forEach(([label, value]) => { const item = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString(); const span = document.createElement("span"); span.textContent = label; item.append(strong, span); el.traceExplorerSummary.appendChild(item); });

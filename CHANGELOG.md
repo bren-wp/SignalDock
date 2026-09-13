@@ -1,5 +1,26 @@
 # Changelog
 
+
+## 2.6.0 — 2026-09-13
+
+### Large-dataset trace and service scaling
+- Reworked Trace Explorer aggregation into a two-pass parent-coverage calculation that no longer retains parent-ID arrays per trace.
+- The application now caches and renders a bounded top trace window while preserving exact global trace/error/incomplete/service summary counts.
+- Service Matrix keeps exact latency samples for normal edges, then promotes high-volume edges to bounded logarithmic histograms while preserving exact call/error/average/max counters.
+- Added an explicit edge safety ceiling and surfaced approximation/limit metadata through the service-matrix API.
+
+### Project continuity foundation
+- Storage Adapter now provides a local IndexedDB registry for File System Access handles, permission checks and user-initiated file reopening.
+- Project Manager v3 can associate recent dataset/workspace metadata with opaque local handle references.
+- Portable project exports deliberately strip local handle keys and reopenability flags so filesystem capabilities never leave the browser profile.
+
+### Accessibility and mobile hardening
+- Added dialog labelling, focus restoration, keyboard focus trapping, input-modality focus visibility, coarse-pointer touch targets and reduced-motion behavior.
+- Added narrow-viewport dialog/table constraints for mobile investigation workflows.
+
+### Quality
+- Added v2.6 scaling/continuity regression coverage and retained the dependency-free syntax, regression, static/CSP, HTTP and CodeQL gates.
+
 ## 2.5.0 — 2026-09-13
 
 ### Baseline history and comparison workflow
