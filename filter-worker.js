@@ -8,6 +8,10 @@ let diskBacked = false;
 let cacheKey = "";
 
 self.onmessage = async function (event) {
+  const trustedOrigin = self.location.origin;
+  if (!event || !event.origin || event.origin !== trustedOrigin) {
+    return;
+  }
   const message = event.data || {};
   if (message.type === "index") {
     entries = Array.isArray(message.entries) ? message.entries : [];
