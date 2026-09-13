@@ -17,8 +17,18 @@ const ids = [...appHtml.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 const idSet = new Set(ids);
 assert(idSet.size === ids.length, "index.html contains duplicate ids");
 
+// SignalDock may construct bounded local-only UI controls from trusted application code.
+// Audit constant ids assigned through element.id and the central makeUiButton helper as
+// first-class DOM declarations while still rejecting unresolved $(...) references.
+const assignedDynamicIds = [...appJs.matchAll(/\.id\s*=\s*"([^"]+)"/g)].map((match) => match[1]);
+const buttonDynamicIds = [...appJs.matchAll(/makeUiButton\("([^"]+)"/g)].map((match) => match[1]).filter(Boolean);
+const dynamicIds = [...new Set([...assignedDynamicIds, ...buttonDynamicIds])];
+const declaredIdSet = new Set([...ids, ...dynamicIds]);
+const conflictingDynamicIds = dynamicIds.filter((id) => idSet.has(id));
+assert(!conflictingDynamicIds.length, `dynamic DOM ids conflict with index.html ids: ${conflictingDynamicIds.join(", ")}`);
+
 const jsRefs = [...appJs.matchAll(/\$\("([^"]+)"\)/g)].map((match) => match[1]);
-const missingRefs = [...new Set(jsRefs.filter((id) => !idSet.has(id)))];
+const missingRefs = [...new Set(jsRefs.filter((id) => !declaredIdSet.has(id)))];
 assert(!missingRefs.length, `app.js references missing ids: ${missingRefs.join(", ")}`);
 
 for (const [name, html] of [["index.html", appHtml], ["website/index.html", websiteHtml]]) {
@@ -53,7 +63,8 @@ function verifyLocalRefs(html, baseDir, label) {
 verifyLocalRefs(appHtml, root, "index.html");
 verifyLocalRefs(websiteHtml, path.join(root, "website"), "website/index.html");
 
-console.log(`PASS unique DOM ids (${ids.length})`);
+console.log(`PASS unique static DOM ids (${ids.length})`);
+console.log(`PASS trusted dynamic DOM ids (${dynamicIds.length})`);
 console.log(`PASS DOM references (${new Set(jsRefs).size})`);
 console.log("PASS no inline CSS/JS");
 console.log("PASS no external runtime resources");
