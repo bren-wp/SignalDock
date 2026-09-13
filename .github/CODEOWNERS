@@ -1,0 +1,6 @@
+# SignalDock repository ownership
+* @bren-wp
+
+# Security and automation changes require owner review
+/.github/ @bren-wp
+/SECURITY.md @bren-wp
