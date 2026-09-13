@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/bren-wp/SignalDock/security/policy
+    about: Please use the security policy instead of a public issue for vulnerabilities.
+  - name: Technical documentation
+    url: https://github.com/bren-wp/SignalDock/blob/main/docs/TECHNICAL.md
+    about: Read implementation details, data models and documented limits.

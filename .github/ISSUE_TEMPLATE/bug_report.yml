@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible SignalDock problem
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve SignalDock. Please avoid attaching sensitive production logs. Prefer a minimal sanitized sample when possible.
+  - type: input
+    id: version
+    attributes:
+      label: SignalDock version
+      description: Version shown in VERSION or the commit SHA you are using.
+      placeholder: "2.4.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome / Chromium
+        - Microsoft Edge
+        - Firefox
+        - Safari
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11, macOS 15, Ubuntu 24.04, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start SignalDock with ...
+        2. Import a sanitized ...
+        3. Run query ...
+        4. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Minimal sanitized sample
+      description: Optional. Remove secrets, personal data, tokens, hostnames and other sensitive information before posting.
+      render: text
+  - type: textarea
+    id: console
+    attributes:
+      label: Browser console output
+      description: Optional. Paste only output relevant to the problem and remove sensitive values.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed or sanitized sensitive log data before posting.
+          required: true

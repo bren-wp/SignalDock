@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest a focused improvement to SignalDock
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        SignalDock is local-first by design. Features should preserve privacy, transparent analysis and truthful observability semantics.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow
+      description: What debugging, observability or investigation problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you would like SignalDock to provide.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Mention workarounds or other approaches you considered.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Parsing / import
+        - Search / query
+        - Traces / OpenTelemetry
+        - Services / dependencies
+        - Exceptions
+        - Case / Investigation
+        - Performance / large datasets
+        - Privacy / security
+        - UI / accessibility
+        - Desktop / filesystem
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Design principles
+      options:
+        - label: This request can preserve SignalDock's local-first model.
+          required: true
+        - label: The proposal does not require pretending inferred data is observed fact.
+          required: true
