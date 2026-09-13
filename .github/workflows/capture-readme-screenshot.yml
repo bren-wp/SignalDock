@@ -38,7 +38,7 @@ jobs:
           set -euo pipefail
           python3 -m http.server 8766 --bind 127.0.0.1 >/tmp/signaldock-http.log 2>&1 &
           echo $! >/tmp/signaldock-http.pid
-          cat >/tmp/capture.mjs <<'EOF'
+          cat >.capture-readme.mjs <<'EOF'
           import { chromium } from 'playwright';
           const browser = await chromium.launch({ headless: true });
           const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -50,7 +50,8 @@ jobs:
           await page.screenshot({ path: 'docs/images/app-screenshot.png', fullPage: false });
           await browser.close();
           EOF
-          node /tmp/capture.mjs
+          node .capture-readme.mjs
+          rm -f .capture-readme.mjs
           test -s docs/images/app-screenshot.png
 
       - name: Add screenshot and CodeQL badge to README
