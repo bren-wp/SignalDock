@@ -40,3 +40,23 @@ jobs:
             node "$test"
             echo "::endgroup::"
           done
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8080/index.html -o /tmp/signaldock-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          grep -q 'SignalDock' /tmp/signaldock-index.html
+          curl --fail --silent --show-error http://127.0.0.1:8080/app.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/styles.css -o /dev/null

@@ -1,0 +1,3 @@
+import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');const version=fs.readFileSync(path.join(root,'VERSION'),'utf8').trim();const app=fs.readFileSync(path.join(root,'app.js'),'utf8');const readme=fs.readFileSync(path.join(root,'README.md'),'utf8');
+if(!new RegExp(`APP_VERSION\\s*=\\s*["']${version.replace(/\./g,'\\.')}["']`).test(app))throw new Error(`app.js APP_VERSION does not match VERSION ${version}`);if(!readme.includes(`version-${version}-`)||!readme.includes(`SignalDock v${version}`))throw new Error(`README version markers do not match VERSION ${version}`);console.log(`version-consistency-smoke PASS (${version})`);
