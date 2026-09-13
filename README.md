@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml/badge.svg"></a>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml/badge.svg"></a>
-    <img alt="Version" src="https://img.shields.io/badge/version-2.4.0-22d3ee?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-2.5.0-22d3ee?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
     <img alt="Local first" src="https://img.shields.io/badge/local--first-yes-67e8f9?style=flat-square">
     <img alt="Telemetry" src="https://img.shields.io/badge/telemetry-none-a7f3d0?style=flat-square">
@@ -28,8 +28,8 @@
 </p>
 
 <p align="center">
-  <strong>SignalDock v2.4.0 — real application UI with the bundled demo dataset</strong><br>
-  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.4.0 application screenshot showing local log analysis" width="100%" />
+  <strong>SignalDock v2.5.0 — real application UI with the bundled demo dataset</strong><br>
+  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.5.0 application screenshot showing local log analysis" width="100%" />
 </p>
 
 ## Your logs should not need a cloud account
@@ -99,6 +99,10 @@ SignalDock includes:
 - Case & Investigation workspace with evidence, findings, milestones and activity history
 - reusable Query Library with folders and favorites
 - local Project Manager and cross-dataset baseline comparison
+- bounded multi-baseline history with saved-baseline A/B comparison and project association
+- Project Manager recent workspace/dataset/baseline/case history, duplicate and archive controls
+- Query Library multi-select bulk move/favorite/export/delete actions plus local usage ordering
+- richer Case Checkpoint change summaries across metadata, findings, milestones, attachments and evidence
 - crash/restart recovery snapshots in IndexedDB
 - experimental local Live Tail through the File System Access API
 - virtual/windowed result rendering for large result sets
@@ -218,9 +222,9 @@ For security-sensitive reports, see **[SECURITY.md](./SECURITY.md)**.
 
 Near-term work is aimed at making SignalDock an even stronger local desktop-grade observability workspace:
 
-- multiple baselines per project and baseline-to-baseline comparison
-- project/dataset history and recent-workspace management
-- richer checkpoint diff views
+- native desktop-shell adapter implementation over the documented local storage/filesystem boundary
+- richer project-level dataset reopening once persistent filesystem handles are available
+- deeper checkpoint-to-checkpoint comparison and optional user-authored checkpoint notes
 - deeper filesystem/project adapters
 - continued performance work for very large datasets
 - groundwork for native Windows, macOS and Linux packaging

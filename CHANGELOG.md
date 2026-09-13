@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.5.0 — 2026-09-13
+
+### Baseline history and comparison workflow
+- Wired the aggregate-only baseline history APIs into the Baseline workspace with bounded local history, active-project association, history import/export and saved-baseline A/B comparison.
+- Captured and imported baselines now join local history automatically while preserving the existing current-dataset-vs-baseline workflow and raw-log exclusion guarantee.
+
+### Project and investigation continuity
+- Project Manager now surfaces recent workspace, dataset, baseline and case metadata histories with duplicate/archive controls.
+- Workspace saves record metadata-only recent-session and case/baseline references; successful log imports add metadata-only dataset history to the active project.
+- Case Checkpoints now expose an inline structured diff summary for changed case fields, findings, milestones, attachment references and evidence membership.
+
+### Query Library workflow
+- Added multi-select Query Library controls for bulk move, favorite/unfavorite, export and delete.
+- Applying a reusable query now records local use count/last-used metadata and query cards expose usage recency; queries can be duplicated without carrying usage history.
+
+### Quality
+- Added a UI-foundation static regression test covering the new wiring and kept the dependency-free CI, HTTP smoke and CodeQL gates intact.
+
 ## 2.4.0 — 2026-09-13
 
 ### Cross-dataset baseline comparison

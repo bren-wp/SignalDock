@@ -4,11 +4,15 @@
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.4.0**.
+Current version: **2.5.0**.
 
 ## Highlights
 
 - SignalDock brand system with local SVG logo, favicon and icon sprite
+- Baseline History UI with bounded local aggregate snapshots, active-project association, import/export and baseline-to-baseline comparison
+- Project Manager v2 history UI for recent workspace/dataset/baseline/case metadata, duplicate and archive controls
+- Query Library v3 multi-select bulk operations and local usage metadata
+- Rich Case Checkpoint diffs across case fields and bounded investigation collections
 - Cross-dataset `.sdbaseline` snapshots with aggregate-only service/dependency/trace metrics; raw log entries are never embedded in baseline files
 - Baseline comparison surfaces service entry/error/p95 deltas, explicit dependency call/error/p95 deltas and trace-set regressions while keeping the canonical imported datasets separate
 - Bounded Case Checkpoints preserve local case state + evidence IDs for investigation waypoints without duplicating raw logs
