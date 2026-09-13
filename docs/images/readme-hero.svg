@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="t d">
+<title id="t">SignalDock — private observability on your machine</title><desc id="d">SignalDock product banner with a local-first log workspace preview.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07101d"/><stop offset="1" stop-color="#0b1727"/></linearGradient>
+ <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#63f4df"/><stop offset=".5" stop-color="#10d7f1"/><stop offset="1" stop-color="#2889ff"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="560" rx="28" fill="url(#bg)"/>
+<circle cx="1030" cy="70" r="210" fill="#0d8ea0" opacity=".08"/><circle cx="130" cy="520" r="260" fill="#2563eb" opacity=".07"/>
+<g transform="translate(72 72) scale(1.1)"><path d="M32 7 55 19.5 32 32 9 19.5 32 7Z" fill="none" stroke="url(#cyan)" stroke-width="5" stroke-linejoin="round" filter="url(#glow)"/><path d="m11 29 21 11 21-11" fill="none" stroke="url(#cyan)" stroke-width="5" stroke-linecap="round"/><path d="m11 39 21 11 21-11" fill="none" stroke="url(#cyan)" stroke-width="5" stroke-linecap="round"/><path d="M32 32v18" stroke="#26a4ff" stroke-width="3" stroke-linecap="round"/></g>
+<text x="160" y="112" fill="#f7fbff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="38" font-weight="750">SignalDock</text>
+<text x="72" y="176" fill="#eef7ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="44" font-weight="760">Private observability.</text>
+<text x="72" y="225" fill="#67e8f9" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="44" font-weight="760">On your machine.</text>
+<text x="72" y="272" fill="#91a4b8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19">Inspect logs, traces, exceptions and incidents locally — no backend,</text>
+<text x="72" y="301" fill="#91a4b8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19">no account, no telemetry, no cloud ingestion.</text>
+<g transform="translate(72 344)"><rect width="180" height="48" rx="12" fill="#0dd3da"/><text x="90" y="31" text-anchor="middle" fill="#031117" font-family="Inter,Segoe UI,Arial" font-size="16" font-weight="700">OPEN LOCAL LOGS</text></g>
+<g transform="translate(268 344)"><rect width="170" height="48" rx="12" fill="none" stroke="#28465e"/><text x="85" y="31" text-anchor="middle" fill="#d9e8f4" font-family="Inter,Segoe UI,Arial" font-size="16" font-weight="650">NO CLOUD REQUIRED</text></g>
+<g transform="translate(520 72)"><rect width="610" height="416" rx="18" fill="#08131f" stroke="#203548"/>
+<rect x="0" y="0" width="610" height="48" rx="18" fill="#0c1b2a"/><circle cx="22" cy="24" r="5" fill="#2b4154"/><circle cx="40" cy="24" r="5" fill="#2b4154"/><circle cx="58" cy="24" r="5" fill="#2b4154"/><text x="90" y="30" fill="#dceaf6" font-family="monospace" font-size="13">signal-demo.ndjson · 2,418 entries</text>
+<rect x="18" y="66" width="122" height="330" rx="10" fill="#0b1825" stroke="#172b3c"/><text x="34" y="94" fill="#6d8296" font-family="Arial" font-size="11" font-weight="700">WORKSPACE</text>
+<text x="34" y="128" fill="#d9e8f4" font-family="Arial" font-size="13">Logs</text><text x="34" y="158" fill="#8ba0b3" font-family="Arial" font-size="13">Exceptions</text><text x="34" y="188" fill="#8ba0b3" font-family="Arial" font-size="13">Trace Explorer</text><text x="34" y="218" fill="#8ba0b3" font-family="Arial" font-size="13">Service Map</text><text x="34" y="248" fill="#8ba0b3" font-family="Arial" font-size="13">Investigation</text><text x="34" y="278" fill="#8ba0b3" font-family="Arial" font-size="13">Baseline</text>
+<rect x="156" y="66" width="436" height="46" rx="9" fill="#0c1a27" stroke="#183044"/><text x="174" y="94" fill="#6f8799" font-family="monospace" font-size="12">level:error service:auth timeout</text>
+<g font-family="monospace" font-size="11"><text x="166" y="142" fill="#6f8799">12:01:14.503</text><text x="260" y="142" fill="#fb7185">ERROR</text><text x="310" y="142" fill="#8ee7db">auth-api</text><text x="388" y="142" fill="#d3e0ea">token validation timeout</text>
+<text x="166" y="174" fill="#6f8799">12:01:14.508</text><text x="260" y="174" fill="#fbbf24">WARN</text><text x="310" y="174" fill="#8ee7db">gateway</text><text x="388" y="174" fill="#d3e0ea">retrying upstream request</text>
+<text x="166" y="206" fill="#6f8799">12:01:14.521</text><text x="260" y="206" fill="#fb7185">ERROR</text><text x="310" y="206" fill="#8ee7db">auth-api</text><text x="388" y="206" fill="#d3e0ea">ETIMEDOUT redis session lookup</text>
+<text x="166" y="238" fill="#6f8799">12:01:14.540</text><text x="260" y="238" fill="#67e8f9">INFO</text><text x="310" y="238" fill="#8ee7db">worker</text><text x="388" y="238" fill="#d3e0ea">job resumed after retry</text></g>
+<rect x="156" y="266" width="210" height="130" rx="12" fill="#0a1723" stroke="#183044"/><text x="174" y="292" fill="#8ba0b3" font-family="Arial" font-size="11" font-weight="700">TRACE QUALITY</text><text x="174" y="326" fill="#eef7ff" font-family="Arial" font-size="24" font-weight="700">94%</text><text x="174" y="350" fill="#8ba0b3" font-family="Arial" font-size="12">parent-link coverage</text><rect x="174" y="369" width="156" height="6" rx="3" fill="#173043"/><rect x="174" y="369" width="146" height="6" rx="3" fill="#26d4d7"/>
+<rect x="382" y="266" width="210" height="130" rx="12" fill="#0a1723" stroke="#183044"/><text x="400" y="292" fill="#8ba0b3" font-family="Arial" font-size="11" font-weight="700">OBSERVED HEALTH</text><text x="400" y="326" fill="#fbbf24" font-family="Arial" font-size="24" font-weight="700">WATCH</text><text x="400" y="350" fill="#8ba0b3" font-family="Arial" font-size="12">auth-api · 4.8% errors</text><text x="400" y="374" fill="#6ee7b7" font-family="Arial" font-size="12">local evidence only</text>
+</g>
+</svg>
