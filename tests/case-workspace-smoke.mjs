@@ -1,0 +1,17 @@
+import fs from 'node:fs'; import vm from 'node:vm';
+const context={self:{},window:{}}; context.self=context; context.window=context; vm.createContext(context);
+vm.runInContext(fs.readFileSync(new URL('../case-workspace.js',import.meta.url),'utf8'),context);
+const api=context.SignalDockCaseWorkspace; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
+let c=api.empty('Auth incident'); assert(c.version===3&&c.activity.length===1,'v3 case should start with activity history');
+c=api.updateMeta(c,{status:'investigating',severity:'sev2',hypothesis:'token regression'});
+let finding=api.addFinding(c,{title:'Auth failures cluster',body:'Recurring invalid_signature',evidenceIds:['ev-1'],tags:['auth']}); c=finding.caseFile;
+let milestone=api.addMilestone(c,{title:'Rollback deployed',status:'reached',at:'2026-01-01T10:00:00Z',note:'Auth errors fell'}); c=milestone.caseFile;
+let attachment=api.addAttachmentMetadata(c,{name:'support-screenshot.png',type:'image/png',size:12345,lastModified:1000},'Customer report'); c=attachment.caseFile;
+assert(attachment.added&&c.attachments[0].metadataOnly===true,'attachment metadata add failed');
+const duplicate=api.addAttachmentMetadata(c,{name:'support-screenshot.png',type:'image/png',size:12345,lastModified:1000}); assert(!duplicate.added,'attachment duplicate guard failed');
+const summary=api.summarize(c,[{id:'ev-1'}]); assert(summary.milestones===1&&summary.reachedMilestones===1&&summary.attachments===1,'case v3 summary mismatch');
+const imported=api.importJson(api.exportJson(c)); assert(imported.milestones[0].title==='Rollback deployed'&&imported.attachments[0].name==='support-screenshot.png','case v3 round trip failed');
+const legacy=JSON.stringify({schema:'signaldock.case',version:2,id:'legacy',title:'Legacy',status:'open',severity:'none',findings:[],activity:[]}); assert(api.importJson(legacy).milestones.length===0,'legacy v2 case migration failed');
+const mergedCase=api.merge(c,{schema:api.SCHEMA,version:3,title:'Imported',status:'open',severity:'none',findings:[{id:'remote-finding',title:'Remote finding',state:'open',tags:[],evidenceIds:[],createdAt:'2026-01-01T00:00:00Z',updatedAt:'2026-01-01T00:00:00Z'}],milestones:[{id:'remote-mile',title:'Imported milestone',status:'planned',note:'',at:'2026-01-02T00:00:00Z'}],attachments:[],activity:[]}); assert(mergedCase.findings.some(x=>x.id==='remote-finding')&&mergedCase.milestones.some(x=>x.id==='remote-mile'),'case merge failed');
+const md=api.exportMarkdown(c,{items:[{id:'ev-1',level:'ERROR',service:'auth',message:'bad token'}]}); assert(md.includes('Milestones')&&md.includes('Local attachment references')&&md.includes('metadata only'),'case markdown v3 failed');
+console.log('case-workspace-smoke: ok');

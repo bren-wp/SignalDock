@@ -1,0 +1,11 @@
+import fs from 'node:fs'; import vm from 'node:vm';
+const context={self:{},window:{}}; context.self=context; context.window=context; vm.createContext(context);
+vm.runInContext(fs.readFileSync(new URL('../exception-trends.js', import.meta.url),'utf8'),context);
+const now=Date.parse('2026-09-13T00:00:00Z');
+const entries=[];
+for(let i=0;i<2;i++) entries.push({exceptionFingerprint:'ex-a',timestampMs:now-90*60*1000+i,level:'ERROR',service:'api'});
+for(let i=0;i<7;i++) entries.push({exceptionFingerprint:'ex-a',timestampMs:now-20*60*1000+i,level:'ERROR',service:'api'});
+const result=context.SignalDockExceptionTrends.analyze(entries,{windowMs:60*60*1000});
+const trend=result.groups.get('ex-a');
+if(!trend || trend.trend!=='spiking' || trend.recent!==7 || trend.previous!==2) throw new Error('exception trend analysis failed');
+console.log('exception-trends-smoke: ok');

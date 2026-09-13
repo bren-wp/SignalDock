@@ -1,0 +1,4 @@
+CEF:0|Acme Security|Gatekeeper|2.0|AUTH-7|Invalid token signature|9|rt=2026-09-12T20:30:01Z src=10.0.0.5 dst=10.0.0.20 suser=anonymous msg=JWT signature validation failed
+CEF:0|Acme Security|Gatekeeper|2.0|AUTH-2|User authenticated|2|rt=2026-09-12T20:30:04Z src=10.0.0.8 dst=10.0.0.20 suser=user-123 msg=Login accepted
+CEF:0|Acme Security|Edge Shield|4.1|WAF-14|Suspicious request blocked|7|rt=2026-09-12T20:30:09Z src=203.0.113.42 dst=10.0.0.30 request=/admin msg=Rule match SQLi-942100
+CEF:0|Acme Security|Gatekeeper|2.0|AUTH-5|Repeated login failures|5|rt=2026-09-12T20:30:11Z src=10.0.0.9 dst=10.0.0.20 suser=user-987 msg=Five failed attempts within sixty seconds

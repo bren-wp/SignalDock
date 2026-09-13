@@ -1,0 +1,12 @@
+import fs from 'node:fs'; import vm from 'node:vm';
+const context={self:{},window:{}}; context.self=context; context.window=context; vm.createContext(context);
+vm.runInContext(fs.readFileSync(new URL('../service-health.js', import.meta.url),'utf8'),context);
+const now=Date.parse('2026-09-13T00:00:00Z');
+const entries=[];
+for(let i=0;i<100;i++) entries.push({service:'api',level:i<12?'ERROR':i<30?'WARN':'INFO',timestampMs:now-i*1000,traceMeta:{durationMs:i+1},correlations:{trace:`t-${i}`},dimensions:{environment:'prod',namespace:'edge'},exceptionFingerprint:i<12?'ex-a':''});
+for(let i=0;i<50;i++) entries.push({service:'worker',level:'INFO',timestampMs:now-i*2000,traceMeta:{durationMs:10},correlations:{},dimensions:{}});
+const result=context.SignalDockServiceHealth.analyze(entries,{windowMs:60000});
+const api=result.rows.find(r=>r.service==='api'); const worker=result.rows.find(r=>r.service==='worker');
+if(!api || api.status!=='critical' || api.errorRate<0.1 || api.p95DurationMs===null) throw new Error('api health classification failed');
+if(!worker || worker.status!=='quiet') throw new Error('worker health classification failed');
+console.log('service-health-smoke: ok');

@@ -1,0 +1,12 @@
+2026-09-12T20:24:31.122Z INFO [api] Server started on port 3000
+2026-09-12T20:24:32.118Z INFO [api] Loaded configuration from local environment
+2026-09-12T20:25:01.003Z INFO [auth] User login succeeded userId=1234 ip=10.0.1.25
+2026-09-12T20:25:14.221Z WARN [db] Slow query detected duration=1243ms
+2026-09-12T20:26:02.447Z ERROR [worker] Failed to process job: connection timeout jobId=7f3a trace_id=trace-job-7f3a retry=3
+2026-09-12T20:26:12.998Z INFO [cache] Cache miss for key user:1234
+2026-09-12T20:26:18.773Z INFO [api] GET /api/users/1234 200 42ms
+2026-09-12T20:26:25.110Z WARN [auth] Token expiring soon userId=1234
+2026-09-12T20:26:40.331Z DEBUG [worker] Retrying job jobId=7f3a trace_id=trace-job-7f3a attempt=2/3
+2026-09-12T20:27:14.909Z ERROR [db] Connection failed: timeout host=db.internal
+2026-09-12T20:27:18.221Z INFO [api] Request completed in 42ms method=POST status=201
+2026-09-12T20:27:41.889Z TRACE [cache] Evicted 128 keys from cache reason=ttl

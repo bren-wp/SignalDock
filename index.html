@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08111d">
+  <meta name="description" content="SignalDock is a private, local-first log inspection workspace for JSON, NDJSON, LOG, TXT and ZIP files.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; img-src 'self' data:; style-src 'self'; script-src 'self'; worker-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>SignalDock — Private observability on your machine</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="drag-overlay" id="dragOverlay" hidden>
+    <div class="drag-overlay__card">
+      <svg class="icon icon--xl" aria-hidden="true"><use href="assets/icons.svg#upload"></use></svg>
+      <strong>Drop logs into SignalDock</strong>
+      <span>JSON · NDJSON · LOG · TXT · ZIP · SDSESSION</span>
+    </div>
+  </div>
+
+  <div class="app-frame">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="SignalDock home">
+        <img src="assets/logo.svg" alt="" class="brand__mark" width="38" height="38">
+        <span class="brand__wordmark"><strong>Signal</strong><b>Dock</b></span>
+        <span class="brand__tagline">Private observability on your machine</span>
+      </a>
+
+      <div class="topbar__status">
+        <span class="status-line" aria-hidden="true"></span>
+        <span class="status-copy">YOUR LOGS. YOUR MACHINE. YOUR CONTROL.</span>
+        <button class="icon-button command-button" id="commandPaletteButton" type="button" title="Command palette (Ctrl/Cmd+K)" aria-label="Open command palette"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#terminal"></use></svg></button>
+        <span class="local-badge" title="No file uploads. No backend. No telemetry.">
+          <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#shield"></use></svg>
+          100% local
+        </span>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar__primary">
+          <button class="import-button" id="importButton" type="button">
+            <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#upload"></use></svg>
+            <span>Import logs</span>
+            <kbd>⌘O</kbd>
+          </button>
+          <input id="fileInput" type="file" accept=".json,.jsonl,.ndjson,.log,.txt,.zip,.sdsession" multiple hidden>
+
+          <nav class="nav-list" aria-label="Workspace navigation">
+            <button class="nav-item is-active" type="button" data-nav="logs">
+              <svg class="icon"><use href="assets/icons.svg#file"></use></svg>
+              <span>Logs</span>
+              <em id="navLogCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="search">
+              <svg class="icon"><use href="assets/icons.svg#search"></use></svg>
+              <span>Search</span>
+              <kbd>/</kbd>
+            </button>
+            <button class="nav-item" type="button" data-nav="map" title="Explore service relationships derived from trace/span data">
+              <svg class="icon"><use href="assets/icons.svg#network"></use></svg>
+              <span>Service map</span>
+              <em id="serviceMapCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="matrix" title="Inspect service-to-service latency and error edges">
+              <svg class="icon"><use href="assets/icons.svg#database"></use></svg>
+              <span>Service matrix</span>
+              <em id="serviceMatrixCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="heatmap" title="Inspect explicit service dependencies across time">
+              <svg class="icon"><use href="assets/icons.svg#network"></use></svg>
+              <span>Dependency heatmap</span>
+              <em id="serviceHeatmapCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="trends" title="Compare explicit dependency edges between adjacent time periods">
+              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <span>Dependency trends</span>
+              <em id="serviceTrendsCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="baseline" title="Compare the current dataset against a compact local baseline snapshot">
+              <svg class="icon"><use href="assets/icons.svg#rotate"></use></svg>
+              <span>Baseline compare</span>
+              <em id="baselineChangeCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="traces" title="Explore distributed traces across the loaded dataset">
+              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <span>Trace explorer</span>
+              <em id="traceExplorerCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="outliers" title="Rank unusual traces by measured latency, errors and service breadth">
+              <svg class="icon"><use href="assets/icons.svg#alert"></use></svg>
+              <span>Trace outliers</span>
+              <em id="traceOutlierCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="health" title="Observed service health derived from the loaded logs">
+              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <span>Observed health</span>
+              <em id="healthIssueCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="saved">
+              <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg>
+              <span>Query library</span>
+              <em id="savedCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="investigation" title="Collect evidence and local investigation notes">
+              <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg>
+              <span>Investigation</span>
+              <em id="investigationCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="exceptions" title="Group recurring errors and exception signatures">
+              <svg class="icon"><use href="assets/icons.svg#alert"></use></svg>
+              <span>Exceptions</span>
+              <em id="exceptionGroupCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="live" title="Follow a local log file as it grows (supported browsers)">
+              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <span>Live tail</span>
+              <em>BETA</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="projects" title="Manage local SignalDock project metadata">
+              <svg class="icon"><use href="assets/icons.svg#database"></use></svg>
+              <span>Projects</span>
+              <em id="projectCount">0</em>
+            </button>
+            <button class="nav-item" type="button" data-nav="settings">
+              <svg class="icon"><use href="assets/icons.svg#settings"></use></svg>
+              <span>Settings</span>
+            </button>
+          </nav>
+        </div>
+
+        <section class="sidebar-section" aria-labelledby="sourcesTitle">
+          <div class="sidebar-section__head">
+            <span id="sourcesTitle">Sources</span>
+            <button class="icon-button icon-button--tiny" id="clearAllButton" type="button" title="Clear all logs" disabled>
+              <svg class="icon"><use href="assets/icons.svg#trash"></use></svg>
+            </button>
+          </div>
+          <div class="source-list" id="sourceList">
+            <div class="sidebar-empty">No files loaded</div>
+          </div>
+        </section>
+
+        <section class="sidebar-section sidebar-section--saved" aria-labelledby="viewsTitle">
+          <div class="sidebar-section__head">
+            <span id="viewsTitle">Saved views</span>
+          </div>
+          <div class="saved-list" id="savedList">
+            <div class="sidebar-empty">Save filters for quick access</div>
+          </div>
+        </section>
+
+        <div class="sidebar__footer">
+          <div class="privacy-card">
+            <span class="privacy-card__icon"><svg class="icon"><use href="assets/icons.svg#lock"></use></svg></span>
+            <div><strong>Processing stays local</strong><small>No cloud. No uploads. No telemetry.</small></div>
+          </div>
+          <span class="microcopy">OBSERVE LOCALLY. BUILD FREELY.</span>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <div class="file-strip">
+          <div class="file-tabs" id="fileTabs" aria-label="Loaded source tabs">
+            <button class="file-tab is-active" type="button" data-source="">All logs</button>
+          </div>
+          <div class="file-strip__meta">
+            <span id="loadedMeta">No files loaded</span>
+            <button class="icon-button" id="workspaceSaveButton" type="button" title="Save SignalDock workspace" aria-label="Save SignalDock workspace" disabled>
+              <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg>
+            </button>
+            <button class="icon-button" id="exportButton" type="button" title="Export current results" aria-label="Export current results" disabled>
+              <svg class="icon"><use href="assets/icons.svg#download"></use></svg>
+            </button>
+          </div>
+        </div>
+
+        <section class="recovery-banner" id="recoveryBanner" hidden aria-live="polite">
+          <div class="recovery-banner__icon"><svg class="icon"><use href="assets/icons.svg#rotate"></use></svg></div>
+          <div class="recovery-banner__copy"><strong>Local recovery snapshot available</strong><span id="recoveryMeta">A previous SignalDock workspace can be restored from this browser.</span></div>
+          <div class="recovery-banner__actions">
+            <button class="button button--primary button--small" id="recoveryRestoreButton" type="button">Restore</button>
+            <button class="button button--ghost button--small" id="recoveryDismissButton" type="button">Dismiss</button>
+          </div>
+        </section>
+
+        <section class="metrics" aria-label="Log summary">
+          <article class="metric-card">
+            <span class="metric-card__icon metric-card__icon--cyan"><svg class="icon"><use href="assets/icons.svg#file"></use></svg></span>
+            <div><strong id="metricEntries">0</strong><span>Total entries</span></div>
+            <i class="spark spark--cyan" aria-hidden="true"></i>
+          </article>
+          <article class="metric-card">
+            <span class="metric-card__icon metric-card__icon--red"><svg class="icon"><use href="assets/icons.svg#alert"></use></svg></span>
+            <div><strong id="metricErrors">0</strong><span>Errors</span></div>
+            <i class="spark spark--red" aria-hidden="true"></i>
+          </article>
+          <article class="metric-card">
+            <span class="metric-card__icon metric-card__icon--amber"><svg class="icon"><use href="assets/icons.svg#warning"></use></svg></span>
+            <div><strong id="metricWarnings">0</strong><span>Warnings</span></div>
+            <i class="spark spark--amber" aria-hidden="true"></i>
+          </article>
+          <article class="metric-card metric-card--compact">
+            <span class="metric-card__icon metric-card__icon--emerald"><svg class="icon"><use href="assets/icons.svg#database"></use></svg></span>
+            <div><strong id="metricSources">0</strong><span>Sources</span></div>
+          </article>
+        </section>
+
+        <section class="timeline-panel" aria-label="Activity timeline">
+          <div class="timeline-head">
+            <div><span>ACTIVITY TIMELINE</span><strong id="timelineTitle">Timestamp distribution</strong></div>
+            <div class="timeline-legend" aria-hidden="true"><i class="timeline-dot timeline-dot--normal"></i> activity <i class="timeline-dot timeline-dot--warn"></i> warning <i class="timeline-dot timeline-dot--error"></i> error</div>
+          </div>
+          <div class="timeline-bars" id="timelineBars"><div class="timeline-empty">Load timestamped logs to see activity over time.</div></div>
+          <div class="timeline-axis"><span id="timelineStart">—</span><span id="timelineMeta">No timeline data</span><span id="timelineEnd">—</span></div>
+        </section>
+
+        <section class="query-panel" aria-label="Search and filters">
+          <div class="search-row">
+            <label class="smart-search">
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg>
+              <input id="queryInput" type="search" placeholder="Search logs… level:error trace:abc any:timeout,retry re:/ECONNRESET/i" autocomplete="off" disabled>
+              <kbd>/</kbd>
+            </label>
+
+            <label class="compact-select">
+              <span class="sr-only">Level</span>
+              <select id="levelFilter" disabled>
+                <option value="">All levels</option>
+                <option value="TRACE">TRACE</option>
+                <option value="DEBUG">DEBUG</option>
+                <option value="INFO">INFO</option>
+                <option value="WARN">WARN</option>
+                <option value="ERROR">ERROR</option>
+                <option value="FATAL">FATAL</option>
+                <option value="UNKNOWN">UNKNOWN</option>
+              </select>
+            </label>
+
+            <label class="compact-select">
+              <span class="sr-only">Source</span>
+              <select id="sourceFilter" disabled><option value="">All sources</option></select>
+            </label>
+
+            <label class="compact-select">
+              <span class="sr-only">Time range</span>
+              <select id="timeFilter" disabled title="Relative to the newest timestamp in the loaded logs">
+                <option value="">All time</option>
+                <option value="15m">Last 15 min</option>
+                <option value="1h">Last hour</option>
+                <option value="6h">Last 6 hours</option>
+                <option value="24h">Last 24 hours</option>
+                <option value="7d">Last 7 days</option>
+              </select>
+            </label>
+
+            <label class="compact-select">
+              <span class="sr-only">Sort order</span>
+              <select id="sortFilter" disabled>
+                <option value="original">Original order</option>
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="chip-row">
+            <div class="level-chips" id="levelChips" aria-label="Quick level filters">
+              <button class="filter-chip is-active" type="button" data-level="">All</button>
+              <button class="filter-chip filter-chip--error" type="button" data-level="ERROR"><span></span>Error <em id="chipErrors">0</em></button>
+              <button class="filter-chip filter-chip--warn" type="button" data-level="WARN"><span></span>Warning <em id="chipWarnings">0</em></button>
+              <button class="filter-chip" type="button" data-level="INFO">Info</button>
+              <button class="filter-chip" type="button" data-level="DEBUG">Debug</button>
+              <button class="filter-chip" type="button" data-level="TRACE">Trace</button>
+            </div>
+
+            <div class="query-actions">
+              <button class="button button--ghost" id="saveViewButton" type="button" disabled>
+                <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg> Save view
+              </button>
+              <button class="icon-button" id="resetButton" type="button" title="Reset filters" disabled>
+                <svg class="icon"><use href="assets/icons.svg#rotate"></use></svg>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <section class="log-table-panel" aria-label="Log entries">
+            <div class="table-head">
+              <span>Time</span><span>Level</span><span>Source</span><span>Message</span><span></span>
+            </div>
+            <div class="log-table" id="logTable" aria-live="polite"></div>
+            <div class="table-footer">
+              <span id="resultsSummary">Load logs to begin</span>
+              <div class="pagination" id="pagination" aria-label="Pagination">
+                <button class="icon-button icon-button--small" id="prevPage" type="button" disabled aria-label="Previous page"><svg class="icon icon--flip"><use href="assets/icons.svg#chevron"></use></svg></button>
+                <span id="pageLabel">1 / 1</span>
+                <button class="icon-button icon-button--small" id="nextPage" type="button" disabled aria-label="Next page"><svg class="icon"><use href="assets/icons.svg#chevron"></use></svg></button>
+                <label class="page-size"><select id="pageSize" disabled><option>50</option><option selected>100</option><option>250</option><option>500</option><option>1000</option></select><span>/ page</span></label>
+                <label class="page-size render-mode"><select id="renderMode" disabled><option value="paged" selected>Paged</option><option value="virtual">Windowed</option></select><span>view</span></label>
+              </div>
+            </div>
+          </section>
+
+          <aside class="inspector" id="inspector" aria-label="Log details">
+            <div class="inspector__empty" id="inspectorEmpty">
+              <span class="inspector__empty-icon"><svg class="icon"><use href="assets/icons.svg#terminal"></use></svg></span>
+              <strong>Select a log entry</strong>
+              <p>Inspect parsed fields, raw data and context without leaving your local workspace.</p>
+            </div>
+
+            <div class="inspector__content" id="inspectorContent" hidden>
+              <div class="inspector__head">
+                <div><span class="level-badge" id="inspectorLevel">INFO</span><time id="inspectorTime">—</time></div>
+                <button class="icon-button icon-button--small" id="closeInspector" type="button" aria-label="Close inspector"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+              </div>
+              <h2 id="inspectorMessage">Log entry</h2>
+              <div class="inspector__meta" id="inspectorMeta"></div>
+
+              <div class="inspector-tabs" role="tablist" aria-label="Inspector views">
+                <button class="inspector-tab is-active" type="button" role="tab" aria-selected="true" data-inspector-tab="details">Details</button>
+                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="context">Context</button>
+                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="correlations">Correlated</button>
+                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="trace">Trace</button>
+                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="raw">Raw</button>
+                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="json">JSON</button>
+              </div>
+
+              <div class="inspector-pane" role="tabpanel" id="detailsPane"></div>
+              <div class="inspector-pane" role="tabpanel" id="contextPane" hidden></div>
+              <div class="inspector-pane" role="tabpanel" id="correlationsPane" hidden></div>
+              <div class="inspector-pane" role="tabpanel" id="tracePane" hidden></div>
+              <pre class="inspector-pane inspector-code" role="tabpanel" id="rawPane" hidden></pre>
+              <pre class="inspector-pane inspector-code" role="tabpanel" id="jsonPane" hidden></pre>
+
+              <div class="inspector-actions">
+                <button class="button button--ghost" id="copyButton" type="button"><svg class="icon"><use href="assets/icons.svg#copy"></use></svg> Copy raw</button>
+                <button class="button button--ghost" id="filterBySourceButton" type="button"><svg class="icon"><use href="assets/icons.svg#filter"></use></svg> Filter source</button>
+                <button class="button button--ghost" id="filterByServiceButton" type="button"><svg class="icon"><use href="assets/icons.svg#filter"></use></svg> Filter service</button>
+                <button class="button button--ghost" id="addEvidenceButton" type="button"><svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg> Add evidence</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <dialog class="settings-dialog" id="settingsDialog">
+    <form method="dialog" class="settings-card">
+      <div class="settings-card__head">
+        <div><span>SignalDock settings</span><strong>Workspace preferences</strong></div>
+        <button class="icon-button" value="cancel" aria-label="Close settings"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+      </div>
+      <label class="settings-option"><span><strong>Wrap long messages</strong><small>Allow long messages to use multiple lines in the table.</small></span><input id="wrapToggle" type="checkbox"></label>
+      <label class="settings-option"><span><strong>Compact density</strong><small>Fit more entries on screen.</small></span><input id="compactToggle" type="checkbox"></label>
+      <label class="settings-option"><span><strong>Show unknown levels</strong><small>Keep unrecognized log lines visible.</small></span><input id="unknownToggle" type="checkbox" checked></label>
+      <label class="settings-option"><span><strong>Background filter engine</strong><small>Use a Web Worker for large datasets when the browser allows it. SignalDock falls back automatically when opened directly from disk.</small></span><input id="workerToggle" type="checkbox" checked></label>
+      <label class="settings-option"><span><strong>Local recovery autosave</strong><small>Store a crash/restart recovery snapshot in IndexedDB for eligible workspaces. Nothing leaves this browser profile.</small></span><input id="autosaveToggle" type="checkbox" checked></label>
+      <label class="settings-option settings-option--select"><span><strong>Import parser profile</strong><small>Auto detects formats by default. A fixed profile can help with homogeneous log sets.</small></span><select id="parserProfile"><option value="auto">Auto detect</option><option value="nlog">NLog / level text</option><option value="json">JSON / NDJSON</option><option value="access">Apache / Nginx access</option><option value="syslog">Syslog</option><option value="logfmt">Logfmt</option><option value="custom">Custom regex profile</option></select></label>
+      <div class="custom-parser" id="customParserFields" hidden>
+        <label><span>Custom regex</span><textarea id="customParserPattern" rows="3" maxlength="500" spellcheck="false" placeholder="^(?&lt;time&gt;\S+)\s+(?&lt;level&gt;INFO|WARN|ERROR)\s+\[(?&lt;service&gt;[^]]+)\]\s+(?&lt;message&gt;.*)$"></textarea></label>
+        <label><span>Flags</span><input id="customParserFlags" type="text" maxlength="4" value="i" spellcheck="false" placeholder="i"></label>
+        <small>Use named groups such as <code>time</code>, <code>level</code>, <code>service</code> and <code>message</code>. Unmatched lines remain visible as plain text.</small>
+        <div class="parser-profile-manager">
+          <label><span>Saved parser profiles</span><select id="savedParserProfile"><option value="">Choose saved profile…</option></select></label>
+          <label><span>Profile name</span><input id="savedParserName" type="text" maxlength="48" placeholder="Internal API logs"></label>
+          <div class="parser-profile-actions">
+            <button class="button button--primary button--small" id="saveParserProfileButton" type="button">Save profile</button>
+            <button class="button button--ghost button--small" id="deleteParserProfileButton" type="button" disabled>Delete</button>
+            <button class="button button--ghost button--small" id="exportParserProfilesButton" type="button">Export</button>
+            <button class="button button--ghost button--small" id="importParserProfilesButton" type="button">Import</button>
+            <input id="parserProfilesFileInput" type="file" accept=".json" hidden>
+          </div>
+        </div>
+      </div>
+      <div class="settings-query-help"><strong>Smart query syntax</strong><code>level:error,warn service:auth trace:abc123 exception:ex-1a2b3c4d any:timeout,retry -health has:timestamp after:2026-09-12T10:00:00 re:/ETIMEDOUT|ECONNRESET/i</code><small>Regex patterns are capped at 256 characters and run locally only. Environment and namespace fields can be queried with <code>env:</code> and <code>namespace:</code>.</small></div>
+      <div class="settings-recovery"><button class="button button--ghost button--small" id="clearRecoveryButton" type="button">Clear recovery snapshot</button><button class="button button--ghost button--small" id="clearSearchCacheButton" type="button">Clear search cache</button><span id="autosaveStatus">Recovery status will appear here.</span></div>
+      <section class="diagnostics-card" aria-labelledby="diagnosticsTitle">
+        <div class="diagnostics-card__head"><div><span>PERFORMANCE</span><strong id="diagnosticsTitle">Local diagnostics</strong></div><button class="button button--ghost button--small" id="copyDiagnosticsButton" type="button">Copy diagnostics</button></div>
+        <div class="diagnostics-grid" id="diagnosticsGrid"><span>No performance samples yet.</span></div>
+        <small>Diagnostics stay local and contain timing, dataset and browser capability metadata only.</small>
+      </section>
+      <div class="settings-note"><svg class="icon"><use href="assets/icons.svg#shield"></use></svg><span>These preferences are stored locally in this browser only.</span></div>
+    </form>
+  </dialog>
+
+  <dialog class="service-map-dialog" id="serviceMapDialog">
+    <section class="service-map-card">
+      <header class="service-map-head">
+        <div><span>SIGNALDOCK TOPOLOGY</span><strong>Service map</strong><small id="serviceMapMeta">Derived locally from trace/span parent relationships.</small></div>
+        <div class="service-map-head__actions"><label class="compact-select"><span class="sr-only">Group topology</span><select id="serviceMapGroupBy"><option value="service">By service</option><option value="environment">By environment</option><option value="namespace">By namespace</option><option value="environment-service">Environment + service</option><option value="namespace-service">Namespace + service</option></select></label><button class="icon-button" id="closeServiceMapButton" type="button" aria-label="Close service map"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></div>
+      </header>
+      <div class="service-map-summary" id="serviceMapSummary"></div>
+      <div class="service-map-canvas-wrap">
+        <svg class="service-map-canvas" id="serviceMapCanvas" viewBox="0 0 920 500" role="img" aria-label="Service dependency map"></svg>
+      </div>
+      <div class="service-map-list" id="serviceMapList"></div>
+      <footer class="service-map-footer"><span>Edges are created only from explicit parent-span relationships; SignalDock does not invent dependencies.</span><button class="button button--ghost button--small" id="serviceMapResetButton" type="button">Map all logs</button></footer>
+    </section>
+  </dialog>
+
+
+  <dialog class="health-dialog" id="healthDialog">
+    <section class="health-card" aria-label="Observed service health">
+      <header class="health-head">
+        <div><span>OBSERVED HEALTH</span><strong>Service health matrix</strong><small>Derived only from the logs currently loaded: error/warning rates, recurring exceptions, trace duration samples and recent failure trend.</small></div>
+        <button class="icon-button" id="closeHealthButton" type="button" aria-label="Close observed health"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+      </header>
+      <div class="health-summary" id="healthSummary"></div>
+      <div class="health-table-wrap"><table class="health-table"><thead><tr><th>Service</th><th>Status</th><th>Entries</th><th>Error rate</th><th>Warnings</th><th>Exceptions</th><th>p95 span</th><th>Recent Δ</th><th></th></tr></thead><tbody id="healthTableBody"></tbody></table></div>
+      <footer class="health-footer"><span>“Quiet” means no concerning signals were observed in this dataset; it is not an uptime guarantee.</span><button class="button button--ghost button--small" id="healthResetButton" type="button">Analyze all logs</button></footer>
+    </section>
+  </dialog>
+
+  <dialog class="matrix-dialog" id="serviceMatrixDialog">
+    <section class="matrix-card" aria-label="Service-to-service latency and error matrix">
+      <header class="matrix-head"><div><span>EXPLICIT TRACE EDGES</span><strong>Service latency &amp; error matrix</strong><small id="serviceMatrixMeta">Derived only from parent-span relationships in the loaded dataset.</small></div><button class="icon-button" id="closeServiceMatrixButton" type="button" aria-label="Close service matrix"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="matrix-summary" id="serviceMatrixSummary"></div>
+      <div class="matrix-table-wrap"><table class="matrix-table"><thead><tr><th>From</th><th>To</th><th>Calls</th><th>Error rate</th><th>Median</th><th>p95</th><th>Max</th><th>Traces</th><th></th></tr></thead><tbody id="serviceMatrixBody"></tbody></table></div>
+      <footer class="matrix-footer"><span>Latency is shown only when child spans contain explicit duration data; no synthetic timings are generated.</span><button class="button button--ghost button--small" id="serviceMatrixResetButton" type="button">Analyze all logs</button></footer>
+    </section>
+  </dialog>
+
+  <dialog class="trace-explorer-dialog" id="traceExplorerDialog">
+    <section class="trace-explorer-card" aria-label="Distributed trace explorer">
+      <header class="trace-explorer-head"><div><span>TRACE INVENTORY</span><strong>Distributed trace explorer</strong><small id="traceExplorerMeta">Summaries are derived locally from explicit trace/span IDs.</small></div><button class="icon-button" id="closeTraceExplorerButton" type="button" aria-label="Close trace explorer"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="trace-explorer-summary" id="traceExplorerSummary"></div>
+      <div class="trace-explorer-table-wrap"><table class="trace-explorer-table"><thead><tr><th>Trace</th><th>Services</th><th>Spans</th><th>Errors</th><th>Events</th><th>Duration</th><th>Parent coverage</th><th></th></tr></thead><tbody id="traceExplorerBody"></tbody></table></div>
+      <footer class="trace-explorer-footer"><span>Incomplete parent coverage is surfaced explicitly rather than hidden.</span><div><button class="button button--primary button--small" id="traceCompareButton" type="button" disabled>Compare selected (0/2)</button><button class="button button--ghost button--small" id="traceExplorerResetButton" type="button">Show all traces</button></div></footer>
+    </section>
+  </dialog>
+
+  <dialog class="heatmap-dialog" id="serviceHeatmapDialog">
+    <section class="heatmap-card">
+      <header class="matrix-head"><div><span>DEPENDENCY OVER TIME</span><strong>Service dependency heatmap</strong><small id="serviceHeatmapMeta">Explicit parent-span edges bucketed by real timestamps.</small></div><button class="icon-button" id="closeServiceHeatmapButton" type="button" aria-label="Close dependency heatmap"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="matrix-summary" id="serviceHeatmapSummary"></div>
+      <div class="heatmap-wrap" id="serviceHeatmapBody"></div>
+      <footer class="matrix-footer"><span>Cell intensity is call volume; red inset marks observed errors. No synthetic edge or timing data is generated.</span><button class="button button--ghost button--small" id="serviceHeatmapResetButton" type="button">Analyze all logs</button></footer>
+    </section>
+  </dialog>
+
+  <dialog class="trend-dialog" id="serviceTrendsDialog">
+    <section class="trend-card" aria-label="Service dependency trend comparison">
+      <header class="matrix-head"><div><span>DEPENDENCY PERIOD DIFF</span><strong>Service dependency trends</strong><small id="serviceTrendsMeta">Compare explicit parent-span edges across two adjacent real-time windows.</small></div><button class="icon-button" id="closeServiceTrendsButton" type="button" aria-label="Close dependency trends"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="trend-controls"><label><span>Period split</span><select id="serviceTrendsSplit"><option value="0.5">Half vs half</option><option value="0.75">First 75% vs last 25%</option><option value="0.25">First 25% vs last 75%</option></select></label><span id="serviceTrendsWindow">Waiting for timestamped dependency data.</span></div>
+      <div class="matrix-summary" id="serviceTrendsSummary"></div>
+      <div class="trend-table-wrap"><table class="trend-table"><thead><tr><th>Dependency</th><th>Trend</th><th>Before</th><th>After</th><th>Δ calls</th><th>Δ errors</th><th>Δ p95</th><th></th></tr></thead><tbody id="serviceTrendsBody"></tbody></table></div>
+      <footer class="matrix-footer"><span>Comparisons are descriptive and use only explicit parent-span relationships with real timestamps.</span><button class="button button--ghost button--small" id="serviceTrendsResetButton" type="button">Analyze all logs</button></footer>
+    </section>
+  </dialog>
+
+  <dialog class="trace-outlier-dialog" id="traceOutlierDialog">
+    <section class="trace-outlier-card" aria-label="Trace outlier ranking">
+      <header class="trace-explorer-head"><div><span>ROBUST TRACE RANKING</span><strong>Trace outliers</strong><small id="traceOutlierMeta">Ranked from measured duration, explicit errors and service breadth. No AI inference.</small></div><button class="icon-button" id="closeTraceOutlierButton" type="button" aria-label="Close trace outliers"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="trace-explorer-summary" id="traceOutlierSummary"></div>
+      <div class="trace-outlier-table-wrap"><table class="trace-explorer-table"><thead><tr><th>Trace</th><th>Score</th><th>Duration</th><th>Errors</th><th>Services</th><th>Why it ranks</th><th></th></tr></thead><tbody id="traceOutlierBody"></tbody></table></div>
+      <footer class="trace-explorer-footer"><span>Outlier score is descriptive; it does not claim root cause or regression.</span><button class="button button--ghost button--small" id="traceOutlierResetButton" type="button">Analyze all traces</button></footer>
+    </section>
+  </dialog>
+
+  <dialog class="trace-compare-dialog" id="traceCompareDialog">
+    <section class="trace-compare-card">
+      <header class="trace-explorer-head"><div><span>TRACE DIFF</span><strong>Compare two distributed traces</strong><small>Only measured services, spans, events, errors, durations and parent coverage are compared.</small></div><button class="icon-button" id="closeTraceCompareButton" type="button" aria-label="Close trace comparison"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="trace-compare-grid" id="traceCompareBody"></div>
+      <footer class="trace-explorer-footer"><span>Positive deltas mean the second selected trace has a higher value.</span></footer>
+    </section>
+  </dialog>
+
+  <dialog class="query-library-dialog" id="queryLibraryDialog">
+    <section class="query-library-card" aria-label="Saved query library">
+      <header class="query-library-head"><div><span>LOCAL QUERY LIBRARY</span><strong>Reusable searches</strong><small>Store structured queries and filters locally; export or import them as JSON when needed.</small></div><button class="icon-button" id="closeQueryLibraryButton" type="button" aria-label="Close query library"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="query-library-toolbar"><label><span>Name</span><input id="queryLibraryName" type="text" maxlength="120" placeholder="Auth timeout investigation"></label><label><span>Folder</span><input id="queryLibraryFolder" type="text" maxlength="80" placeholder="Production / Auth"></label><label><span>Tags</span><input id="queryLibraryTags" type="text" maxlength="240" placeholder="auth, timeout, production"></label><label class="query-library-toolbar__wide"><span>Description</span><input id="queryLibraryDescription" type="text" maxlength="1000" placeholder="Why this query is useful"></label><label class="query-library-favorite"><input id="queryLibraryFavorite" type="checkbox"><span>Favorite</span></label><button class="button button--primary button--small" id="queryLibrarySaveButton" type="button">Save current query</button><button class="button button--ghost button--small" id="queryLibraryExportButton" type="button">Export</button><button class="button button--ghost button--small" id="queryLibraryImportButton" type="button">Import</button><input id="queryLibraryFileInput" type="file" accept=".json" hidden></div>
+      <div class="query-library-browser"><label class="query-library-search"><span>Search library</span><input id="queryLibrarySearch" type="search" placeholder="name, query, tag, folder…"></label><label><span>Show folder</span><select id="queryLibraryFolderFilter"><option value="*">All folders</option></select></label><label><span>Manage folder</span><select id="queryLibraryManageFolder"><option value="General">General</option></select></label><label><span>Rename to</span><input id="queryLibraryRenameFolder" type="text" maxlength="80" placeholder="New folder name"></label><button class="button button--ghost button--small" id="queryLibraryRenameFolderButton" type="button">Rename folder</button><button class="button button--ghost button--small" id="queryLibraryDeleteFolderButton" type="button">Move folder to General</button></div>
+      <div class="query-library-list" id="queryLibraryList"><div class="case-findings__empty">No reusable queries saved yet.</div></div>
+      <footer class="query-library-footer"><span>Query library records stay in local browser storage unless you explicitly export them.</span></footer>
+    </section>
+  </dialog>
+
+  <dialog class="investigation-dialog" id="investigationDialog">
+    <section class="investigation-card" aria-label="SignalDock investigation notebook">
+      <header class="investigation-head">
+        <div><span>LOCAL CASE WORKSPACE</span><strong>Investigation &amp; evidence</strong><small>Form a hypothesis, record findings, pin evidence and export a local handoff.</small></div>
+        <button class="icon-button" id="closeInvestigationButton" type="button" aria-label="Close investigation"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+      </header>
+      <div class="investigation-meta">
+        <label><span>Title</span><input id="investigationTitle" type="text" maxlength="96" value="Investigation"></label>
+        <label class="investigation-summary-field"><span>Summary</span><textarea id="investigationSummary" rows="2" maxlength="4000" placeholder="What are you trying to understand?"></textarea></label>
+      </div>
+      <section class="case-workspace" aria-label="Case workspace">
+        <div class="case-workspace__head"><div><span>CASE WORKSPACE</span><strong>Hypothesis, impact and findings</strong></div><span id="caseWorkspaceStats">0 findings</span></div>
+        <div class="case-workspace__controls">
+          <label><span>Status</span><select id="caseStatus"><option value="open">Open</option><option value="investigating">Investigating</option><option value="monitoring">Monitoring</option><option value="resolved">Resolved</option></select></label>
+          <label><span>Severity</span><select id="caseSeverity"><option value="none">Not set</option><option value="sev4">SEV4</option><option value="sev3">SEV3</option><option value="sev2">SEV2</option><option value="sev1">SEV1</option></select></label>
+          <label class="case-workspace__wide"><span>Hypothesis</span><textarea id="caseHypothesis" rows="2" maxlength="8000" placeholder="What do you currently think is happening?"></textarea></label>
+          <label class="case-workspace__wide"><span>Impact</span><textarea id="caseImpact" rows="2" maxlength="8000" placeholder="What users, services or workflows are affected?"></textarea></label>
+          <label class="case-workspace__wide"><span>Next steps</span><textarea id="caseNextSteps" rows="2" maxlength="8000" placeholder="What should be checked or changed next?"></textarea></label>
+        </div>
+        <div class="case-workspace__toolbar"><strong>Findings</strong><div><button class="button button--ghost button--small" id="addCaseFindingButton" type="button">Add finding</button><button class="button button--ghost button--small" id="exportCaseMarkdownButton" type="button">Case Markdown</button><button class="button button--ghost button--small" id="exportCaseJsonButton" type="button">Case JSON</button><button class="button button--ghost button--small" id="importCaseJsonButton" type="button">Import case</button><input id="caseFileInput" type="file" accept=".json,.sdcase" hidden></div></div>
+        <div class="case-findings" id="caseFindings"><div class="case-findings__empty">No findings yet. Add a finding when evidence supports or disproves a hypothesis.</div></div>
+        <section class="case-milestones" aria-label="Case milestones">
+          <div class="case-activity__head"><div><span>MILESTONES</span><strong>Investigation checkpoints</strong></div><button class="button button--ghost button--small" id="addCaseMilestoneButton" type="button">Add milestone</button></div>
+          <div class="case-milestones__list" id="caseMilestones"><div class="case-findings__empty">No milestones yet.</div></div>
+        </section>
+        <section class="case-attachments" aria-label="Local attachment references">
+          <div class="case-activity__head"><div><span>ATTACHMENT REFERENCES</span><strong>Local file metadata</strong></div><div><button class="button button--ghost button--small" id="addCaseAttachmentButton" type="button">Add local file reference</button><input id="caseAttachmentInput" type="file" multiple hidden></div></div>
+          <small class="case-attachments__note">SignalDock stores filename/type/size/time metadata only — attachment bytes are never embedded or uploaded.</small>
+          <div class="case-attachments__list" id="caseAttachments"><div class="case-findings__empty">No local file references yet.</div></div>
+        </section>
+        <section class="case-checkpoints" aria-label="Case checkpoints">
+          <div class="case-activity__head"><div><span>CASE CHECKPOINTS</span><strong>Local case snapshots</strong></div><div class="checkpoint-create"><input id="caseCheckpointLabel" type="text" maxlength="160" placeholder="Before config change"><button class="button button--ghost button--small" id="addCaseCheckpointButton" type="button">Create checkpoint</button></div></div>
+          <small class="case-attachments__note">Checkpoints store the normalized case state plus evidence IDs, not copies of log data.</small>
+          <div class="case-checkpoints__list" id="caseCheckpoints"><div class="case-findings__empty">No case checkpoints yet.</div></div>
+        </section>
+        <section class="case-unified-timeline" aria-label="Combined case timeline">
+          <div class="case-activity__head"><div><span>CASE TIMELINE</span><strong>Evidence, milestones &amp; activity</strong></div><label class="case-timeline-filter"><span>Show</span><select id="caseTimelineFilter"><option value="all">Everything</option><option value="evidence">Evidence</option><option value="milestone">Milestones</option><option value="activity">Activity</option></select></label></div>
+          <div class="case-unified-timeline__meta" id="caseTimelineMeta">No timestamped case events.</div>
+          <div class="case-unified-timeline__list" id="caseTimelineList"><div class="case-findings__empty">Evidence, milestones and case changes will appear here in chronological order.</div></div>
+        </section>
+        <section class="case-activity" aria-label="Case activity history">
+          <div class="case-activity__head"><div><span>ACTIVITY HISTORY</span><strong>Case timeline</strong></div><span id="caseActivityMeta">0 events</span></div>
+          <div class="case-activity__list" id="caseActivityList"><div class="case-findings__empty">Case changes will appear here.</div></div>
+        </section>
+      </section>
+      <div class="investigation-toolbar">
+        <span id="investigationStats">0 evidence items</span>
+        <div>
+          <button class="button button--ghost button--small" id="exportInvestigationBundleButton" type="button">Evidence bundle</button>
+          <button class="button button--ghost button--small" id="exportInvestigationMarkdownButton" type="button">Markdown</button>
+          <button class="button button--ghost button--small" id="exportInvestigationJsonButton" type="button">JSON</button>
+          <button class="button button--ghost button--small" id="importInvestigationJsonButton" type="button">Import</button>
+          <input id="investigationFileInput" type="file" accept=".json,.sdbundle" hidden>
+          <button class="button button--ghost button--small" id="clearInvestigationButton" type="button">Clear</button>
+        </div>
+      </div>
+      <section class="investigation-timeline" aria-label="Evidence timeline">
+        <div class="investigation-timeline__head"><strong>Evidence timeline</strong><span id="investigationTimelineMeta">No timed evidence</span></div>
+        <div class="investigation-timeline__bars" id="investigationTimeline"></div>
+      </section>
+      <div class="investigation-list" id="investigationList"><div class="investigation-empty">No evidence pinned yet. Select a log entry and choose Add evidence.</div></div>
+      <footer class="investigation-footer"><span>Case notes and evidence stay inside the local SignalDock workspace/recovery snapshot unless you explicitly export them.</span></footer>
+    </section>
+  </dialog>
+
+  <dialog class="exception-dialog" id="exceptionDialog">
+    <section class="exception-card" aria-label="SignalDock exception groups">
+      <header class="exception-head">
+        <div><span>LOCAL FAILURE ANALYSIS</span><strong>Exception groups</strong><small>Recurring failures are grouped by a deterministic normalized fingerprint. Dynamic IDs, timestamps, IPs and numbers are removed from the signature.</small></div>
+        <button class="icon-button" id="closeExceptionButton" type="button" aria-label="Close exception groups"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+      </header>
+      <div class="exception-summary" id="exceptionSummary"></div>
+      <section class="exception-trend" id="exceptionTrend"><div class="exception-trend__empty">Timestamped recurring failures will show trend analysis here.</div></section>
+      <div class="exception-list" id="exceptionList"><div class="investigation-empty">Load logs containing errors or exceptions to build local fingerprints.</div></div>
+      <footer class="exception-footer"><span>Fingerprints are derived locally from normalized exception type, service, message and stack-head data.</span><button class="button button--ghost button--small" id="exceptionResetButton" type="button">Show all groups</button></footer>
+    </section>
+  </dialog>
+
+  <dialog class="baseline-dialog" id="baselineDialog">
+    <section class="baseline-card" aria-label="Cross-dataset baseline comparison">
+      <header class="matrix-head"><div><span>CROSS-DATASET BASELINE</span><strong>Baseline comparison</strong><small id="baselineMeta">Capture or import a compact baseline, then compare a different loaded dataset against it.</small></div><button class="icon-button" id="closeBaselineButton" type="button" aria-label="Close baseline comparison"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="baseline-toolbar"><label><span>Baseline name</span><input id="baselineName" type="text" maxlength="120" placeholder="Production before deploy"></label><button class="button button--primary button--small" id="captureBaselineButton" type="button">Capture all logs</button><button class="button button--ghost button--small" id="captureFilteredBaselineButton" type="button">Capture filtered</button><button class="button button--ghost button--small" id="exportBaselineButton" type="button">Export .sdbaseline</button><button class="button button--ghost button--small" id="importBaselineButton" type="button">Import baseline</button><input id="baselineFileInput" type="file" accept=".sdbaseline,.json" hidden></div>
+      <div class="matrix-summary" id="baselineSummary"></div>
+      <div class="baseline-grid"><section><h3>Service deltas</h3><div class="baseline-table-wrap"><table class="matrix-table"><thead><tr><th>Service</th><th>Entries Δ</th><th>Error Δ</th><th>p95 Δ</th><th></th></tr></thead><tbody id="baselineServiceBody"></tbody></table></div></section><section><h3>Dependency deltas</h3><div class="baseline-table-wrap"><table class="matrix-table"><thead><tr><th>Dependency</th><th>Calls Δ</th><th>Error Δ</th><th>p95 Δ</th><th></th></tr></thead><tbody id="baselineDependencyBody"></tbody></table></div></section></div>
+      <section class="baseline-regressions"><h3>Trace regression sets</h3><div class="baseline-table-wrap"><table class="trace-explorer-table"><thead><tr><th>Service set</th><th>Status</th><th>Traces Δ</th><th>p95 Δ</th><th>Error Δ</th></tr></thead><tbody id="baselineTraceBody"></tbody></table></div></section>
+      <footer class="matrix-footer"><span>Baselines contain aggregate metrics only; raw log entries are not embedded.</span></footer>
+    </section>
+  </dialog>
+
+  <dialog class="project-dialog" id="projectDialog">
+    <section class="project-card" aria-label="SignalDock local project manager">
+      <header class="query-library-head"><div><span>LOCAL PROJECT METADATA</span><strong>Projects &amp; workspaces</strong><small>Organize investigation metadata locally without copying log contents into project records.</small></div><button class="icon-button" id="closeProjectButton" type="button" aria-label="Close project manager"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <div class="project-toolbar"><label><span>Project name</span><input id="projectName" type="text" maxlength="120" placeholder="Payments production"></label><label><span>Description</span><input id="projectDescription" type="text" maxlength="2000" placeholder="Local context for this investigation"></label><button class="button button--primary button--small" id="createProjectButton" type="button">Create project</button><button class="button button--ghost button--small" id="exportProjectsButton" type="button">Export</button><button class="button button--ghost button--small" id="importProjectsButton" type="button">Import</button><input id="projectsFileInput" type="file" accept=".json,.sdprojects" hidden></div>
+      <div class="project-active" id="activeProjectMeta">No active project.</div>
+      <div class="project-list" id="projectList"><div class="case-findings__empty">No local projects yet.</div></div>
+      <footer class="query-library-footer"><span>Project records contain names, descriptions and references only. Loaded log bytes remain in the current workspace/session.</span></footer>
+    </section>
+  </dialog>
+
+  <dialog class="command-palette-dialog" id="commandPaletteDialog">
+    <section class="command-palette-card" aria-label="SignalDock command palette">
+      <div class="command-palette-search"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg><input id="commandPaletteInput" type="search" placeholder="Type a command…" autocomplete="off"><kbd>ESC</kbd></div>
+      <div class="command-palette-list" id="commandPaletteList" role="listbox"></div>
+      <footer><span>Navigate with ↑ ↓ · run with Enter</span><button class="button button--ghost button--small" id="closeCommandPaletteButton" type="button">Close</button></footer>
+    </section>
+  </dialog>
+
+  <div class="processing" id="processing" hidden aria-live="assertive" aria-busy="true">
+    <div class="processing__card">
+      <span class="processing__logo"><img src="assets/logo.svg" alt="" width="40" height="40"></span>
+      <div><strong id="processingTitle">Processing logs…</strong><span id="processingDetail">Reading files locally</span></div>
+      <i class="progress-bar" aria-hidden="true"></i>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="zip.js" defer></script>
+  <script src="parser-plugins.js" defer></script>
+  <script src="span-events.js" defer></script>
+  <script src="parser.js" defer></script>
+  <script src="utils.js" defer></script>
+  <script src="query-engine.js" defer></script>
+  <script src="search-index.js" defer></script>
+  <script src="search-cache.js" defer></script>
+  <script src="workspace.js" defer></script>
+  <script src="persistence.js" defer></script>
+  <script src="service-map.js" defer></script>
+  <script src="service-matrix.js" defer></script>
+  <script src="service-heatmap.js" defer></script>
+  <script src="service-trends.js" defer></script>
+  <script src="baseline-manager.js" defer></script>
+  <script src="trace-regression.js" defer></script>
+  <script src="trace-explorer.js" defer></script>
+  <script src="trace-compare.js" defer></script>
+  <script src="trace-outliers.js" defer></script>
+  <script src="query-library.js" defer></script>
+  <script src="case-timeline.js" defer></script>
+  <script src="storage-adapter.js" defer></script>
+  <script src="trace-analysis.js" defer></script>
+  <script src="trace-insights.js" defer></script>
+  <script src="trace-flame.js" defer></script>
+  <script src="parser-profiles.js" defer></script>
+  <script src="command-palette.js" defer></script>
+  <script src="performance.js" defer></script>
+  <script src="virtual-viewport.js" defer></script>
+  <script src="exception-groups.js" defer></script>
+  <script src="exception-trends.js" defer></script>
+  <script src="service-health.js" defer></script>
+  <script src="investigation.js" defer></script>
+  <script src="case-workspace.js" defer></script>
+  <script src="case-checkpoints.js" defer></script>
+  <script src="project-manager.js" defer></script>
+  <script src="app.js" defer></script>
+</body>
+</html>

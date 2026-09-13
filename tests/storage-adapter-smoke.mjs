@@ -1,0 +1,11 @@
+import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
+const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..'); const context={};context.self=context;context.window=context;vm.createContext(context);
+vm.runInContext(fs.readFileSync(path.join(root,'storage-adapter.js'),'utf8'),context,{filename:'storage-adapter.js'});
+const api=context.SignalDockStorageAdapter; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
+assert(api.sanitizeName('bad:name?.json')==='bad-name-.json','filename sanitizer mismatch');
+const ref=api.reference({name:'dump.log',type:'text/plain',size:42,lastModified:123},'evidence');
+assert(ref.name==='dump.log'&&ref.size===42&&ref.note==='evidence','local file reference mismatch');
+const caps=api.capabilities(); assert(caps.filePicker===false&&caps.savePicker===false,'unexpected picker capability in vm');
+const read=await api.readTextFile({name:'x.json',type:'application/json',size:2,lastModified:1,text:async()=>'{\"x\":1}'},1024);assert(read.reference.name==='x.json'&&read.text.includes('x'),'readTextFile mismatch');
+let blocked=false;try{await api.readTextFile({name:'huge',size:2048,text:async()=>''},1024)}catch{blocked=true}assert(blocked,'readTextFile size guard missing');
+console.log('storage-adapter-smoke: ok');
