@@ -7,6 +7,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const queryController = fs.readFileSync(path.join(root, "src/app/query-library-controller.js"), "utf8");
 const baselineController = fs.readFileSync(path.join(root, "src/app/baseline-controller.js"), "utf8");
 const projectController = fs.readFileSync(path.join(root, "src/app/project-controller.js"), "utf8");
+const caseCheckpointController = fs.readFileSync(path.join(root, "src/app/case-checkpoint-controller.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
 const required = [
@@ -15,7 +16,6 @@ const required = [
   "touchDataset",
   "attachBaseline",
   "queryLibrarySelection",
-  "checkpoint-diff",
 ];
 for (const token of required) {
   if (!app.includes(token)) throw new Error(`Missing UI foundation token: ${token}`);
@@ -28,6 +28,9 @@ for (const token of ["renderHistory", "compareById", "baselineHistoryList", "ren
 }
 for (const token of ["historySection", "markHistoryReopened", "forgetProjectHandles"]) {
   if (!projectController.includes(token)) throw new Error(`Missing Project controller foundation token: ${token}`);
+}
+for (const token of ["checkpoint-diff", "case.checkpoint.restored", "scheduleDatasetAutosave", "renderCaseWorkspace"]) {
+  if (!caseCheckpointController.includes(token)) throw new Error(`Missing Case Checkpoint controller foundation token: ${token}`);
 }
 for (const selector of [".query-library-bulkbar", ".query-library-item", ".baseline-history", ".baseline-history__compare"]) {
   if (!css.includes(selector)) throw new Error(`Missing UI foundation style: ${selector}`);

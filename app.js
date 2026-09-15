@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.2";
+  const APP_VERSION = "2.8.3";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -84,6 +84,7 @@
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
+  let caseCheckpointController = null;
 
   const el = {};
   const $ = (id) => document.getElementById(id);
@@ -227,6 +228,15 @@
     });
     projectController.bind();
     state.caseCheckpoints = window.SignalDockCaseCheckpoints?.normalizeList?.([]) || [];
+    if (!window.SignalDockCaseCheckpointController?.create) throw new Error("SignalDock Case Checkpoint controller is unavailable.");
+    caseCheckpointController = window.SignalDockCaseCheckpointController.create({
+      state,
+      el,
+      toast,
+      renderCaseWorkspace: () => renderCaseWorkspace(),
+      scheduleDatasetAutosave: () => scheduleDatasetAutosave()
+    });
+    caseCheckpointController.bind();
     projectController.render();
     applySettings();
     refreshSavedParserProfiles();
@@ -421,9 +431,6 @@
     el.traceOutlierBody?.addEventListener("click", onTraceOutlierClick);
     el.caseTimelineFilter?.addEventListener("change", () => { state.caseTimelineFilter = el.caseTimelineFilter.value || "all"; renderCaseUnifiedTimeline(); });
     el.caseTimelineList?.addEventListener("click", onCaseTimelineClick);
-
-    el.addCaseCheckpointButton?.addEventListener("click", createCaseCheckpoint);
-    el.caseCheckpoints?.addEventListener("click", onCaseCheckpointClick);
 
     document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
 
@@ -2203,10 +2210,6 @@
 
 
 
-  function createCaseCheckpoint() { if (!window.SignalDockCaseCheckpoints) return; const checkpoint = window.SignalDockCaseCheckpoints.create(state.caseFile, state.investigation, { label: el.caseCheckpointLabel?.value?.trim() || "" }); state.caseCheckpoints = window.SignalDockCaseCheckpoints.add(state.caseCheckpoints, checkpoint); if (el.caseCheckpointLabel) el.caseCheckpointLabel.value = ""; renderCaseCheckpoints(); scheduleDatasetAutosave(); toast("Case checkpoint created."); }
-  function checkpointChangeRow(label, value) { const row = document.createElement("span"); const strong = document.createElement("strong"); strong.textContent = label; row.append(strong, document.createTextNode(` ${value}`)); return row; }
-  function renderCaseCheckpoints() { if (!el.caseCheckpoints || !window.SignalDockCaseCheckpoints) return; state.caseCheckpoints = window.SignalDockCaseCheckpoints.normalizeList(state.caseCheckpoints); el.caseCheckpoints.replaceChildren(); if (!state.caseCheckpoints.length) { const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = "No case checkpoints yet."; el.caseCheckpoints.appendChild(empty); return; } [...state.caseCheckpoints].reverse().forEach((checkpoint) => { const diff = window.SignalDockCaseCheckpoints.diff(checkpoint, state.caseFile, state.investigation); const row = document.createElement("article"); row.className = "checkpoint-row"; const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = checkpoint.label; const small = document.createElement("small"); small.textContent = `${new Date(checkpoint.createdAt).toLocaleString()} · ${diff.summary.changedSections} changed sections · evidence +${diff.evidenceAdded.length}/-${diff.evidenceRemoved.length}`; copy.append(strong, small); const details = document.createElement("details"); details.className = "checkpoint-diff"; const summary = document.createElement("summary"); summary.textContent = diff.summary.changedSections ? "Review changes since checkpoint" : "No structural changes since checkpoint"; details.appendChild(summary); const changes = document.createElement("div"); changes.className = "checkpoint-diff__grid"; Object.entries(diff.fields).forEach(([field, values]) => changes.appendChild(checkpointChangeRow(field, `${values.before || "—"} → ${values.after || "—"}`))); if (diff.summary.findingChanges) changes.appendChild(checkpointChangeRow("Findings", `+${diff.findings.added.length} / -${diff.findings.removed.length}`)); if (diff.summary.milestoneChanges) changes.appendChild(checkpointChangeRow("Milestones", `+${diff.milestones.added.length} / -${diff.milestones.removed.length}`)); if (diff.summary.attachmentChanges) changes.appendChild(checkpointChangeRow("Attachments", `+${diff.attachments.added.length} / -${diff.attachments.removed.length}`)); if (diff.summary.evidenceChanges) changes.appendChild(checkpointChangeRow("Evidence", `+${diff.evidenceAdded.length} / -${diff.evidenceRemoved.length}`)); if (!changes.childElementCount) changes.appendChild(checkpointChangeRow("State", "No changed fields or collection membership")); details.appendChild(changes); copy.appendChild(details); const actions = document.createElement("div"); [["restore", "Restore case"], ["remove", "Remove"]].forEach(([action, label]) => { const button = makeUiButton("", label); button.dataset.checkpointAction = action; button.dataset.checkpointId = checkpoint.id; actions.appendChild(button); }); row.append(copy, actions); el.caseCheckpoints.appendChild(row); }); }
-  function onCaseCheckpointClick(event) { const button = event.target.closest("[data-checkpoint-action]"); if (!button || !window.SignalDockCaseCheckpoints) return; const checkpoint = state.caseCheckpoints.find((item) => item.id === button.dataset.checkpointId); if (!checkpoint) return; if (button.dataset.checkpointAction === "remove") { state.caseCheckpoints = window.SignalDockCaseCheckpoints.remove(state.caseCheckpoints, checkpoint.id); renderCaseCheckpoints(); scheduleDatasetAutosave(); return; } if (button.dataset.checkpointAction === "restore") { state.caseFile = window.SignalDockCaseWorkspace?.normalize?.(checkpoint.caseFile) || checkpoint.caseFile; state.caseFile = window.SignalDockCaseWorkspace?.appendActivity?.(state.caseFile, "case.checkpoint.restored", { label: "Case checkpoint restored", detail: checkpoint.label }) || state.caseFile; if (el.caseStatus) el.caseStatus.value = state.caseFile.status || "open"; if (el.caseSeverity) el.caseSeverity.value = state.caseFile.severity || "none"; if (el.caseHypothesis) el.caseHypothesis.value = state.caseFile.hypothesis || ""; if (el.caseImpact) el.caseImpact.value = state.caseFile.impact || ""; if (el.caseNextSteps) el.caseNextSteps.value = state.caseFile.nextSteps || ""; renderCaseWorkspace(); renderCaseCheckpoints(); scheduleDatasetAutosave(); toast(`Restored case state from “${checkpoint.label}”.`); } }
 
   function openHealth() {
     if (!window.SignalDockServiceHealth || !el.healthDialog) return;
@@ -2495,6 +2498,7 @@
     renderCaseUnifiedTimeline();
     renderCaseMilestones();
     renderCaseAttachments();
+    caseCheckpointController?.render();
     if (!rebuild) return;
     el.caseFindings.replaceChildren();
     if (!state.caseFile.findings.length) {

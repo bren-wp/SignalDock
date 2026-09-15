@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.3 — 2026-09-16
+
+### Case Checkpoint application controller
+- Extracted Case Checkpoint rendering, create/remove/restore actions and event ownership from the root `app.js` into `src/app/case-checkpoint-controller.js`.
+- Kept checkpoint normalization, creation and diff semantics in `src/investigation/case-checkpoints.js`; the controller receives case-workspace rendering and autosave through narrow callbacks.
+- Checkpoint rendering now refreshes as part of Case Workspace rendering, so restored/imported workspaces and subsequent case edits keep checkpoint diffs synchronized without requiring a checkpoint action first.
+- Added defensive timestamp formatting plus idempotent listener binding/teardown.
+
+### Regression coverage
+- Added a dedicated Case Checkpoint controller smoke test and moved checkpoint UI ownership assertions out of the root application test surface.
+- Extended the source-layout gate to require all four application controllers while preserving the zero-build static runtime.
+
 ## 2.8.2 — 2026-09-16
 
 ### Project application controller

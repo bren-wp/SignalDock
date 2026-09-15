@@ -15,3 +15,5 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 `app/baseline-controller.js` owns Baseline Compare/History UI coordination.
 
 `app/project-controller.js` owns Project Manager UI and explicit reopen/link orchestration.
+
+`app/case-checkpoint-controller.js` owns Case Checkpoint UI rendering and create/remove/restore event coordination.

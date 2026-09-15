@@ -13,11 +13,7 @@ for (const dir of expectedDirs) assert.ok(fs.statSync(path.join(root, dir)).isDi
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
 assert.ok(scripts.includes("app.js"), "app.js entrypoint missing from index.html");
-for (const ref of [
-  "src/app/query-library-controller.js",
-  "src/app/baseline-controller.js",
-  "src/app/project-controller.js"
-]) {
+for (const ref of ["src/app/query-library-controller.js", "src/app/baseline-controller.js", "src/app/project-controller.js", "src/app/case-checkpoint-controller.js"]) {
   assert.ok(scripts.includes(ref), `application controller missing from index.html: ${ref}`);
 }
 assert.ok(scripts.some((ref) => ref.startsWith("src/core/")), "core scripts are not loaded from src/core");

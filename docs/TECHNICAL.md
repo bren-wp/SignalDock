@@ -10,12 +10,14 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `project-controller.js` owns Project Manager rendering, CRUD actions and explicit link/relink/reopen/forget orchestration. File parsing and workspace restore remain injected application callbacks, while filesystem access is limited to the existing `src/platform/desktop-bridge.js` capability facade. Portable project export/duplication rules remain in `src/investigation/project-manager.js`.
 
+`case-checkpoint-controller.js` owns Case Checkpoint rendering and create/remove/restore UI actions. Checkpoint snapshots/diffs remain in `src/investigation/case-checkpoints.js`, while the controller receives Case Workspace refresh and autosave as narrow callbacks. Case Workspace rendering also refreshes checkpoint diffs so restored sessions and later edits remain visually synchronized.
+
 
 **Private observability on your machine.**
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.2**.
+Current version: **2.8.3**.
 
 ## Highlights
 

@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml/badge.svg"></a>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml/badge.svg"></a>
-    <img alt="Version" src="https://img.shields.io/badge/version-2.8.2-22d3ee?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-2.8.3-22d3ee?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
     <img alt="Local first" src="https://img.shields.io/badge/local--first-yes-67e8f9?style=flat-square">
     <img alt="Telemetry" src="https://img.shields.io/badge/telemetry-none-a7f3d0?style=flat-square">
@@ -28,8 +28,8 @@
 </p>
 
 <p align="center">
-  <strong>SignalDock v2.8.2 — real application UI with the bundled demo dataset</strong><br>
-  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.8.2 application screenshot showing local log analysis" width="100%" />
+  <strong>SignalDock v2.8.3 — real application UI with the bundled demo dataset</strong><br>
+  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.8.3 application screenshot showing local log analysis" width="100%" />
 </p>
 
 ## Your logs should not need a cloud account
@@ -101,6 +101,7 @@ SignalDock includes:
 - feature-level Query Library controller under `src/app/` with explicit state/callback boundaries and no bundler dependency
 - feature-level Baseline controller under `src/app/` with explicit Project/filters/autosave callbacks and preserved aggregate-only baseline semantics
 - feature-level Project controller under `src/app/` that owns project UI/reopen orchestration while retaining the narrow desktop capability facade and portable-export stripping rules
+- feature-level Case Checkpoint controller under `src/app/` that owns checkpoint rendering/actions while the bounded checkpoint model remains in `src/investigation/`
 - local Project Manager and cross-dataset baseline comparison
 - bounded multi-baseline history with saved-baseline A/B comparison and project association
 - Project Manager recent workspace/dataset/baseline/case history, duplicate and archive controls
