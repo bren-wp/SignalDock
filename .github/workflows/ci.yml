@@ -61,6 +61,7 @@ jobs:
           grep -q 'SignalDock' /tmp/signaldock-index.html
           curl --fail --silent --show-error http://127.0.0.1:8080/app.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/styles.css -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/src/app/query-library-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/core/parser.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/analysis/trace-explorer.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/platform/desktop-bridge.js -o /dev/null
