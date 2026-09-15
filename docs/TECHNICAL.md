@@ -4,7 +4,7 @@
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.7.3**.
+Current version: **2.7.4**.
 
 ## Highlights
 
@@ -12,6 +12,7 @@ Current version: **2.7.3**.
 - Baseline History UI with bounded local aggregate snapshots, active-project association, import/export and baseline-to-baseline comparison
 - Project Manager v2 history UI for recent workspace/dataset/baseline/case metadata, duplicate and archive controls
 - Query Library v3 multi-select bulk operations and local usage metadata
+- Stable Query Library bulk controls and Baseline History controls are authored directly in `index.html`; application boot only binds behavior and never synthesizes these permanent surfaces at runtime
 - Rich Case Checkpoint diffs across case fields and bounded investigation collections
 - Two-pass Trace Explorer aggregation with bounded UI windows and exact global summary counters
 - Bounded Service Matrix latency retention using exact small samples and compact histograms for high-volume edges
@@ -96,6 +97,7 @@ SignalDock user-facing copy avoids implementation-stage labels and internal runt
 The production regression suite checks for unresolved CSS custom properties, hidden phone navigation, release-stage labels in the interface and accidental reintroduction of implementation terminology.
 
 - Inspector tabs use a roving-tab keyboard model with Arrow/Home/End navigation, command-palette combobox semantics are exposed to assistive technology, and dialog focus return works for both pointer and keyboard activation.
+- Permanent Query Library bulk and Baseline History controls are static document structure, so accessibility relationships and control presence can be audited before JavaScript runs.
 
 ## Cross-dataset baselines and local projects
 

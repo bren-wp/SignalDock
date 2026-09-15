@@ -476,6 +476,17 @@
       <header class="query-library-head"><div><span>LOCAL QUERY LIBRARY</span><strong>Reusable searches</strong><small>Store structured queries and filters locally; export or import them as JSON when needed.</small></div><button class="icon-button" id="closeQueryLibraryButton" type="button" aria-label="Close query library"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="query-library-toolbar"><label><span>Name</span><input id="queryLibraryName" type="text" maxlength="120" placeholder="Auth timeout investigation"></label><label><span>Folder</span><input id="queryLibraryFolder" type="text" maxlength="80" placeholder="Production / Auth"></label><label><span>Tags</span><input id="queryLibraryTags" type="text" maxlength="240" placeholder="auth, timeout, production"></label><label class="query-library-toolbar__wide"><span>Description</span><input id="queryLibraryDescription" type="text" maxlength="1000" placeholder="Why this query is useful"></label><label class="query-library-favorite"><input id="queryLibraryFavorite" type="checkbox"><span>Favorite</span></label><button class="button button--primary button--small" id="queryLibrarySaveButton" type="button">Save current query</button><button class="button button--ghost button--small" id="queryLibraryExportButton" type="button">Export</button><button class="button button--ghost button--small" id="queryLibraryImportButton" type="button">Import</button><input id="queryLibraryFileInput" type="file" accept=".json" hidden></div>
       <div class="query-library-browser"><label class="query-library-search"><span>Search library</span><input id="queryLibrarySearch" type="search" placeholder="name, query, tag, folder…"></label><label><span>Show folder</span><select id="queryLibraryFolderFilter"><option value="*">All folders</option></select></label><label><span>Manage folder</span><select id="queryLibraryManageFolder"><option value="General">General</option></select></label><label><span>Rename to</span><input id="queryLibraryRenameFolder" type="text" maxlength="80" placeholder="New folder name"></label><button class="button button--ghost button--small" id="queryLibraryRenameFolderButton" type="button">Rename folder</button><button class="button button--ghost button--small" id="queryLibraryDeleteFolderButton" type="button">Move folder to General</button></div>
+      <div class="query-library-bulkbar" id="queryLibraryBulkBar" role="group" aria-label="Bulk query actions">
+        <strong id="queryLibraryBulkCount" aria-live="polite">0 selected</strong>
+        <button class="button button--ghost button--small" id="queryLibraryBulkSelectVisible" type="button" disabled>Select visible</button>
+        <select id="queryLibraryBulkFolder" aria-label="Bulk destination folder"><option value="General">General</option></select>
+        <button class="button button--ghost button--small" id="queryLibraryBulkMove" type="button" disabled>Move</button>
+        <button class="button button--ghost button--small" id="queryLibraryBulkFavorite" type="button" disabled>Favorite</button>
+        <button class="button button--ghost button--small" id="queryLibraryBulkUnfavorite" type="button" disabled>Unfavorite</button>
+        <button class="button button--ghost button--small" id="queryLibraryBulkExport" type="button" disabled>Export selected</button>
+        <button class="button button--ghost button--small" id="queryLibraryBulkDelete" type="button" disabled>Delete selected</button>
+        <button class="button button--ghost button--small" id="queryLibraryBulkClear" type="button" disabled>Clear selection</button>
+      </div>
       <div class="query-library-list" id="queryLibraryList"><div class="case-findings__empty">No reusable queries saved yet.</div></div>
       <footer class="query-library-footer"><span>Query library records stay in local browser storage unless you explicitly export them.</span></footer>
     </section>
@@ -563,6 +574,22 @@
     <section class="baseline-card" aria-label="Cross-dataset baseline comparison">
       <header class="matrix-head"><div><span>CROSS-DATASET BASELINE</span><strong>Baseline comparison</strong><small id="baselineMeta">Capture or import a compact baseline, then compare a different loaded dataset against it.</small></div><button class="icon-button" id="closeBaselineButton" type="button" aria-label="Close baseline comparison"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="baseline-toolbar"><label><span>Baseline name</span><input id="baselineName" type="text" maxlength="120" placeholder="Production before deploy"></label><button class="button button--primary button--small" id="captureBaselineButton" type="button">Capture all logs</button><button class="button button--ghost button--small" id="captureFilteredBaselineButton" type="button">Capture filtered</button><button class="button button--ghost button--small" id="exportBaselineButton" type="button">Export .sdbaseline</button><button class="button button--ghost button--small" id="importBaselineButton" type="button">Import baseline</button><input id="baselineFileInput" type="file" accept=".sdbaseline,.json" hidden></div>
+      <section class="baseline-history" aria-labelledby="baselineHistoryTitle">
+        <div class="baseline-history__head">
+          <div><span>LOCAL BASELINE HISTORY</span><strong id="baselineHistoryTitle">Saved aggregate snapshots</strong></div>
+          <div>
+            <button class="button button--ghost button--small" id="baselineHistoryExportButton" type="button">Export history</button>
+            <button class="button button--ghost button--small" id="baselineHistoryImportButton" type="button">Import history</button>
+            <input id="baselineHistoryFileInput" type="file" accept=".json,.sdbaselines" hidden>
+          </div>
+        </div>
+        <div class="baseline-history__compare">
+          <label><span>Baseline</span><select id="baselineCompareBase"><option value="">Choose saved baseline…</option></select></label>
+          <label><span>Current snapshot</span><select id="baselineCompareCurrent"><option value="">Choose saved baseline…</option></select></label>
+          <button class="button button--primary button--small" id="compareSavedBaselinesButton" type="button" disabled>Compare saved baselines</button>
+        </div>
+        <div class="baseline-history__list" id="baselineHistoryList"><div class="case-findings__empty">No saved baselines yet.</div></div>
+      </section>
       <div class="matrix-summary" id="baselineSummary"></div>
       <div class="baseline-grid"><section><h3>Service deltas</h3><div class="baseline-table-wrap"><table class="matrix-table"><thead><tr><th>Service</th><th>Entries Δ</th><th>Error Δ</th><th>p95 Δ</th><th></th></tr></thead><tbody id="baselineServiceBody"></tbody></table></div></section><section><h3>Dependency deltas</h3><div class="baseline-table-wrap"><table class="matrix-table"><thead><tr><th>Dependency</th><th>Calls Δ</th><th>Error Δ</th><th>p95 Δ</th><th></th></tr></thead><tbody id="baselineDependencyBody"></tbody></table></div></section></div>
       <section class="baseline-regressions"><h3>Trace regression sets</h3><div class="baseline-table-wrap"><table class="trace-explorer-table"><thead><tr><th>Service set</th><th>Status</th><th>Traces Δ</th><th>p95 Δ</th><th>Error Δ</th></tr></thead><tbody id="baselineTraceBody"></tbody></table></div></section>

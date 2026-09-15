@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.7.3";
+  const APP_VERSION = "2.7.4";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -149,8 +149,8 @@
       serviceTrendsCount: $("serviceTrendsCount"), serviceTrendsDialog: $("serviceTrendsDialog"), serviceTrendsMeta: $("serviceTrendsMeta"), serviceTrendsSummary: $("serviceTrendsSummary"), serviceTrendsBody: $("serviceTrendsBody"), serviceTrendsSplit: $("serviceTrendsSplit"), serviceTrendsWindow: $("serviceTrendsWindow"), closeServiceTrendsButton: $("closeServiceTrendsButton"), serviceTrendsResetButton: $("serviceTrendsResetButton"),
       traceExplorerCount: $("traceExplorerCount"), traceExplorerDialog: $("traceExplorerDialog"), traceExplorerMeta: $("traceExplorerMeta"), traceExplorerSummary: $("traceExplorerSummary"), traceExplorerBody: $("traceExplorerBody"), closeTraceExplorerButton: $("closeTraceExplorerButton"), traceExplorerResetButton: $("traceExplorerResetButton"), traceCompareButton: $("traceCompareButton"), traceCompareDialog: $("traceCompareDialog"), traceCompareBody: $("traceCompareBody"), closeTraceCompareButton: $("closeTraceCompareButton"),
       traceOutlierCount: $("traceOutlierCount"), traceOutlierDialog: $("traceOutlierDialog"), traceOutlierMeta: $("traceOutlierMeta"), traceOutlierSummary: $("traceOutlierSummary"), traceOutlierBody: $("traceOutlierBody"), closeTraceOutlierButton: $("closeTraceOutlierButton"), traceOutlierResetButton: $("traceOutlierResetButton"),
-      queryLibraryDialog: $("queryLibraryDialog"), queryLibraryName: $("queryLibraryName"), queryLibraryFolder: $("queryLibraryFolder"), queryLibraryTags: $("queryLibraryTags"), queryLibraryDescription: $("queryLibraryDescription"), queryLibraryFavorite: $("queryLibraryFavorite"), queryLibrarySaveButton: $("queryLibrarySaveButton"), queryLibraryExportButton: $("queryLibraryExportButton"), queryLibraryImportButton: $("queryLibraryImportButton"), queryLibraryFileInput: $("queryLibraryFileInput"), queryLibraryList: $("queryLibraryList"), closeQueryLibraryButton: $("closeQueryLibraryButton"), queryLibrarySearch: $("queryLibrarySearch"), queryLibraryFolderFilter: $("queryLibraryFolderFilter"), queryLibraryManageFolder: $("queryLibraryManageFolder"), queryLibraryRenameFolder: $("queryLibraryRenameFolder"), queryLibraryRenameFolderButton: $("queryLibraryRenameFolderButton"), queryLibraryDeleteFolderButton: $("queryLibraryDeleteFolderButton"),
-      baselineChangeCount: $("baselineChangeCount"), baselineDialog: $("baselineDialog"), baselineMeta: $("baselineMeta"), baselineName: $("baselineName"), captureBaselineButton: $("captureBaselineButton"), captureFilteredBaselineButton: $("captureFilteredBaselineButton"), exportBaselineButton: $("exportBaselineButton"), importBaselineButton: $("importBaselineButton"), baselineFileInput: $("baselineFileInput"), baselineSummary: $("baselineSummary"), baselineServiceBody: $("baselineServiceBody"), baselineDependencyBody: $("baselineDependencyBody"), baselineTraceBody: $("baselineTraceBody"), closeBaselineButton: $("closeBaselineButton"),
+      queryLibraryDialog: $("queryLibraryDialog"), queryLibraryName: $("queryLibraryName"), queryLibraryFolder: $("queryLibraryFolder"), queryLibraryTags: $("queryLibraryTags"), queryLibraryDescription: $("queryLibraryDescription"), queryLibraryFavorite: $("queryLibraryFavorite"), queryLibrarySaveButton: $("queryLibrarySaveButton"), queryLibraryExportButton: $("queryLibraryExportButton"), queryLibraryImportButton: $("queryLibraryImportButton"), queryLibraryFileInput: $("queryLibraryFileInput"), queryLibraryList: $("queryLibraryList"), closeQueryLibraryButton: $("closeQueryLibraryButton"), queryLibrarySearch: $("queryLibrarySearch"), queryLibraryFolderFilter: $("queryLibraryFolderFilter"), queryLibraryManageFolder: $("queryLibraryManageFolder"), queryLibraryRenameFolder: $("queryLibraryRenameFolder"), queryLibraryRenameFolderButton: $("queryLibraryRenameFolderButton"), queryLibraryDeleteFolderButton: $("queryLibraryDeleteFolderButton"), queryLibraryBulkCount: $("queryLibraryBulkCount"), queryLibraryBulkFolder: $("queryLibraryBulkFolder"), queryLibraryBulkSelectVisible: $("queryLibraryBulkSelectVisible"), queryLibraryBulkFavorite: $("queryLibraryBulkFavorite"), queryLibraryBulkUnfavorite: $("queryLibraryBulkUnfavorite"), queryLibraryBulkMove: $("queryLibraryBulkMove"), queryLibraryBulkExport: $("queryLibraryBulkExport"), queryLibraryBulkDelete: $("queryLibraryBulkDelete"), queryLibraryBulkClear: $("queryLibraryBulkClear"),
+      baselineChangeCount: $("baselineChangeCount"), baselineDialog: $("baselineDialog"), baselineMeta: $("baselineMeta"), baselineName: $("baselineName"), captureBaselineButton: $("captureBaselineButton"), captureFilteredBaselineButton: $("captureFilteredBaselineButton"), exportBaselineButton: $("exportBaselineButton"), importBaselineButton: $("importBaselineButton"), baselineFileInput: $("baselineFileInput"), baselineSummary: $("baselineSummary"), baselineServiceBody: $("baselineServiceBody"), baselineDependencyBody: $("baselineDependencyBody"), baselineTraceBody: $("baselineTraceBody"), closeBaselineButton: $("closeBaselineButton"), baselineHistoryList: $("baselineHistoryList"), baselineHistoryExportButton: $("baselineHistoryExportButton"), baselineHistoryImportButton: $("baselineHistoryImportButton"), baselineHistoryFileInput: $("baselineHistoryFileInput"), baselineCompareBase: $("baselineCompareBase"), baselineCompareCurrent: $("baselineCompareCurrent"), compareSavedBaselinesButton: $("compareSavedBaselinesButton"),
       projectCount: $("projectCount"), projectDialog: $("projectDialog"), projectName: $("projectName"), projectDescription: $("projectDescription"), createProjectButton: $("createProjectButton"), projectLinkFilesButton: $("projectLinkFilesButton"), projectCapabilityMeta: $("projectCapabilityMeta"), exportProjectsButton: $("exportProjectsButton"), importProjectsButton: $("importProjectsButton"), projectsFileInput: $("projectsFileInput"), activeProjectMeta: $("activeProjectMeta"), projectList: $("projectList"), closeProjectButton: $("closeProjectButton"),
       caseCheckpointLabel: $("caseCheckpointLabel"), addCaseCheckpointButton: $("addCaseCheckpointButton"), caseCheckpoints: $("caseCheckpoints"),
       diagnosticsGrid: $("diagnosticsGrid"), copyDiagnosticsButton: $("copyDiagnosticsButton"), commandPaletteButton: $("commandPaletteButton"), commandPaletteDialog: $("commandPaletteDialog"), commandPaletteInput: $("commandPaletteInput"), commandPaletteList: $("commandPaletteList"), closeCommandPaletteButton: $("closeCommandPaletteButton"),
@@ -159,12 +159,6 @@
       exceptionGroupCount: $("exceptionGroupCount"), exceptionDialog: $("exceptionDialog"), exceptionSummary: $("exceptionSummary"), exceptionTrend: $("exceptionTrend"), exceptionList: $("exceptionList"), closeExceptionButton: $("closeExceptionButton"), exceptionResetButton: $("exceptionResetButton"),
       healthIssueCount: $("healthIssueCount"), healthDialog: $("healthDialog"), healthSummary: $("healthSummary"), healthTableBody: $("healthTableBody"), closeHealthButton: $("closeHealthButton"), healthResetButton: $("healthResetButton"),
       processing: $("processing"), processingTitle: $("processingTitle"), processingDetail: $("processingDetail"), toastRegion: $("toastRegion")
-    });
-
-    ensureFoundationUi();
-    Object.assign(el, {
-      queryLibraryBulkCount: $("queryLibraryBulkCount"), queryLibraryBulkFolder: $("queryLibraryBulkFolder"), queryLibraryBulkSelectVisible: $("queryLibraryBulkSelectVisible"), queryLibraryBulkFavorite: $("queryLibraryBulkFavorite"), queryLibraryBulkUnfavorite: $("queryLibraryBulkUnfavorite"), queryLibraryBulkMove: $("queryLibraryBulkMove"), queryLibraryBulkExport: $("queryLibraryBulkExport"), queryLibraryBulkDelete: $("queryLibraryBulkDelete"), queryLibraryBulkClear: $("queryLibraryBulkClear"),
-      baselineHistoryList: $("baselineHistoryList"), baselineHistoryExportButton: $("baselineHistoryExportButton"), baselineHistoryImportButton: $("baselineHistoryImportButton"), baselineHistoryFileInput: $("baselineHistoryFileInput"), baselineCompareBase: $("baselineCompareBase"), baselineCompareCurrent: $("baselineCompareCurrent"), compareSavedBaselinesButton: $("compareSavedBaselinesButton")
     });
 
     state.savedViews = utils().loadJson(STORAGE_VIEWS, null) || utils().loadJson("signaldock-saved-views-v2", null) || utils().loadJson("signaldock-saved-views-v1", []);
@@ -1243,7 +1237,7 @@
     const wrap = document.createElement("div");
     wrap.className = "empty-table";
     const iconWrap = document.createElement("span"); iconWrap.className = "empty-table__icon";
-    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg"); icon.setAttribute("class", "icon");
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg"); icon.setAttribute("class", "icon"); icon.setAttribute("aria-hidden", "true");
     const use = document.createElementNS("http://www.w3.org/2000/svg", "use"); use.setAttribute("href", "assets/icons.svg#terminal"); icon.appendChild(use); iconWrap.appendChild(icon);
     const strong = document.createElement("strong"); strong.textContent = title;
     const p = document.createElement("p"); p.textContent = text;
@@ -2188,31 +2182,6 @@
 
   function makeUiButton(id, label, className = "button button--ghost button--small") {
     const button = document.createElement("button"); button.type = "button"; button.id = id; button.className = className; button.textContent = label; return button;
-  }
-
-  function ensureFoundationUi() {
-    const queryList = $("queryLibraryList");
-    if (queryList && !$("queryLibraryBulkBar")) {
-      const bar = document.createElement("div"); bar.id = "queryLibraryBulkBar"; bar.className = "query-library-bulkbar";
-      const count = document.createElement("strong"); count.id = "queryLibraryBulkCount"; count.textContent = "0 selected";
-      const folder = document.createElement("select"); folder.id = "queryLibraryBulkFolder"; folder.setAttribute("aria-label", "Bulk destination folder");
-      bar.append(count, makeUiButton("queryLibraryBulkSelectVisible", "Select visible"), folder, makeUiButton("queryLibraryBulkMove", "Move"), makeUiButton("queryLibraryBulkFavorite", "Favorite"), makeUiButton("queryLibraryBulkUnfavorite", "Unfavorite"), makeUiButton("queryLibraryBulkExport", "Export selected"), makeUiButton("queryLibraryBulkDelete", "Delete selected"), makeUiButton("queryLibraryBulkClear", "Clear selection"));
-      queryList.parentNode.insertBefore(bar, queryList);
-    }
-    const baselineToolbar = document.querySelector("#baselineDialog .baseline-toolbar");
-    if (baselineToolbar && !$("baselineHistoryList")) {
-      const section = document.createElement("section"); section.className = "baseline-history";
-      const head = document.createElement("div"); head.className = "baseline-history__head";
-      const copy = document.createElement("div"); const eyebrow = document.createElement("span"); eyebrow.textContent = "LOCAL BASELINE HISTORY"; const title = document.createElement("strong"); title.textContent = "Saved aggregate snapshots"; copy.append(eyebrow, title);
-      const actions = document.createElement("div"); actions.append(makeUiButton("baselineHistoryExportButton", "Export history"), makeUiButton("baselineHistoryImportButton", "Import history"));
-      const input = document.createElement("input"); input.id = "baselineHistoryFileInput"; input.type = "file"; input.accept = ".json,.sdbaselines"; input.hidden = true; actions.appendChild(input); head.append(copy, actions);
-      const compare = document.createElement("div"); compare.className = "baseline-history__compare";
-      const baseLabel = document.createElement("label"); const baseSpan = document.createElement("span"); baseSpan.textContent = "Baseline"; const baseSelect = document.createElement("select"); baseSelect.id = "baselineCompareBase"; baseLabel.append(baseSpan, baseSelect);
-      const currentLabel = document.createElement("label"); const currentSpan = document.createElement("span"); currentSpan.textContent = "Current snapshot"; const currentSelect = document.createElement("select"); currentSelect.id = "baselineCompareCurrent"; currentLabel.append(currentSpan, currentSelect);
-      compare.append(baseLabel, currentLabel, makeUiButton("compareSavedBaselinesButton", "Compare saved baselines", "button button--primary button--small"));
-      const list = document.createElement("div"); list.id = "baselineHistoryList"; list.className = "baseline-history__list";
-      section.append(head, compare, list); baselineToolbar.insertAdjacentElement("afterend", section);
-    }
   }
 
   function openQueryLibrary() {

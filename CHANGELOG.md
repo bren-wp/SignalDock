@@ -1,6 +1,20 @@
 # Changelog
 
 
+## 2.7.4 — 2026-09-16
+
+### Static production UI foundation
+- Moved Query Library bulk controls from boot-time DOM construction into the canonical `index.html` document structure.
+- Moved Baseline History import/export, saved-snapshot comparison and history list controls into static HTML.
+- Removed `ensureFoundationUi()` and its second-stage element binding pass; permanent controls are now bound with the rest of the application during normal initialization.
+- Added safe initial disabled states and explicit group/label semantics so the controls remain coherent before their first data render.
+
+### Maintainability and regression hardening
+- Added a regression gate that rejects reintroduction of runtime synthesis for stable Query Library/Baseline controls.
+- Marked the dynamically-created empty-table icon as decorative for assistive technology.
+- Updated production documentation and version metadata for the static UI boundary.
+
+
 ## 2.7.3 — 2026-09-16
 
 ### Interaction and accessibility hardening
