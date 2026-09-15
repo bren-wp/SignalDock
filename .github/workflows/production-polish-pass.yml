@@ -1,0 +1,260 @@
+name: SignalDock production polish pass
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Apply production UI and UX polish
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_exact(text, old, new, label, expected=None):
+              count = text.count(old)
+              if expected is not None and count != expected:
+                  raise SystemExit(f'{label}: expected {expected} matches, found {count}')
+              if count == 0:
+                  raise SystemExit(f'{label}: anchor not found')
+              return text.replace(old, new)
+
+          # Version
+          Path('VERSION').write_text('2.7.2\n')
+
+          # Production-facing copy and markup
+          index_path = Path('index.html')
+          index = index_path.read_text()
+          replacements = [
+              ('title="No file uploads. No backend. No telemetry."', 'title="Your files stay on this device. No uploads or telemetry."', 'local badge tooltip'),
+              ('<em>BETA</em>', '', 'live tail beta badge'),
+              ('title="Manage local SignalDock project metadata"', 'title="Manage local projects and workspaces"', 'project nav tooltip'),
+              ('placeholder="Search logs… level:error trace:abc any:timeout,retry re:/ECONNRESET/i"', 'placeholder="Search logs by message, service, trace, level…"', 'search placeholder'),
+              ('<small>No cloud. No uploads. No telemetry.</small>', '<small>Files stay on this device. Nothing is uploaded.</small>', 'privacy card copy'),
+              ('>Clear recovery snapshot</button>', '>Clear saved recovery</button>', 'recovery action copy'),
+              ('>Clear search cache</button>', '>Clear local search cache</button>', 'cache action copy'),
+              ('<div class="diagnostics-card__head"><div><span>PERFORMANCE</span><strong id="diagnosticsTitle">Local diagnostics</strong></div><button class="button button--ghost button--small" id="copyDiagnosticsButton" type="button">Copy diagnostics</button></div>', '<div class="diagnostics-card__head"><div><span>DEVICE STATUS</span><strong id="diagnosticsTitle">Performance &amp; storage</strong></div><button class="button button--ghost button--small" id="copyDiagnosticsButton" type="button">Copy support details</button></div>', 'diagnostics heading'),
+              ('Diagnostics stay local and contain timing, dataset and browser capability metadata only.', 'Support details stay on this device and include performance, dataset size and browser capability information.', 'diagnostics note'),
+              ('<div class="case-activity__head"><div><span>ATTACHMENT REFERENCES</span><strong>Local file metadata</strong></div><div><button class="button button--ghost button--small" id="addCaseAttachmentButton" type="button">Add local file reference</button>', '<div class="case-activity__head"><div><span>REFERENCED FILES</span><strong>Files connected to this case</strong></div><div><button class="button button--ghost button--small" id="addCaseAttachmentButton" type="button">Add file reference</button>', 'attachment heading'),
+              ('SignalDock stores filename/type/size/time metadata only — attachment bytes are never embedded or uploaded.', 'SignalDock stores file details only. Referenced file contents are never copied into the case or uploaded.', 'attachment note'),
+              ('Checkpoints store the normalized case state plus evidence IDs, not copies of log data.', 'Checkpoints save case details and evidence references without copying your logs.', 'checkpoint note'),
+              ('<header class="query-library-head"><div><span>LOCAL PROJECT METADATA</span><strong>Projects &amp; workspaces</strong><small>Organize investigation metadata locally without copying log contents into project records.</small></div>', '<header class="query-library-head"><div><span>LOCAL PROJECTS</span><strong>Projects &amp; workspaces</strong><small>Keep investigations, linked files and workspaces organized on this device.</small></div>', 'project heading'),
+              ('Checking local reopen capability…', 'Checking local file access…', 'project capability loading copy'),
+              ('Project records contain metadata only. Persistent reopen links are local capabilities on this device and are stripped from project exports.', 'Project details stay on this device. Linked file access is never included in exported project files.', 'project footer copy'),
+          ]
+          for old, new, label in replacements:
+              index = replace_exact(index, old, new, label, expected=1)
+          if 'BETA' in index:
+              raise SystemExit('production markup still contains BETA label')
+          index_path.write_text(index)
+
+          # UI token normalization, mobile behavior and interaction polish
+          css_path = Path('styles.css')
+          css = css_path.read_text()
+          token_anchor = '  --row-h: 46px;\n}'
+          token_block = '''  --row-h: 46px;
+  --border: var(--line);
+  --border-soft: var(--line-soft);
+  --accent: var(--cyan);
+  --primary: var(--cyan);
+  --danger: var(--red);
+  --surface-soft: rgba(13,23,36,.72);
+  --focus-ring: #67e8f9;
+}'''
+          css = replace_exact(css, token_anchor, token_block, 'theme token aliases', expected=1)
+          css = replace_exact(css, '  overflow: hidden;\n}', '  overflow: hidden;\n  -webkit-font-smoothing: antialiased;\n  text-rendering: optimizeLegibility;\n}', 'body rendering polish', expected=1)
+          css = replace_exact(css, '.app-frame { height: 100vh; min-height: 680px; display: grid; grid-template-rows: 64px 1fr; }', '.app-frame { height: 100vh; height: 100dvh; min-height: 680px; display: grid; grid-template-rows: 64px 1fr; }', 'dynamic viewport height', expected=1)
+          css = replace_exact(css, '.query-library-item{grid-template-columns:auto minmax(0,1fr) auto}', '.query-library-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto}', 'query library grid fix', expected=1)
+          css = replace_exact(css, '  .nav-list { display: none; }', '  .nav-list { display: flex; grid-column: 1 / -1; overflow-x: auto; padding-bottom: 2px; scroll-snap-type: x proximity; }\n  .nav-item { scroll-snap-align: start; }', 'mobile navigation visibility', expected=1)
+
+          # Strip release-number comments while retaining useful semantic section labels.
+          def semantic_comment(match):
+              label = match.group(1).strip()
+              label = re.sub(r'^(?:SignalDock\s+)?v\d+\.\d+\s*(?:[—-]\s*)?', '', label).strip()
+              return f'/* {label} */' if label else ''
+          css = re.sub(r'/\*\s*((?:SignalDock\s+)?v\d+\.\d+[^*]*?)\s*\*/', semantic_comment, css)
+
+          polish = '''
+
+/* Production interaction polish */
+::selection { color: #f8fdff; background: rgba(21,216,242,.28); }
+:where(button, input, select, textarea) { transition: border-color .14s ease, background-color .14s ease, color .14s ease, opacity .14s ease, box-shadow .14s ease; }
+:where(button, input, select, textarea):disabled { cursor: not-allowed; opacity: .5; }
+html[data-input-modality="keyboard"] :where(button, a, input, select, textarea, [tabindex]):focus-visible { outline-color: var(--focus-ring); box-shadow: 0 0 0 3px rgba(103,232,249,.12); }
+:where(.source-list, .saved-list, .file-tabs, .nav-list, .query-library-list, .investigation-list, .case-unified-timeline__list) { overscroll-behavior: contain; }
+@media (hover: hover) and (pointer: fine) {
+  :where(.button, .icon-button, .nav-item, .source-button, .saved-button, .file-tab):not(:disabled):hover { filter: brightness(1.06); }
+}
+@media (max-width: 480px) {
+  .sidebar__primary { gap: 8px; }
+  .nav-list { scrollbar-width: thin; }
+  .nav-item { min-height: 44px; }
+  .project-toolbar, .baseline-toolbar { grid-template-columns: 1fr; }
+  .project-toolbar label, .baseline-toolbar label { grid-column: auto; }
+}
+'''
+          if '/* Production interaction polish */' in css:
+              raise SystemExit('production polish block already exists unexpectedly')
+          css += polish
+          css_path.write_text(css)
+
+          # Application code: deduplicate active-navigation state and make it accessible.
+          app_path = Path('app.js')
+          app = app_path.read_text()
+          app = replace_exact(app, '  const APP_VERSION = "2.7.1";', '  const APP_VERSION = "2.7.2";', 'app version', expected=1)
+          helper_anchor = '  const paletteEngine = () => window.SignalDockCommandPalette;\n\n  document.addEventListener("DOMContentLoaded", init);'
+          helper = '''  const paletteEngine = () => window.SignalDockCommandPalette;
+
+  function setActiveNav(target) {
+    document.querySelectorAll("[data-nav]").forEach((item) => {
+      const active = item.dataset.nav === target;
+      item.classList.toggle("is-active", active);
+      if (active) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", init);'''
+          app = replace_exact(app, helper_anchor, helper, 'active nav helper', expected=1)
+          app = replace_exact(app, '    bindEvents();\n    initFilterWorker();', '    bindEvents();\n    setActiveNav("logs");\n    initFilterWorker();', 'initial aria-current state', expected=1)
+          click_old = '      document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item === button));\n      const target = button.dataset.nav;'
+          click_new = '      const target = button.dataset.nav;\n      setActiveNav(target);'
+          app = replace_exact(app, click_old, click_new, 'nav click activation', expected=1)
+          reset = 'document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));'
+          reset_count = app.count(reset)
+          if reset_count < 8:
+              raise SystemExit(f'expected repeated nav reset blocks, found only {reset_count}')
+          app = app.replace(reset, 'setActiveNav("logs");')
+
+          app = app.replace('Persistent file linking is unavailable in this runtime', 'File linking is unavailable in this browser')
+          capability_old = 'if (el.projectCapabilityMeta) el.projectCapabilityMeta.textContent = bridgeCaps.persistentHandles ? `${bridgeCaps.mode === "native" ? "Native" : "Browser"} capability mode · persistent local reopen available · links never leave this device` : `${bridgeCaps.mode === "native" ? "Native" : "Browser"} capability mode · metadata-only history in this runtime`;'
+          capability_new = 'if (el.projectCapabilityMeta) el.projectCapabilityMeta.textContent = bridgeCaps.persistentHandles ? "Linked files can be reopened on this device. File access never leaves SignalDock." : "Project history stays local, but linked files may need to be selected again.";'
+          app = replace_exact(app, capability_old, capability_new, 'project capability copy', expected=1)
+          app = app.replace('Metadata-only local project', 'Local project')
+          app_path.write_text(app)
+
+          # Patch-release assertions that intentionally track the current 2.7 release.
+          for gate in Path('tests').glob('v27-*.mjs'):
+              text = gate.read_text().replace('2.7.1', '2.7.2').replace('2\\.7\\.1', '2\\.7\\.2')
+              gate.write_text(text)
+
+          # Production polish regression gate.
+          Path('tests/production-ui-polish-smoke.mjs').write_text(r'''import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+const version = read("VERSION").trim();
+const html = read("index.html");
+const css = read("styles.css");
+const app = read("app.js");
+const technical = read("docs/TECHNICAL.md");
+
+assert.equal(version, "2.7.2");
+assert.match(app, /APP_VERSION\s*=\s*["']2\.7\.2["']/);
+assert.ok(!html.includes("BETA"), "production UI must not expose beta labels");
+assert.ok(!html.includes("LOCAL PROJECT METADATA"), "project UI still exposes implementation terminology");
+assert.ok(!app.includes("capability mode"), "project UI still exposes capability-mode implementation copy");
+assert.ok(!app.includes("metadata-only history in this runtime"), "project UI still exposes runtime implementation copy");
+assert.ok(css.includes("--border: var(--line);"));
+assert.ok(css.includes("--surface-soft: rgba(13,23,36,.72);"));
+assert.ok(css.includes(".query-library-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto}"));
+assert.ok(!css.includes(".nav-list { display: none; }"), "mobile navigation must remain reachable");
+assert.match(app, /function setActiveNav\(target\)/);
+assert.match(app, /setAttribute\("aria-current", "page"\)/);
+assert.ok(!/\/\*\s*(?:SignalDock\s+)?v\d+\.\d+/.test(css), "release-number CSS comments should not ship in production styles");
+assert.ok(technical.includes("Current version: **2.7.2**."));
+
+const defs = new Set([...css.matchAll(/(--[a-zA-Z0-9-]+)\s*:/g)].map((m) => m[1]));
+const missing = new Set();
+for (const match of css.matchAll(/var\((--[a-zA-Z0-9-]+)([^)]*)\)/g)) {
+  const hasFallback = match[2].includes(",");
+  if (!defs.has(match[1]) && !hasFallback) missing.add(match[1]);
+}
+assert.deepEqual([...missing].sort(), [], `undefined CSS variables without fallbacks: ${[...missing].join(", ")}`);
+
+console.log("production-ui-polish-smoke PASS");
+''')
+
+          # Docs and release notes.
+          readme = Path('README.md').read_text().replace('2.7.1', '2.7.2')
+          Path('README.md').write_text(readme)
+          technical_path = Path('docs/TECHNICAL.md')
+          technical = technical_path.read_text().replace('Current version: **2.7.1**.', 'Current version: **2.7.2**.')
+          technical = technical.replace('- Experimental local Live Tail using the File System Access API in supported Chromium-based browsers', '- Local Live Tail using the File System Access API in supported Chromium-based browsers')
+          technical = technical.replace('The **Copy diagnostics** action exports only technical runtime metadata and timing/capability information; it does not include log messages or raw log payloads.', 'The **Copy support details** action exports only local performance and browser-capability information; it does not include log messages or raw log payloads.')
+          production_section = '''\n## Production UI and UX standards\n\nSignalDock user-facing copy avoids implementation-stage labels and internal runtime terminology. Shared CSS design tokens are defined once at the root and newer feature surfaces use semantic aliases instead of undeclared variables. Navigation remains reachable at phone widths, active navigation exposes `aria-current`, dialogs retain keyboard-focus hardening, and reduced-motion/coarse-pointer rules remain first-class.\n\nThe production regression suite checks for unresolved CSS custom properties, hidden phone navigation, release-stage labels in the interface and accidental reintroduction of implementation terminology.\n'''
+          if '## Production UI and UX standards' not in technical:
+              technical = technical.replace('\n## Cross-dataset baselines and local projects', production_section + '\n## Cross-dataset baselines and local projects', 1)
+          technical_path.write_text(technical)
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text()
+          release = '''\n## 2.7.2 — 2026-09-15\n\n### Production UI and UX\n- Fixed undeclared shared CSS tokens that caused borders, surfaces and accent styles to be dropped on newer analysis and investigation views.\n- Restored full navigation access on phone-width layouts instead of hiding the workspace navigation below 480 px.\n- Fixed Query Library selection layout by applying the grid display mode its column rules require.\n- Removed the visible Live Tail beta badge and replaced internal project/capability wording with production-facing copy.\n- Added consistent disabled, focus, selection, overscroll and fine-pointer interaction polish while preserving reduced-motion behavior.\n\n### Maintainability and accessibility\n- Deduplicated active-navigation state handling behind one helper and added `aria-current` synchronization.\n- Removed release-number comments from production CSS while retaining semantic section labels.\n- Added a production UI regression test covering CSS variables, mobile navigation, production copy and accessibility state.\n- Updated user-facing diagnostics wording and technical documentation for the production UI standards.\n\n'''
+          if '## 2.7.2 — 2026-09-15' in changelog:
+              raise SystemExit('2.7.2 changelog already exists unexpectedly')
+          changelog = changelog.replace('# Changelog\n', '# Changelog\n' + release, 1)
+          changelog_path.write_text(changelog)
+          PY
+
+      - name: Verify production quality
+        shell: bash
+        env:
+          TERM: xterm
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-polish-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-polish-index.html; then ready=1; break; fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          grep -q 'SignalDock' /tmp/signaldock-polish-index.html
+          ! grep -q '>BETA<' /tmp/signaldock-polish-index.html
+          curl --fail --silent http://127.0.0.1:8080/styles.css -o /tmp/signaldock-polish-styles.css
+          curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/core/parser.js -o /dev/null
+
+      - name: Commit verified polish
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION README.md CHANGELOG.md index.html styles.css app.js docs/TECHNICAL.md tests/*.mjs
+          git diff --cached --check
+          git commit -m "fix: polish production UI and UX"
+          git push origin HEAD:main
