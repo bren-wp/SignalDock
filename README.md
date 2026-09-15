@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml/badge.svg"></a>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml/badge.svg"></a>
-    <img alt="Version" src="https://img.shields.io/badge/version-2.6.0-22d3ee?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-2.7.0-22d3ee?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
     <img alt="Local first" src="https://img.shields.io/badge/local--first-yes-67e8f9?style=flat-square">
     <img alt="Telemetry" src="https://img.shields.io/badge/telemetry-none-a7f3d0?style=flat-square">
@@ -28,8 +28,8 @@
 </p>
 
 <p align="center">
-  <strong>SignalDock v2.6.0 — real application UI with the bundled demo dataset</strong><br>
-  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.6.0 application screenshot showing local log analysis" width="100%" />
+  <strong>SignalDock v2.7.0 — real application UI with the bundled demo dataset</strong><br>
+  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.7.0 application screenshot showing local log analysis" width="100%" />
 </p>
 
 ## Your logs should not need a cloud account
@@ -106,6 +106,9 @@ SignalDock includes:
 - bounded Trace Explorer result windows with exact global trace counts and lower parent-link memory overhead
 - bounded Service Matrix latency aggregation that switches from exact samples to compact histograms on high-volume edges
 - local File System Access handle registry foundation for project dataset/workspace reopening without uploading file contents
+- real Project Reopen workflow with link/load, relink, permission recovery, reopen counters and capability cleanup
+- streamed workspace writes through the local storage adapter, with recent-workspace metadata recorded only after a successful save
+- narrow `desktop-bridge.js` capability facade that keeps browser mode first-class while defining an explicit future native-shell contract
 - dialog focus management, keyboard focus trapping, coarse-pointer touch targets and reduced-motion hardening
 - crash/restart recovery snapshots in IndexedDB
 - experimental local Live Tail through the File System Access API

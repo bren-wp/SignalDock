@@ -1002,3 +1002,18 @@ html.has-coarse-pointer :where(.button, .icon-button, .nav-item, .source-button,
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+
+/* SignalDock v2.7 project reopen workflow */
+.project-capability { margin: 0 0 12px; padding: 9px 12px; border: 1px solid var(--border, rgba(148,163,184,.18)); border-radius: 10px; color: var(--muted, #94a3b8); font-size: 12px; line-height: 1.45; background: rgba(8,17,29,.42); }
+.project-history-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(148,163,184,.1); }
+.project-history-item:last-child { border-bottom: 0; }
+.project-history-item > div:first-child { min-width: 0; display: grid; gap: 4px; }
+.project-history-item > div:last-child { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.project-link-state { width: max-content; max-width: 100%; padding: 2px 7px; border: 1px solid rgba(148,163,184,.18); border-radius: 999px; color: var(--muted, #94a3b8); font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+.project-link-state.is-linked { color: #86efac; border-color: rgba(134,239,172,.28); background: rgba(34,197,94,.08); }
+@media (max-width: 720px) {
+  .project-history-item { grid-template-columns: 1fr; align-items: stretch; }
+  .project-history-item > div:last-child { justify-content: flex-start; }
+  .project-toolbar #projectLinkFilesButton { width: 100%; }
+}

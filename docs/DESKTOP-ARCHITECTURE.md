@@ -56,3 +56,10 @@ Do not expose unrestricted shell execution or broad filesystem roots to frontend
 6. Add real Windows/macOS/Linux integration, signing and installer tests before advertising native desktop support.
 
 Until those steps are complete, product copy must continue to describe SignalDock as the local browser application and desktop-ready architecture, not as a shipped native desktop product.
+
+
+## Current implementation status
+
+SignalDock v2.7 adds `desktop-bridge.js` as the application-facing capability facade. Browser mode delegates to `storage-adapter.js`; a future native shell may inject only the narrow methods documented by the bridge. Project Reopen now exercises that boundary for pick, save, reopen, permission recovery and capability cleanup.
+
+This does **not** mean native installers are shipped. Tauri/Electron packaging, signing, updater behavior and OS integration remain future packaging work. The frontend must not receive a generic shell command or unrestricted path API.

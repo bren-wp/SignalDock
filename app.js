@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.6.0";
+  const APP_VERSION = "2.7.0";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -115,7 +115,7 @@
       traceOutlierCount: $("traceOutlierCount"), traceOutlierDialog: $("traceOutlierDialog"), traceOutlierMeta: $("traceOutlierMeta"), traceOutlierSummary: $("traceOutlierSummary"), traceOutlierBody: $("traceOutlierBody"), closeTraceOutlierButton: $("closeTraceOutlierButton"), traceOutlierResetButton: $("traceOutlierResetButton"),
       queryLibraryDialog: $("queryLibraryDialog"), queryLibraryName: $("queryLibraryName"), queryLibraryFolder: $("queryLibraryFolder"), queryLibraryTags: $("queryLibraryTags"), queryLibraryDescription: $("queryLibraryDescription"), queryLibraryFavorite: $("queryLibraryFavorite"), queryLibrarySaveButton: $("queryLibrarySaveButton"), queryLibraryExportButton: $("queryLibraryExportButton"), queryLibraryImportButton: $("queryLibraryImportButton"), queryLibraryFileInput: $("queryLibraryFileInput"), queryLibraryList: $("queryLibraryList"), closeQueryLibraryButton: $("closeQueryLibraryButton"), queryLibrarySearch: $("queryLibrarySearch"), queryLibraryFolderFilter: $("queryLibraryFolderFilter"), queryLibraryManageFolder: $("queryLibraryManageFolder"), queryLibraryRenameFolder: $("queryLibraryRenameFolder"), queryLibraryRenameFolderButton: $("queryLibraryRenameFolderButton"), queryLibraryDeleteFolderButton: $("queryLibraryDeleteFolderButton"),
       baselineChangeCount: $("baselineChangeCount"), baselineDialog: $("baselineDialog"), baselineMeta: $("baselineMeta"), baselineName: $("baselineName"), captureBaselineButton: $("captureBaselineButton"), captureFilteredBaselineButton: $("captureFilteredBaselineButton"), exportBaselineButton: $("exportBaselineButton"), importBaselineButton: $("importBaselineButton"), baselineFileInput: $("baselineFileInput"), baselineSummary: $("baselineSummary"), baselineServiceBody: $("baselineServiceBody"), baselineDependencyBody: $("baselineDependencyBody"), baselineTraceBody: $("baselineTraceBody"), closeBaselineButton: $("closeBaselineButton"),
-      projectCount: $("projectCount"), projectDialog: $("projectDialog"), projectName: $("projectName"), projectDescription: $("projectDescription"), createProjectButton: $("createProjectButton"), exportProjectsButton: $("exportProjectsButton"), importProjectsButton: $("importProjectsButton"), projectsFileInput: $("projectsFileInput"), activeProjectMeta: $("activeProjectMeta"), projectList: $("projectList"), closeProjectButton: $("closeProjectButton"),
+      projectCount: $("projectCount"), projectDialog: $("projectDialog"), projectName: $("projectName"), projectDescription: $("projectDescription"), createProjectButton: $("createProjectButton"), projectLinkFilesButton: $("projectLinkFilesButton"), projectCapabilityMeta: $("projectCapabilityMeta"), exportProjectsButton: $("exportProjectsButton"), importProjectsButton: $("importProjectsButton"), projectsFileInput: $("projectsFileInput"), activeProjectMeta: $("activeProjectMeta"), projectList: $("projectList"), closeProjectButton: $("closeProjectButton"),
       caseCheckpointLabel: $("caseCheckpointLabel"), addCaseCheckpointButton: $("addCaseCheckpointButton"), caseCheckpoints: $("caseCheckpoints"),
       diagnosticsGrid: $("diagnosticsGrid"), copyDiagnosticsButton: $("copyDiagnosticsButton"), commandPaletteButton: $("commandPaletteButton"), commandPaletteDialog: $("commandPaletteDialog"), commandPaletteInput: $("commandPaletteInput"), commandPaletteList: $("commandPaletteList"), closeCommandPaletteButton: $("closeCommandPaletteButton"),
       investigationCount: $("investigationCount"), investigationDialog: $("investigationDialog"), investigationTitle: $("investigationTitle"), investigationSummary: $("investigationSummary"), investigationStats: $("investigationStats"), investigationList: $("investigationList"), investigationTimeline: $("investigationTimeline"), investigationTimelineMeta: $("investigationTimelineMeta"), closeInvestigationButton: $("closeInvestigationButton"), exportInvestigationBundleButton: $("exportInvestigationBundleButton"), exportInvestigationMarkdownButton: $("exportInvestigationMarkdownButton"), exportInvestigationJsonButton: $("exportInvestigationJsonButton"), importInvestigationJsonButton: $("importInvestigationJsonButton"), investigationFileInput: $("investigationFileInput"), clearInvestigationButton: $("clearInvestigationButton"), addEvidenceButton: $("addEvidenceButton"),
@@ -370,6 +370,7 @@
     el.baselineCompareCurrent?.addEventListener("change", syncBaselineHistorySelection);
     el.closeProjectButton?.addEventListener("click", closeProjects);
     el.createProjectButton?.addEventListener("click", createProject);
+    el.projectLinkFilesButton?.addEventListener("click", linkAndLoadProjectFiles);
     el.exportProjectsButton?.addEventListener("click", exportProjects);
     el.importProjectsButton?.addEventListener("click", () => el.projectsFileInput?.click());
     el.projectsFileInput?.addEventListener("change", importProjects);
@@ -690,9 +691,13 @@
     return Array.from(event.dataTransfer?.types || []).includes("Files");
   }
 
-  async function handleFiles(fileList) {
+  function projectDatasetId(file) { return `${file?.name || "dataset"}-${Math.max(0, Number(file?.size) || 0)}-${Math.max(0, Number(file?.lastModified) || 0)}`; }
+
+  async function handleFiles(fileList, options = {}) {
     const files = Array.from(fileList || []);
-    if (!files.length) return;
+    if (!files.length) return { added: 0, failed: 0, loadedIds: [] };
+    const projectLinks = new Map((Array.isArray(options.projectItems) ? options.projectItems : []).filter((item) => item?.file).map((item) => [item.file, item]));
+    const loadedProjectIds = [];
     const sessionFiles = files.filter((file) => file.name.toLowerCase().endsWith(".sdsession"));
     if (sessionFiles.length) {
       if (files.length !== 1) {
@@ -724,7 +729,7 @@
           state.loadedBytes += file.size;
           state.inputFileCount += 1;
           added += parsed.length;
-          projectFiles.push({ id: `${file.name}-${file.size}-${file.lastModified || 0}`, name: file.name, size: file.size });
+          const linked = projectLinks.get(file) || {}; const historyId = linked.historyId || projectDatasetId(file); projectFiles.push({ id: historyId, name: file.name, size: file.size, handleRef: linked.handleRef || "", handleKind: linked.handleRef ? "file" : "" }); loadedProjectIds.push(historyId);
         } catch (error) {
           failed += 1;
           toast(`${file.name}: ${error.message || error}`, "error", 7000);
@@ -749,6 +754,7 @@
     } else if (!state.entries.length) {
       renderEverything();
     }
+    return { added, failed, loadedIds: loadedProjectIds };
   }
 
   function rebuildFilterIndex() {
@@ -2258,13 +2264,117 @@
   function onBaselineServiceClick(event) { const button = event.target.closest("[data-baseline-service]"); if (!button) return; closeBaseline(); el.queryInput.value = `service:${quoteIfNeeded(button.dataset.baselineService)}`; applyFilters(true); }
   function onBaselineDependencyClick(event) { const button = event.target.closest("[data-baseline-dependency-to]"); if (!button) return; closeBaseline(); el.queryInput.value = `service:${quoteIfNeeded(button.dataset.baselineDependencyTo)}`; applyFilters(true); }
 
-  function openProjects() { closeCompetingDialogs("projectDialog"); renderProjects(); showDialogSafely(el.projectDialog); }
-  function closeProjects() { if (el.projectDialog?.open) el.projectDialog.close(); else el.projectDialog?.removeAttribute("open"); }
-  function persistActiveProject() { utils().saveJson("signaldock-active-project-v1", state.activeProjectId || ""); }
-  function createProject() { if (!window.SignalDockProjectManager) return; try { const result = window.SignalDockProjectManager.create(state.projects, { name: el.projectName.value, description: el.projectDescription.value }); state.projects = result.projects; state.activeProjectId = result.project.id; persistActiveProject(); el.projectName.value = ""; el.projectDescription.value = ""; renderProjects(); renderBaselineHistory(); toast(`Created project “${result.project.name}”.`); } catch (error) { toast(error.message || String(error), "error", 6500); } }
-  function projectHistorySection(project) { const details = document.createElement("details"); details.className = "project-history"; const summary = document.createElement("summary"); summary.textContent = `${project.recentWorkspaces.length} sessions · ${project.recentDatasets.length} datasets · ${project.baselines.length} baselines · ${project.cases.length} cases`; details.appendChild(summary); const grid = document.createElement("div"); grid.className = "project-history__grid"; [["Recent workspaces", project.recentWorkspaces, (item) => `${item.name} · ${new Date(item.openedAt).toLocaleString()}`], ["Recent datasets", project.recentDatasets, (item) => `${item.name} · ${utils().formatBytes(item.size)}`], ["Baselines", project.baselines, (item) => `${item.name} · ${new Date(item.capturedAt).toLocaleString()}`], ["Cases", project.cases, (item) => `${item.title} · ${item.status}`]].forEach(([label, values, format]) => { const section = document.createElement("section"); const strong = document.createElement("strong"); strong.textContent = label; section.appendChild(strong); if (!values.length) { const small = document.createElement("small"); small.textContent = "No history yet"; section.appendChild(small); } else values.slice(0, 5).forEach((item) => { const small = document.createElement("small"); small.textContent = format(item); section.appendChild(small); }); grid.appendChild(section); }); details.appendChild(grid); return details; }
-  function renderProjects() { if (!el.projectList) return; state.projects = window.SignalDockProjectManager?.load?.() || state.projects || []; if (state.activeProjectId && !state.projects.some((project) => project.id === state.activeProjectId)) state.activeProjectId = ""; if (el.projectCount) el.projectCount.textContent = String(state.projects.filter((project) => !project.archived).length); const active = state.projects.find((project) => project.id === state.activeProjectId); el.activeProjectMeta.textContent = active ? `Active · ${active.name} · ${active.recentDatasets.length} recent datasets · ${active.baselines.length} baselines${active.lastWorkspace ? ` · last session: ${active.lastWorkspace}` : ""}` : "No active project."; el.projectList.replaceChildren(); if (!state.projects.length) { const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = "No local projects yet."; el.projectList.appendChild(empty); return; } state.projects.forEach((project) => { const row = document.createElement("article"); row.className = `project-row${project.id === state.activeProjectId ? " is-active" : ""}${project.archived ? " is-archived" : ""}`; const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = `${project.name}${project.archived ? " · Archived" : ""}`; const small = document.createElement("small"); small.textContent = [project.description || "Metadata-only local project", project.tags.join(" · ")].filter(Boolean).join(" · "); copy.append(strong, small, projectHistorySection(project)); const actions = document.createElement("div"); [["activate", project.id === state.activeProjectId ? "Active" : "Activate"], ["duplicate", "Duplicate"], ["archive", project.archived ? "Unarchive" : "Archive"], ["delete", "Delete"]].forEach(([action, label]) => { const button = makeUiButton("", label); button.dataset.projectAction = action; button.dataset.projectId = project.id; button.disabled = action === "activate" && (project.id === state.activeProjectId || project.archived); actions.appendChild(button); }); row.append(copy, actions); el.projectList.appendChild(row); }); }
-  function onProjectListClick(event) { const button = event.target.closest("[data-project-action]"); if (!button || !window.SignalDockProjectManager) return; const id = button.dataset.projectId; const project = state.projects.find((item) => item.id === id); if (!project) return; if (button.dataset.projectAction === "activate") { state.activeProjectId = id; persistActiveProject(); renderProjects(); renderBaselineHistory(); toast(`Active project: ${project.name}.`); return; } if (button.dataset.projectAction === "duplicate") { const result = window.SignalDockProjectManager.duplicate(state.projects, id); state.projects = result.projects; state.activeProjectId = result.project.id; persistActiveProject(); renderProjects(); toast(`Duplicated project as “${result.project.name}”.`); return; } if (button.dataset.projectAction === "archive") { state.projects = window.SignalDockProjectManager.archive(state.projects, id, !project.archived); if (!project.archived && state.activeProjectId === id) { state.activeProjectId = ""; persistActiveProject(); } renderProjects(); return; } if (button.dataset.projectAction === "delete" && window.confirm(`Delete local project metadata “${project.name}”? Log files are not affected.`)) { state.projects = window.SignalDockProjectManager.remove(state.projects, id); if (state.activeProjectId === id) { state.activeProjectId = ""; persistActiveProject(); } renderProjects(); renderBaselineHistory(); } }
+function openProjects() { closeCompetingDialogs("projectDialog"); renderProjects(); showDialogSafely(el.projectDialog); }
+function closeProjects() { if (el.projectDialog?.open) el.projectDialog.close(); else el.projectDialog?.removeAttribute("open"); }
+function persistActiveProject() { utils().saveJson("signaldock-active-project-v1", state.activeProjectId || ""); }
+function createProject() { if (!window.SignalDockProjectManager) return; try { const result = window.SignalDockProjectManager.create(state.projects, { name: el.projectName.value, description: el.projectDescription.value }); state.projects = result.projects; state.activeProjectId = result.project.id; persistActiveProject(); el.projectName.value = ""; el.projectDescription.value = ""; renderProjects(); renderBaselineHistory(); toast(`Created project “${result.project.name}”.`); } catch (error) { toast(error.message || String(error), "error", 6500); } }
+
+function projectHistoryButton(project, field, item, action, label, primary = false) {
+  const button = makeUiButton("", label, primary ? "button button--primary button--small" : "button button--ghost button--small");
+  button.dataset.projectHistoryAction = action; button.dataset.projectId = project.id; button.dataset.projectField = field; button.dataset.projectItemId = item.id;
+  return button;
+}
+
+function projectHistorySection(project) {
+  const details = document.createElement("details"); details.className = "project-history";
+  const summary = document.createElement("summary"); summary.textContent = `${project.recentWorkspaces.length} sessions · ${project.recentDatasets.length} datasets · ${project.baselines.length} baselines · ${project.cases.length} cases`; details.appendChild(summary);
+  const grid = document.createElement("div"); grid.className = "project-history__grid";
+  const linkedSections = [["Recent workspaces", "recentWorkspaces", project.recentWorkspaces, (item) => `${item.name} · ${new Date(item.openedAt).toLocaleString()}`], ["Recent datasets", "recentDatasets", project.recentDatasets, (item) => `${item.name} · ${utils().formatBytes(item.size)}`]];
+  linkedSections.forEach(([label, field, values, format]) => {
+    const section = document.createElement("section"); const strong = document.createElement("strong"); strong.textContent = label; section.appendChild(strong);
+    if (!values.length) { const small = document.createElement("small"); small.textContent = "No history yet"; section.appendChild(small); }
+    else values.slice(0, 5).forEach((item) => {
+      const row = document.createElement("div"); row.className = "project-history-item";
+      const copy = document.createElement("div"); const small = document.createElement("small"); small.textContent = format(item); const badge = document.createElement("span"); badge.className = `project-link-state${item.handleRef ? " is-linked" : ""}`; badge.textContent = item.handleRef ? `Linked${item.reopenCount ? ` · reopened ${item.reopenCount}×` : ""}` : "Metadata only"; copy.append(small, badge);
+      const actions = document.createElement("div");
+      if (item.handleRef) actions.append(projectHistoryButton(project, field, item, "reopen", "Reopen", true), projectHistoryButton(project, field, item, "forget", "Forget link"));
+      else actions.append(projectHistoryButton(project, field, item, "relink", "Relink"));
+      row.append(copy, actions); section.appendChild(row);
+    });
+    grid.appendChild(section);
+  });
+  [["Baselines", project.baselines, (item) => `${item.name} · ${new Date(item.capturedAt).toLocaleString()}`], ["Cases", project.cases, (item) => `${item.title} · ${item.status}`]].forEach(([label, values, format]) => { const section = document.createElement("section"); const strong = document.createElement("strong"); strong.textContent = label; section.appendChild(strong); if (!values.length) { const small = document.createElement("small"); small.textContent = "No history yet"; section.appendChild(small); } else values.slice(0, 5).forEach((item) => { const small = document.createElement("small"); small.textContent = format(item); section.appendChild(small); }); grid.appendChild(section); });
+  details.appendChild(grid); return details;
+}
+
+function renderProjects() {
+  if (!el.projectList) return;
+  state.projects = window.SignalDockProjectManager?.load?.() || state.projects || [];
+  if (state.activeProjectId && !state.projects.some((project) => project.id === state.activeProjectId)) state.activeProjectId = "";
+  if (el.projectCount) el.projectCount.textContent = String(state.projects.filter((project) => !project.archived).length);
+  const active = state.projects.find((project) => project.id === state.activeProjectId);
+  const bridgeCaps = window.SignalDockDesktopBridge?.capabilities?.() || { mode: "browser", filePicker: false, persistentHandles: false };
+  if (el.projectLinkFilesButton) { el.projectLinkFilesButton.disabled = !active || active.archived || !bridgeCaps.filePicker; el.projectLinkFilesButton.title = !active ? "Activate a project first" : !bridgeCaps.filePicker ? "Persistent file linking is unavailable in this runtime" : "Choose local log files, load them and remember reopen access for this project"; }
+  if (el.projectCapabilityMeta) el.projectCapabilityMeta.textContent = bridgeCaps.persistentHandles ? `${bridgeCaps.mode === "native" ? "Native" : "Browser"} capability mode · persistent local reopen available · links never leave this device` : `${bridgeCaps.mode === "native" ? "Native" : "Browser"} capability mode · metadata-only history in this runtime`;
+  el.activeProjectMeta.textContent = active ? `Active · ${active.name} · ${active.recentDatasets.length} recent datasets · ${active.baselines.length} baselines${active.lastWorkspace ? ` · last session: ${active.lastWorkspace}` : ""}` : "No active project.";
+  el.projectList.replaceChildren();
+  if (!state.projects.length) { const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = "No local projects yet."; el.projectList.appendChild(empty); return; }
+  state.projects.forEach((project) => { const row = document.createElement("article"); row.className = `project-row${project.id === state.activeProjectId ? " is-active" : ""}${project.archived ? " is-archived" : ""}`; const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = `${project.name}${project.archived ? " · Archived" : ""}`; const small = document.createElement("small"); small.textContent = [project.description || "Metadata-only local project", project.tags.join(" · ")].filter(Boolean).join(" · "); copy.append(strong, small, projectHistorySection(project)); const actions = document.createElement("div"); [["activate", project.id === state.activeProjectId ? "Active" : "Activate"], ["duplicate", "Duplicate"], ["archive", project.archived ? "Unarchive" : "Archive"], ["delete", "Delete"]].forEach(([action, label]) => { const button = makeUiButton("", label); button.dataset.projectAction = action; button.dataset.projectId = project.id; button.disabled = action === "activate" && (project.id === state.activeProjectId || project.archived); actions.appendChild(button); }); row.append(copy, actions); el.projectList.appendChild(row); });
+}
+
+async function linkAndLoadProjectFiles() {
+  const bridge = window.SignalDockDesktopBridge; const project = state.projects.find((item) => item.id === state.activeProjectId);
+  if (!project || project.archived) { toast("Activate a non-archived project before linking local files.", "error"); return; }
+  if (!bridge?.pickFiles) { toast("Persistent local file linking is unavailable in this runtime.", "error"); return; }
+  try {
+    const records = await bridge.pickFiles({ multiple: true, maxFiles: 64, persistHandle: true, projectId: project.id, idPrefix: "dataset", note: "SignalDock linked project dataset", types: [{ description: "SignalDock log datasets", accept: { "application/json": [".json", ".jsonl", ".ndjson"], "text/plain": [".log", ".txt"], "application/zip": [".zip"] } }] });
+    if (!records.length) return;
+    const projectItems = records.map((record) => ({ file: record.file, historyId: projectDatasetId(record.file), handleRef: record.handleRef, handleKind: "file" }));
+    const result = await handleFiles(records.map((record) => record.file), { projectItems });
+    const loaded = new Set(result?.loadedIds || []);
+    for (const item of projectItems) if (item.handleRef && !loaded.has(item.historyId)) await bridge.forgetHandle(item.handleRef);
+    renderProjects();
+    if (loaded.size) toast(`Linked ${loaded.size} dataset${loaded.size === 1 ? "" : "s"} to “${project.name}”.`);
+  } catch (error) { toast(`Could not link local files: ${error.message || error}`, "error", 7000); }
+}
+
+async function relinkProjectHistoryItem(project, field, item) {
+  const bridge = window.SignalDockDesktopBridge;
+  if (!bridge?.pickFiles) { toast("Persistent local file linking is unavailable in this runtime.", "error"); return; }
+  const records = await bridge.pickFiles({ multiple: false, maxFiles: 1, persistHandle: true, projectId: project.id, idPrefix: `relink-${item.id}`, note: `SignalDock relink: ${item.name}` });
+  if (!records.length) return;
+  const record = records[0];
+  const mismatch = record.file.name !== item.name || (item.size && Number(record.file.size) !== Number(item.size));
+  if (mismatch && !window.confirm(`The selected file does not match the saved name/size for “${item.name}”. Link it anyway?`)) { if (record.handleRef) await bridge.forgetHandle(record.handleRef); return; }
+  state.projects = window.SignalDockProjectManager.linkHistoryHandle(state.projects, project.id, field, item.id, record.handleRef, "file");
+  renderProjects(); toast(`Relinked “${item.name}”.`);
+}
+
+async function reopenProjectHistoryItem(project, field, item) {
+  const bridge = window.SignalDockDesktopBridge;
+  if (!item.handleRef || !bridge?.reopenFile) { toast("This history entry has no local reopen link.", "error"); return; }
+  try {
+    const record = await bridge.reopenFile(item.handleRef, { requestPermission: true });
+    if (field === "recentWorkspaces") {
+      await restoreWorkspace(record.file);
+      state.activeProjectId = project.id; persistActiveProject();
+      state.projects = window.SignalDockProjectManager.markHistoryReopened(state.projects, project.id, field, item.id);
+    } else {
+      const result = await handleFiles([record.file], { projectItems: [{ file: record.file, historyId: item.id, handleRef: item.handleRef, handleKind: "file" }] });
+      if (!(result?.loadedIds || []).includes(item.id)) return;
+      state.projects = window.SignalDockProjectManager.markHistoryReopened(state.projects, project.id, field, item.id);
+    }
+    renderProjects(); renderBaselineHistory(); toast(`Reopened “${item.name}” locally.`);
+  } catch (error) { toast(`Could not reopen “${item.name}”: ${error.message || error}`, "error", 7500); }
+}
+
+async function onProjectHistoryAction(button) {
+  const project = state.projects.find((item) => item.id === button.dataset.projectId); const field = button.dataset.projectField; const item = project?.[field]?.find((entry) => entry.id === button.dataset.projectItemId);
+  if (!project || !item || !["recentWorkspaces", "recentDatasets"].includes(field)) return;
+  const action = button.dataset.projectHistoryAction;
+  if (action === "reopen") { await reopenProjectHistoryItem(project, field, item); return; }
+  if (action === "relink") { try { await relinkProjectHistoryItem(project, field, item); } catch (error) { toast(`Could not relink “${item.name}”: ${error.message || error}`, "error", 7000); } return; }
+  if (action === "forget") { try { if (item.handleRef) await window.SignalDockDesktopBridge?.forgetHandle?.(item.handleRef); state.projects = window.SignalDockProjectManager.unlinkHistoryHandle(state.projects, project.id, field, item.id); renderProjects(); toast(`Forgot the local reopen link for “${item.name}”.`); } catch (error) { toast(`Could not forget local link: ${error.message || error}`, "error"); } }
+}
+
+async function onProjectListClick(event) {
+  const historyButton = event.target.closest("[data-project-history-action]"); if (historyButton) { await onProjectHistoryAction(historyButton); return; }
+  const button = event.target.closest("[data-project-action]"); if (!button || !window.SignalDockProjectManager) return; const id = button.dataset.projectId; const project = state.projects.find((item) => item.id === id); if (!project) return;
+  if (button.dataset.projectAction === "activate") { state.activeProjectId = id; persistActiveProject(); renderProjects(); renderBaselineHistory(); toast(`Active project: ${project.name}.`); return; }
+  if (button.dataset.projectAction === "duplicate") { const result = window.SignalDockProjectManager.duplicate(state.projects, id); state.projects = result.projects; state.activeProjectId = result.project.id; persistActiveProject(); renderProjects(); toast(`Duplicated project as “${result.project.name}” without copying local file capabilities.`); return; }
+  if (button.dataset.projectAction === "archive") { state.projects = window.SignalDockProjectManager.archive(state.projects, id, !project.archived); if (!project.archived && state.activeProjectId === id) { state.activeProjectId = ""; persistActiveProject(); } renderProjects(); return; }
+  if (button.dataset.projectAction === "delete" && window.confirm(`Delete local project metadata “${project.name}”? Log files are not affected; saved reopen permissions for this project will also be forgotten.`)) { try { await window.SignalDockDesktopBridge?.forgetProjectHandles?.(id); } catch { /* metadata removal must remain possible */ } state.projects = window.SignalDockProjectManager.remove(state.projects, id); if (state.activeProjectId === id) { state.activeProjectId = ""; persistActiveProject(); } renderProjects(); renderBaselineHistory(); }
+}
   async function exportProjects() { if (!window.SignalDockProjectManager) return; const text = window.SignalDockProjectManager.exportJson(state.projects, state.activeProjectId); if (window.SignalDockStorageAdapter?.saveText) await window.SignalDockStorageAdapter.saveText({ name: "signaldock-projects.sdprojects", mime: "application/json;charset=utf-8", text }); else utils().downloadParts("signaldock-projects.sdprojects", [text], "application/json;charset=utf-8"); toast("Project metadata exported."); }
   async function importProjects(event) { const file = event.target.files?.[0]; if (!file || !window.SignalDockProjectManager) return; try { const result = window.SignalDockProjectManager.importJson(await file.text()); state.projects = result.projects; state.activeProjectId = result.activeId && result.projects.some((project) => project.id === result.activeId) ? result.activeId : ""; persistActiveProject(); renderProjects(); renderBaselineHistory(); toast(`Imported ${state.projects.length} project records.`); } catch (error) { toast(`Could not import projects: ${error.message || error}`, "error", 7000); } finally { event.target.value = ""; } }
 
@@ -2885,17 +2995,25 @@
     toast(`Exported ${payload.length.toLocaleString()} entries.`);
   }
 
-  function saveWorkspace() {
-    if (!state.entries.length) return;
-    const workspace = currentWorkspaceState(); const parts = window.SignalDockWorkspace.serializeParts(state.entries, workspace, APP_VERSION); const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19); const filename = `signaldock-${stamp}.sdsession`;
-    if (state.activeProjectId && window.SignalDockProjectManager) {
-      if (window.SignalDockProjectManager.touchWorkspace) state.projects = window.SignalDockProjectManager.touchWorkspace(state.projects, state.activeProjectId, { id: filename, name: filename, size: new Blob(parts).size });
-      if (state.baselineSnapshot && window.SignalDockProjectManager.attachBaseline) state.projects = window.SignalDockProjectManager.attachBaseline(state.projects, state.activeProjectId, { id: state.baselineSnapshot.id, name: state.baselineSnapshot.name, capturedAt: state.baselineSnapshot.capturedAt });
-      if (state.caseFile && window.SignalDockProjectManager.attachCase) state.projects = window.SignalDockProjectManager.attachCase(state.projects, state.activeProjectId, { id: state.caseFile.id || "active-case", title: state.caseFile.title || state.investigation?.title || "Investigation", status: state.caseFile.status || "open", updatedAt: state.caseFile.updatedAt || new Date().toISOString() });
-      renderProjects();
-    }
-    utils().downloadParts(filename, parts, "application/json;charset=utf-8"); toast(`Workspace saved with ${state.entries.length.toLocaleString()} entries.`);
+
+async function saveWorkspace() {
+  if (!state.entries.length) return;
+  const workspace = currentWorkspaceState(); const parts = window.SignalDockWorkspace.serializeParts(state.entries, workspace, APP_VERSION); const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19); const filename = `signaldock-${stamp}.sdsession`;
+  const size = parts.reduce((sum, part) => sum + new Blob([part]).size, 0);
+  let saved = null;
+  try {
+    if (window.SignalDockDesktopBridge?.saveParts) saved = await window.SignalDockDesktopBridge.saveParts({ name: filename, mime: "application/json;charset=utf-8", parts, persistHandle: Boolean(state.activeProjectId), projectId: state.activeProjectId, id: filename, note: "SignalDock project workspace" });
+    else { utils().downloadParts(filename, parts, "application/json;charset=utf-8"); saved = { mode: "download", name: filename, handleRef: "" }; }
+  } catch (error) { toast(`Could not save workspace: ${error.message || error}`, "error", 7500); return; }
+  if (saved?.mode === "cancelled") { toast("Workspace save cancelled."); return; }
+  if (state.activeProjectId && window.SignalDockProjectManager) {
+    if (window.SignalDockProjectManager.touchWorkspace) state.projects = window.SignalDockProjectManager.touchWorkspace(state.projects, state.activeProjectId, { id: filename, name: saved?.name || filename, size, handleRef: saved?.handleRef || "", handleKind: saved?.handleRef ? "file" : "" });
+    if (state.baselineSnapshot && window.SignalDockProjectManager.attachBaseline) state.projects = window.SignalDockProjectManager.attachBaseline(state.projects, state.activeProjectId, { id: state.baselineSnapshot.id, name: state.baselineSnapshot.name, capturedAt: state.baselineSnapshot.capturedAt });
+    if (state.caseFile && window.SignalDockProjectManager.attachCase) state.projects = window.SignalDockProjectManager.attachCase(state.projects, state.activeProjectId, { id: state.caseFile.id || "active-case", title: state.caseFile.title || state.investigation?.title || "Investigation", status: state.caseFile.status || "open", updatedAt: state.caseFile.updatedAt || new Date().toISOString() });
+    renderProjects();
   }
+  toast(`Workspace saved with ${state.entries.length.toLocaleString()} entries${saved?.handleRef ? " · reopen link stored locally" : ""}.`);
+}
 
   async function restoreWorkspace(file) {
     const maxWorkspaceBytes = 500 * 1024 * 1024;

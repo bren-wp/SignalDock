@@ -573,10 +573,11 @@
   <dialog class="project-dialog" id="projectDialog">
     <section class="project-card" aria-label="SignalDock local project manager">
       <header class="query-library-head"><div><span>LOCAL PROJECT METADATA</span><strong>Projects &amp; workspaces</strong><small>Organize investigation metadata locally without copying log contents into project records.</small></div><button class="icon-button" id="closeProjectButton" type="button" aria-label="Close project manager"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
-      <div class="project-toolbar"><label><span>Project name</span><input id="projectName" type="text" maxlength="120" placeholder="Payments production"></label><label><span>Description</span><input id="projectDescription" type="text" maxlength="2000" placeholder="Local context for this investigation"></label><button class="button button--primary button--small" id="createProjectButton" type="button">Create project</button><button class="button button--ghost button--small" id="exportProjectsButton" type="button">Export</button><button class="button button--ghost button--small" id="importProjectsButton" type="button">Import</button><input id="projectsFileInput" type="file" accept=".json,.sdprojects" hidden></div>
+      <div class="project-toolbar"><label><span>Project name</span><input id="projectName" type="text" maxlength="120" placeholder="Payments production"></label><label><span>Description</span><input id="projectDescription" type="text" maxlength="2000" placeholder="Local context for this investigation"></label><button class="button button--primary button--small" id="createProjectButton" type="button">Create project</button><button class="button button--primary button--small" id="projectLinkFilesButton" type="button" disabled>Link &amp; load files</button><button class="button button--ghost button--small" id="exportProjectsButton" type="button">Export</button><button class="button button--ghost button--small" id="importProjectsButton" type="button">Import</button><input id="projectsFileInput" type="file" accept=".json,.sdprojects" hidden></div>
       <div class="project-active" id="activeProjectMeta">No active project.</div>
+      <div class="project-capability" id="projectCapabilityMeta">Checking local reopen capability…</div>
       <div class="project-list" id="projectList"><div class="case-findings__empty">No local projects yet.</div></div>
-      <footer class="query-library-footer"><span>Project records contain names, descriptions and references only. Loaded log bytes remain in the current workspace/session.</span></footer>
+      <footer class="query-library-footer"><span>Project records contain metadata only. Persistent reopen links are local capabilities on this device and are stripped from project exports.</span></footer>
     </section>
   </dialog>
 
@@ -620,6 +621,7 @@
   <script src="query-library.js" defer></script>
   <script src="case-timeline.js" defer></script>
   <script src="storage-adapter.js" defer></script>
+  <script src="desktop-bridge.js" defer></script>
   <script src="trace-analysis.js" defer></script>
   <script src="trace-insights.js" defer></script>
   <script src="trace-flame.js" defer></script>

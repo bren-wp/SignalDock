@@ -1,11 +1,11 @@
 (function (root) {
   "use strict";
 
-  const KEY = "signaldock-projects-v3";
-  const LEGACY_KEYS = ["signaldock-projects-v2", "signaldock-projects-v1"];
+  const KEY = "signaldock-projects-v4";
+  const LEGACY_KEYS = ["signaldock-projects-v3", "signaldock-projects-v2", "signaldock-projects-v1"];
   const SCHEMA = "signaldock.projects";
-  const VERSION = 3;
-  const LEGACY_VERSIONS = [1, 2];
+  const VERSION = 4;
+  const LEGACY_VERSIONS = [1, 2, 3];
   const MAX = 50;
   const MAX_HISTORY = 20;
 
@@ -20,8 +20,11 @@
       size: Math.max(0, Number(item?.size) || 0),
       fingerprint: clean(item?.fingerprint, 160),
       handleRef: clean(item?.handleRef, 300),
-      handleKind: item?.handleKind === "directory" ? "directory" : (item?.handleRef ? "file" : ""),
-      reopenable: Boolean(item?.handleRef)
+      handleKind: item?.handleRef ? (item?.handleKind === "directory" ? "directory" : "file") : "",
+      reopenable: Boolean(item?.handleRef),
+      linkedAt: item?.handleRef ? clean(item?.linkedAt || item?.openedAt || new Date().toISOString(), 64) : "",
+      lastReopenedAt: clean(item?.lastReopenedAt, 64),
+      reopenCount: Math.max(0, Math.floor(Number(item?.reopenCount) || 0))
     }));
   }
 
@@ -99,35 +102,54 @@
   function touchWorkspace(list, id, value = {}) { return touch(list, id, "recentWorkspaces", value); }
   function touchDataset(list, id, value = {}) { return touch(list, id, "recentDatasets", value); }
 
-  function linkHistoryHandle(list, id, field, itemId, handleRef, handleKind = "file") {
+  function linkHistoryHandle(list, id, field, itemId, ref, handleKind = "file") {
     if (!["recentWorkspaces", "recentDatasets"].includes(field)) throw new Error("Unsupported project history collection.");
     const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out);
     const historyItem = (project[field] || []).find((item) => item.id === clean(itemId, 96));
     if (!historyItem) return persist(out);
-    historyItem.handleRef = clean(handleRef, 300);
-    historyItem.handleKind = handleKind === "directory" ? "directory" : "file";
-    historyItem.reopenable = Boolean(historyItem.handleRef);
+    const value = clean(ref, 300);
+    historyItem.handleRef = value;
+    historyItem.handleKind = value ? (handleKind === "directory" ? "directory" : "file") : "";
+    historyItem.reopenable = Boolean(value);
+    historyItem.linkedAt = value ? new Date().toISOString() : "";
     project.updatedAt = new Date().toISOString();
     return persist(out);
   }
 
   function unlinkHistoryHandle(list, id, field, itemId) { return linkHistoryHandle(list, id, field, itemId, "", "file"); }
 
+  function markHistoryReopened(list, id, field, itemId) {
+    if (!["recentWorkspaces", "recentDatasets"].includes(field)) throw new Error("Unsupported project history collection.");
+    const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out);
+    const item = (project[field] || []).find((candidate) => candidate.id === clean(itemId, 96));
+    if (!item) return persist(out);
+    const now = new Date().toISOString();
+    const updated = { ...item, openedAt: now, lastReopenedAt: now, reopenCount: Math.max(0, Number(item.reopenCount) || 0) + 1 };
+    project[field] = historyList([updated, ...(project[field] || []).filter((candidate) => candidate.id !== updated.id)], field === "recentWorkspaces" ? "workspace" : "dataset");
+    project.lastOpenedAt = now; project.updatedAt = now;
+    if (field === "recentWorkspaces") project.lastWorkspace = updated.name;
+    return persist(out);
+  }
+
   function attachBaseline(list, id, value = {}) { const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out); const baseline = baselineList([value])[0]; project.baselines = baselineList([baseline, ...(project.baselines || []).filter((item) => item.id !== baseline.id)]); project.baselineName = baseline.name; project.updatedAt = new Date().toISOString(); return persist(out); }
   function attachCase(list, id, value = {}) { const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out); const caseMeta = caseList([value])[0]; project.cases = caseList([caseMeta, ...(project.cases || []).filter((item) => item.id !== caseMeta.id)]); project.updatedAt = new Date().toISOString(); return persist(out); }
   function archive(list, id, archived = true) { return update(list, id, { archived }); }
-  function duplicate(list, id, name = "") { const out = loadOr(list); const source = out.find((item) => item.id === id); if (!source) throw new Error("Project not found."); return create(out, { ...source, name: clean(name, 120) || `${source.name} copy`, archived: false }); }
-  function remove(list, id) { return persist(loadOr(list).filter((item) => item.id !== id)); }
 
   function portableProject(project) {
     const out = normalize(project);
-    const stripHandles = (items) => items.map(({ handleRef: _handleRef, handleKind: _handleKind, reopenable: _reopenable, ...item }) => item);
+    const stripHandles = (items) => items.map(({ handleRef: _handleRef, handleKind: _handleKind, reopenable: _reopenable, linkedAt: _linkedAt, ...item }) => item);
     return { ...out, recentWorkspaces: stripHandles(out.recentWorkspaces), recentDatasets: stripHandles(out.recentDatasets) };
   }
 
-  function exportJson(list, activeId = "") {
-    return JSON.stringify({ schema: SCHEMA, version: VERSION, exportedAt: new Date().toISOString(), activeId: clean(activeId, 96), projects: loadOr(list).map(portableProject) }, null, 2);
+  function duplicate(list, id, name = "") {
+    const out = loadOr(list); const source = out.find((item) => item.id === id); if (!source) throw new Error("Project not found.");
+    const copy = portableProject(source);
+    return create(out, { ...copy, name: clean(name, 120) || `${source.name} copy`, archived: false });
   }
+
+  function remove(list, id) { return persist(loadOr(list).filter((item) => item.id !== id)); }
+
+  function exportJson(list, activeId = "") { return JSON.stringify({ schema: SCHEMA, version: VERSION, exportedAt: new Date().toISOString(), activeId: clean(activeId, 96), projects: loadOr(list).map(portableProject) }, null, 2); }
 
   function importJson(text) {
     const parsed = JSON.parse(String(text || ""));
@@ -138,7 +160,8 @@
   root.SignalDockProjectManager = {
     KEY, LEGACY_KEYS, SCHEMA, VERSION, LEGACY_VERSIONS, MAX, MAX_HISTORY,
     normalize, load, persist, create, update, touchWorkspace, touchDataset,
-    linkHistoryHandle, unlinkHistoryHandle, attachBaseline, attachCase,
-    archive, duplicate, remove, portableProject, exportJson, importJson
+    linkHistoryHandle, unlinkHistoryHandle, markHistoryReopened,
+    attachBaseline, attachCase, archive, duplicate, remove,
+    portableProject, exportJson, importJson
   };
 }(typeof self !== "undefined" ? self : window));

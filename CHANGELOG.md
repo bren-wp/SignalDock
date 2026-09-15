@@ -1,6 +1,26 @@
 # Changelog
 
 
+## 2.7.0 — 2026-09-15
+
+### Project Reopen workflow
+- Projects can now link and load local log datasets through explicit File System Access capabilities and reopen them later after a permission check.
+- Recent datasets and workspaces surface Linked vs Metadata only state, Reopen, Relink and Forget link actions.
+- Reopen count and last-reopened metadata are tracked locally without copying log bytes into project records.
+- Deleting a project forgets its saved capability records while leaving the user's files untouched.
+- Duplicating a project intentionally strips local filesystem capabilities from the copy.
+
+### Workspace persistence
+- Workspace saving now uses sequential `saveParts` writes when the File System Access API is available, reducing peak memory compared with materializing one large export Blob.
+- Recent-workspace metadata is recorded only after the save succeeds; cancelled or failed saves no longer create false history entries.
+- Successfully saved workspace handles can be attached to the active project for later local reopening.
+
+### Desktop-ready boundary
+- Added `desktop-bridge.js`, a narrow allowlisted capability facade for pick/save/reopen/status/forget operations.
+- Browser mode remains the default implementation through `storage-adapter.js`; no native installer or unrestricted shell/filesystem bridge is claimed or exposed.
+- Added adapter/project migration and integration coverage for the v2.7 workflow.
+
+
 ## 2.6.0 — 2026-09-13
 
 ### Large-dataset trace and service scaling
