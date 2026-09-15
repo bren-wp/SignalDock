@@ -1,0 +1,372 @@
+name: SignalDock source layout pass
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  reorganize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Reorganize source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+          import re
+          import subprocess
+
+          root = Path('.')
+          mapping = {
+              'zip.js': 'src/vendor/zip.js',
+              'parser-plugins.js': 'src/core/parser-plugins.js',
+              'parser.js': 'src/core/parser.js',
+              'utils.js': 'src/core/utils.js',
+              'query-engine.js': 'src/core/query-engine.js',
+              'search-index.js': 'src/core/search-index.js',
+              'search-cache.js': 'src/core/search-cache.js',
+              'workspace.js': 'src/core/workspace.js',
+              'persistence.js': 'src/core/persistence.js',
+              'query-library.js': 'src/core/query-library.js',
+              'parser-profiles.js': 'src/core/parser-profiles.js',
+              'performance.js': 'src/core/performance.js',
+              'virtual-viewport.js': 'src/core/virtual-viewport.js',
+              'storage-adapter.js': 'src/platform/storage-adapter.js',
+              'desktop-bridge.js': 'src/platform/desktop-bridge.js',
+              'span-events.js': 'src/analysis/span-events.js',
+              'service-map.js': 'src/analysis/service-map.js',
+              'service-matrix.js': 'src/analysis/service-matrix.js',
+              'service-heatmap.js': 'src/analysis/service-heatmap.js',
+              'service-trends.js': 'src/analysis/service-trends.js',
+              'service-health.js': 'src/analysis/service-health.js',
+              'trace-regression.js': 'src/analysis/trace-regression.js',
+              'trace-explorer.js': 'src/analysis/trace-explorer.js',
+              'trace-compare.js': 'src/analysis/trace-compare.js',
+              'trace-outliers.js': 'src/analysis/trace-outliers.js',
+              'trace-analysis.js': 'src/analysis/trace-analysis.js',
+              'trace-insights.js': 'src/analysis/trace-insights.js',
+              'trace-flame.js': 'src/analysis/trace-flame.js',
+              'exception-groups.js': 'src/analysis/exception-groups.js',
+              'exception-trends.js': 'src/analysis/exception-trends.js',
+              'baseline-manager.js': 'src/investigation/baseline-manager.js',
+              'case-timeline.js': 'src/investigation/case-timeline.js',
+              'investigation.js': 'src/investigation/investigation.js',
+              'case-workspace.js': 'src/investigation/case-workspace.js',
+              'case-checkpoints.js': 'src/investigation/case-checkpoints.js',
+              'project-manager.js': 'src/investigation/project-manager.js',
+              'command-palette.js': 'src/ui/command-palette.js',
+              'ui-hardening.js': 'src/ui/ui-hardening.js',
+          }
+
+          root_js = {path.name for path in root.glob('*.js')}
+          allowed_root = set(mapping) | {'app.js', 'filter-worker.js'}
+          unexpected = sorted(root_js - allowed_root)
+          missing = sorted(set(mapping) - root_js)
+          if unexpected:
+              raise SystemExit(f'Unexpected root JavaScript before refactor: {unexpected}')
+          if missing:
+              raise SystemExit(f'Mapped source files missing before refactor: {missing}')
+
+          for old, new in mapping.items():
+              Path(new).parent.mkdir(parents=True, exist_ok=True)
+              subprocess.run(['git', 'mv', old, new], check=True)
+
+          if Path('BRAND.md').exists():
+              subprocess.run(['git', 'mv', 'BRAND.md', 'docs/BRAND.md'], check=True)
+
+          text_extensions = {'.html', '.js', '.mjs', '.md', '.yml', '.yaml', '.json', '.txt'}
+          excluded = {Path('CHANGELOG.md')}
+          for path in list(root.rglob('*')):
+              if not path.is_file() or '.git' in path.parts or path.suffix.lower() not in text_extensions or path in excluded:
+                  continue
+              text = path.read_text(encoding='utf-8')
+              updated = text
+              for old, new in mapping.items():
+                  updated = updated.replace(old, new)
+              if path.name == 'README.md' or path.as_posix() in {'app.js', 'website/index.html', 'docs/TECHNICAL.md'}:
+                  updated = updated.replace('2.7.0', '2.7.1')
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+
+          Path('VERSION').write_text('2.7.1\n', encoding='utf-8')
+
+          app = Path('app.js').read_text(encoding='utf-8')
+          if 'const APP_VERSION = "2.7.1";' not in app:
+              raise SystemExit('APP_VERSION did not update to 2.7.1')
+
+          ci_path = Path('.github/workflows/ci.yml')
+          ci = ci_path.read_text(encoding='utf-8')
+          ci = ci.replace("find . -maxdepth 1 -name '*.js' -print0 | xargs -0 -n1 node --check", "find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check")
+          old_http = "          curl --fail --silent --show-error http://127.0.0.1:8080/styles.css -o /dev/null\n"
+          new_http = old_http + "          curl --fail --silent --show-error http://127.0.0.1:8080/src/core/parser.js -o /dev/null\n          curl --fail --silent --show-error http://127.0.0.1:8080/src/analysis/trace-explorer.js -o /dev/null\n          curl --fail --silent --show-error http://127.0.0.1:8080/src/platform/desktop-bridge.js -o /dev/null\n"
+          if old_http not in ci:
+              raise SystemExit('CI HTTP smoke anchor missing')
+          ci = ci.replace(old_http, new_http, 1)
+          ci_path.write_text(ci, encoding='utf-8')
+
+          static_audit = dedent(r'''
+          import fs from "node:fs";
+          import path from "node:path";
+          import { fileURLToPath } from "node:url";
+
+          const here = path.dirname(fileURLToPath(import.meta.url));
+          const root = path.resolve(here, "..");
+          const srcRoot = path.join(root, "src");
+
+          function assert(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          function collectFiles(dir, predicate, out = []) {
+            for (const name of fs.readdirSync(dir)) {
+              if (name === ".git" || name === "node_modules") continue;
+              const full = path.join(dir, name);
+              const stat = fs.statSync(full);
+              if (stat.isDirectory()) collectFiles(full, predicate, out);
+              else if (predicate(full, name)) out.push(full);
+            }
+            return out;
+          }
+
+          const appHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
+          const appJs = fs.readFileSync(path.join(root, "app.js"), "utf8");
+          const websiteHtml = fs.readFileSync(path.join(root, "website", "index.html"), "utf8");
+
+          const ids = [...appHtml.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
+          const idSet = new Set(ids);
+          assert(idSet.size === ids.length, "index.html contains duplicate ids");
+
+          const assignedDynamicIds = [...appJs.matchAll(/\.id\s*=\s*"([^"]+)"/g)].map((match) => match[1]);
+          const buttonDynamicIds = [...appJs.matchAll(/makeUiButton\("([^"]+)"/g)].map((match) => match[1]).filter(Boolean);
+          const dynamicIds = [...new Set([...assignedDynamicIds, ...buttonDynamicIds])];
+          const declaredIdSet = new Set([...ids, ...dynamicIds]);
+          const conflictingDynamicIds = dynamicIds.filter((id) => idSet.has(id));
+          assert(!conflictingDynamicIds.length, `dynamic DOM ids conflict with index.html ids: ${conflictingDynamicIds.join(", ")}`);
+
+          const jsRefs = [...appJs.matchAll(/\$\("([^"]+)"\)/g)].map((match) => match[1]);
+          const missingRefs = [...new Set(jsRefs.filter((id) => !declaredIdSet.has(id)))];
+          assert(!missingRefs.length, `app.js references missing ids: ${missingRefs.join(", ")}`);
+
+          for (const [name, html] of [["index.html", appHtml], ["website/index.html", websiteHtml]]) {
+            assert(!/\sstyle\s*=/i.test(html), `${name} contains inline style attributes`);
+            assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html), `${name} contains inline script blocks`);
+            assert(!/(?:src|href)=["']https?:\/\//i.test(html), `${name} contains external runtime resources`);
+          }
+
+          const productionJs = [
+            path.join(root, "app.js"),
+            path.join(root, "filter-worker.js"),
+            ...collectFiles(srcRoot, (_full, name) => name.endsWith(".js")),
+            ...collectFiles(path.join(root, "website"), (_full, name) => name.endsWith(".js"))
+          ];
+          const combinedJs = productionJs.map((file) => fs.readFileSync(file, "utf8")).join("\n");
+          assert(!/\bfetch\s*\(|XMLHttpRequest|WebSocket\s*\(|EventSource\s*\(/.test(combinedJs), "runtime network primitive detected");
+
+          const textFiles = collectFiles(root, (_full, name) => /\.(?:html|css|js|md|svg|txt|json|ndjson|log)$/i.test(name));
+          const combinedText = textFiles.map((file) => fs.readFileSync(file, "utf8")).join("\n");
+          assert(!/LogFrog|TraceNest|PulseRoot/i.test(combinedText), "old product branding detected");
+
+          function verifyLocalRefs(html, baseDir, label) {
+            const localRefs = [...html.matchAll(/(?:src|href)="([^"#]+)"/g)]
+              .map((match) => match[1])
+              .filter((value) => !value.startsWith("data:") && value !== "#" && !value.startsWith("#"));
+            for (const ref of localRefs) assert(fs.existsSync(path.resolve(baseDir, ref)), `missing local asset referenced by ${label}: ${ref}`);
+          }
+          verifyLocalRefs(appHtml, root, "index.html");
+          verifyLocalRefs(websiteHtml, path.join(root, "website"), "website/index.html");
+
+          console.log(`PASS unique static DOM ids (${ids.length})`);
+          console.log(`PASS trusted dynamic DOM ids (${dynamicIds.length})`);
+          console.log(`PASS DOM references (${new Set(jsRefs).size})`);
+          console.log(`PASS recursive production JS audit (${productionJs.length} files)`);
+          console.log("PASS no inline CSS/JS");
+          console.log("PASS no external runtime resources");
+          console.log("PASS no runtime network primitives");
+          console.log("PASS no legacy product branding");
+          console.log("PASS local asset references");
+          console.log("SignalDock static audit passed.");
+          ''').lstrip()
+          Path('tests/static-audit.mjs').write_text(static_audit, encoding='utf-8')
+
+          source_layout_test = dedent(r'''
+          import fs from "node:fs";
+          import path from "node:path";
+          import assert from "node:assert/strict";
+          import { fileURLToPath } from "node:url";
+
+          const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+          const rootJs = fs.readdirSync(root).filter((name) => name.endsWith(".js")).sort();
+          assert.deepEqual(rootJs, ["app.js", "filter-worker.js"], "root should contain only public JavaScript entrypoints");
+
+          const expectedDirs = ["src/core", "src/analysis", "src/investigation", "src/platform", "src/ui", "src/vendor"];
+          for (const dir of expectedDirs) assert.ok(fs.statSync(path.join(root, dir)).isDirectory(), `missing source directory ${dir}`);
+
+          const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+          const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
+          assert.ok(scripts.includes("app.js"), "app.js entrypoint missing from index.html");
+          assert.ok(scripts.some((ref) => ref.startsWith("src/core/")), "core scripts are not loaded from src/core");
+          assert.ok(scripts.some((ref) => ref.startsWith("src/analysis/")), "analysis scripts are not loaded from src/analysis");
+          assert.ok(scripts.some((ref) => ref.startsWith("src/platform/")), "platform scripts are not loaded from src/platform");
+          for (const ref of scripts) assert.ok(fs.existsSync(path.join(root, ref)), `script reference does not exist: ${ref}`);
+
+          const worker = fs.readFileSync(path.join(root, "filter-worker.js"), "utf8");
+          for (const ref of ["src/core/search-index.js", "src/core/search-cache.js", "src/core/query-engine.js"]) assert.ok(worker.includes(ref), `worker dependency path missing: ${ref}`);
+
+          const ci = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
+          assert.ok(ci.includes("find . -type f -name '*.js'"), "CI syntax check must recurse into organized source directories");
+          assert.ok(ci.includes("src/core/parser.js"), "HTTP smoke must verify organized source assets");
+
+          console.log(`source-layout-smoke PASS (${scripts.length} application scripts)`);
+          ''').lstrip()
+          Path('tests/source-layout-smoke.mjs').write_text(source_layout_test, encoding='utf-8')
+
+          Path('src/README.md').write_text(dedent('''
+          # SignalDock source layout
+
+          Runtime modules are grouped by responsibility while the public entrypoints stay at repository root for zero-build static hosting compatibility.
+
+          - `core/` — parsing, query/search, workspace, persistence and local performance primitives.
+          - `analysis/` — trace, service, span and exception analysis.
+          - `investigation/` — projects, baselines, cases, checkpoints and evidence workflows.
+          - `platform/` — browser/native storage capability boundaries.
+          - `ui/` — reusable UI behavior and accessibility hardening.
+          - `vendor/` — vendored local-only runtime code.
+
+          `index.html`, `app.js`, `styles.css` and `filter-worker.js` remain root public entrypoints intentionally. New modules should be placed in the narrowest matching `src/` area rather than added to repository root.
+          ''').lstrip(), encoding='utf-8')
+
+          Path('docs/SOURCE-LAYOUT.md').write_text(dedent('''
+          # Source layout
+
+          SignalDock is a zero-build static application, so repository organization must stay compatible with ordinary shared hosting, local HTTP servers and GitHub Pages-style static delivery.
+
+          ## Public entrypoints
+
+          The repository root intentionally keeps only the files that a static server resolves directly: `index.html`, `styles.css`, `app.js` and `filter-worker.js`. Product assets remain under `assets/` and the product website remains under `website/`.
+
+          ## Runtime modules
+
+          | Directory | Responsibility |
+          |---|---|
+          | `src/core/` | parsers, queries, indexes, workspace state, persistence and local utility primitives |
+          | `src/analysis/` | traces, services, spans, exceptions and dependency analysis |
+          | `src/investigation/` | projects, baselines, cases, checkpoints and evidence workflows |
+          | `src/platform/` | storage and browser/native capability boundaries |
+          | `src/ui/` | UI helpers, keyboard/focus behavior and accessibility hardening |
+          | `src/vendor/` | bundled third-party or vendored runtime code |
+
+          ## Quality rules
+
+          CI syntax-checks JavaScript recursively instead of only checking root entrypoints. Static auditing also scans all production JavaScript under `src/` for forbidden runtime network primitives. The source-layout smoke test rejects new root JavaScript modules so future additions stay organized.
+
+          No bundler or package-install step is introduced by this layout.
+          ''').lstrip(), encoding='utf-8')
+
+          readme_path = Path('README.md')
+          readme = readme_path.read_text(encoding='utf-8')
+          structure = dedent('''
+          ## Project structure
+
+          ```text
+          SignalDock/
+          ├── index.html                 # public application shell
+          ├── app.js                     # application orchestration entrypoint
+          ├── filter-worker.js           # background worker entrypoint
+          ├── styles.css                 # application styles
+          ├── src/
+          │   ├── core/                  # parsing, query/search, workspace and persistence
+          │   ├── analysis/              # trace, service, span and exception analysis
+          │   ├── investigation/         # projects, baselines, cases and evidence workflows
+          │   ├── platform/              # browser/native storage capability boundary
+          │   ├── ui/                    # reusable UI and accessibility behavior
+          │   └── vendor/                # bundled local-only vendor runtime
+          ├── assets/                    # local logo, favicon and icon sprite
+          ├── sample/                    # safe example datasets
+          ├── tests/                     # Node-based regression suite
+          ├── website/                   # static product landing page
+          └── docs/                      # technical and architecture documentation
+          ```
+
+          See **[docs/SOURCE-LAYOUT.md](./docs/SOURCE-LAYOUT.md)** for module-placement rules and quality-gate expectations.
+
+          ## Development & tests
+          ''').lstrip()
+          readme, count = re.subn(r'## Project structure\n.*?## Development & tests\n', structure, readme, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('README project structure section was not found exactly once')
+          readme = readme.replace("# syntax-check root modules\nfind . -maxdepth 1 -name '*.js' -print0 | xargs -0 -n1 node --check", "# syntax-check all runtime modules recursively\nfind . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check")
+          readme_path.write_text(readme, encoding='utf-8')
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text(encoding='utf-8')
+          entry = dedent('''
+          ## 2.7.1 — 2026-09-15
+
+          ### Source layout and maintainability
+          - Reorganized internal runtime modules into `src/core`, `src/analysis`, `src/investigation`, `src/platform`, `src/ui` and `src/vendor` while keeping only stable public JavaScript entrypoints at repository root.
+          - Moved brand documentation under `docs/` and added explicit source-layout documentation and regression coverage.
+          - Updated all application, Worker, test and documentation references for the new zero-build static layout.
+
+          ### Quality gates
+          - Expanded JavaScript syntax checks from root-only files to the full repository runtime tree.
+          - Expanded the static no-network audit to every production JavaScript module under `src/` and the public entrypoints.
+          - Extended HTTP smoke coverage to representative core, analysis and platform modules so path regressions fail CI.
+
+          ''')
+          if '## 2.7.1 — 2026-09-15' not in changelog:
+              anchor = '# Changelog\n'
+              if anchor not in changelog:
+                  raise SystemExit('CHANGELOG header missing')
+              changelog = changelog.replace(anchor, anchor + '\n' + entry, 1)
+          changelog_path.write_text(changelog, encoding='utf-8')
+          PY
+
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            TERM=xterm node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-layout-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-layout-index.html; then ready=1; break; fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          curl --fail --silent http://127.0.0.1:8080/src/core/parser.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/analysis/trace-explorer.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/platform/desktop-bridge.js -o /dev/null
+
+      - name: Commit organized source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/source-layout-pass.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "refactor: organize runtime modules under src"
+          git push origin HEAD:main
