@@ -11,7 +11,8 @@ const html = read("index.html");
 const app = read("app.js");
 const controller = read("src/app/project-controller.js");
 
-assert.equal(version, "2.8.2");
+assert.match(version, /^\d+\.\d+\.\d+$/, "VERSION must use semantic x.y.z format");
+assert.ok(app.includes(`const APP_VERSION = "${version}"`), "app version must match VERSION");
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
 const controllerIndex = scripts.indexOf("src/app/project-controller.js");
 const appIndex = scripts.indexOf("app.js");
