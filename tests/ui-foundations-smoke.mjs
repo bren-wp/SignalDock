@@ -26,8 +26,8 @@ for (const token of ["bulkUpdate", "bulkRemove", "exportSelected", "markUsed"]) 
 for (const token of ["renderHistory", "compareById", "baselineHistoryList", "renderComparisonResult"]) {
   if (!baselineController.includes(token)) throw new Error(`Missing Baseline controller foundation token: ${token}`);
 }
-for (const token of ["historySection", "markHistoryReopened", "forgetProjectHandles", "portable"]) {
-  if (!projectController.includes(token) && token !== "portable") throw new Error(`Missing Project controller foundation token: ${token}`);
+for (const token of ["historySection", "markHistoryReopened", "forgetProjectHandles"]) {
+  if (!projectController.includes(token)) throw new Error(`Missing Project controller foundation token: ${token}`);
 }
 for (const selector of [".query-library-bulkbar", ".query-library-item", ".baseline-history", ".baseline-history__compare"]) {
   if (!css.includes(selector)) throw new Error(`Missing UI foundation style: ${selector}`);
