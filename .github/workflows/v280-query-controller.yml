@@ -49,6 +49,27 @@ jobs:
       - name: Apply v2.8 controller migration
         run: python3 .github/scripts/v280-query-controller.py
 
+      - name: Make retained feature gates version-forward
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          needle = r'assert.match(version, /^2\.7\.\d+$/);'
+          replacement = '''const featureVersionParts = version.split(".").map(Number);
+          assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);'''
+          changed = []
+          for path in Path('tests').glob('*.mjs'):
+              text = path.read_text()
+              if needle not in text:
+                  continue
+              path.write_text(text.replace(needle, replacement))
+              changed.append(path.name)
+          if not changed:
+              raise SystemExit('no 2.7-only feature gate assertions found to modernize')
+          print('version-forward feature gates:', ', '.join(sorted(changed)))
+          PY
+          grep -R -nE 'assert\.(equal|match)\(version.*2\.7' tests/*.mjs || true
+
       - name: Verify JavaScript and regressions
         shell: bash
         run: |
@@ -106,7 +127,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add VERSION app.js index.html src/app/query-library-controller.js src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/source-layout-smoke.mjs tests/query-library-controller-smoke.mjs
+          git add VERSION app.js index.html src/app/query-library-controller.js src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/*.mjs
           git diff --cached --check
           git commit -m "refactor: extract Query Library application controller"
           git push origin HEAD:main
