@@ -24,6 +24,38 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
+      - name: Align migration with current source-layout registry
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/v284-case-workspace-controller.py')
+          text = path.read_text()
+          start = text.index('source_layout_test = source_layout_test_path.read_text()')
+          end_token = 'source_layout_test_path.write_text(source_layout_test)'
+          end = text.index(end_token, start) + len(end_token)
+          replacement = '''source_layout_test = source_layout_test_path.read_text()
+          source_layout_test = replace_exact(
+              source_layout_test,
+              ''' + '"""' + '''const applicationControllers = [
+            \\"src/app/query-library-controller.js\\",
+            \\"src/app/baseline-controller.js\\",
+            \\"src/app/project-controller.js\\",
+            \\"src/app/case-checkpoint-controller.js\\"
+          ];''' + '"""' + ''',
+              ''' + '"""' + '''const applicationControllers = [
+            \\"src/app/query-library-controller.js\\",
+            \\"src/app/baseline-controller.js\\",
+            \\"src/app/project-controller.js\\",
+            \\"src/app/case-workspace-controller.js\\",
+            \\"src/app/case-checkpoint-controller.js\\"
+          ];''' + '"""' + ''',
+              'source-layout controller registry'
+          )
+          source_layout_test_path.write_text(source_layout_test)'''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+
       - name: Apply v2.8.4 Case Workspace controller migration
         run: python3 .github/scripts/v284-case-workspace-controller.py
 
