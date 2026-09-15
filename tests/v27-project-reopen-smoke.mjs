@@ -15,7 +15,7 @@ const changelog = read("CHANGELOG.md");
 
 const featureVersionParts = version.split(".").map(Number);
 assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
-assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
+assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\"']`).test(app));
 for (const token of ["projectLinkFilesButton", "linkAndLoadProjectFiles", "reopenProjectHistoryItem", "markHistoryReopened", "SignalDockDesktopBridge.saveParts"]) {
   assert.ok(app.includes(token), `missing app token ${token}`);
 }
