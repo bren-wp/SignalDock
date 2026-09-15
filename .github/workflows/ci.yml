@@ -64,6 +64,7 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/query-library-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/baseline-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/project-controller.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/src/app/case-checkpoint-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/core/parser.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/analysis/trace-explorer.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/platform/desktop-bridge.js -o /dev/null
