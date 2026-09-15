@@ -1,0 +1,76 @@
+name: SignalDock v2.7.3 production hardening
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Apply v2.7.3 hardening
+        run: python3 .github/scripts/v273-production-hardening.py
+
+      - name: Verify JavaScript and regressions
+        shell: bash
+        env:
+          TERM: xterm
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-v273-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-v273-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          grep -q 'SignalDock' /tmp/signaldock-v273-index.html
+          grep -q 'aria-controls="detailsPane"' /tmp/signaldock-v273-index.html
+          ! grep -q 'experimental local Live Tail' README.md
+          curl --fail --silent http://127.0.0.1:8080/styles.css -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/ui/ui-hardening.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/core/query-library.js -o /dev/null
+
+      - name: Commit verified v2.7.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION README.md CHANGELOG.md docs/TECHNICAL.md index.html app.js src/ui/ui-hardening.js src/core/query-library.js tests/*.mjs
+          git diff --cached --check
+          git commit -m "fix: harden production interaction and accessibility"
+          git push origin HEAD:main
