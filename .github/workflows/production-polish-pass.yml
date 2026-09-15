@@ -26,6 +26,10 @@ jobs:
       - name: Apply production UI and UX polish
         run: python3 .github/scripts/production-polish.py
 
+      - name: Normalize generated markup
+        shell: bash
+        run: sed -i 's/[[:space:]]\+$//' index.html
+
       - name: Verify JavaScript and regressions
         shell: bash
         env:
