@@ -89,11 +89,12 @@ jobs:
           PY
           grep -R -nE 'assert\.(equal|match)\(version.*2\.7' tests/*.mjs || true
 
-      - name: Align static foundation test with controller ownership
+      - name: Align foundation tests with controller ownership
         shell: bash
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           path = Path('tests/static-foundation-ui-smoke.mjs')
           text = path.read_text()
           old_import = 'const app = read("app.js");\n'
@@ -118,6 +119,36 @@ jobs:
           if text.count(old_block) != 1:
               raise SystemExit('static foundation binding assertion block mismatch')
           path.write_text(text.replace(old_block, new_block, 1))
+
+          path = Path('tests/ui-foundations-smoke.mjs')
+          text = path.read_text()
+          old_import = 'const app = fs.readFileSync(path.join(root, "app.js"), "utf8");\n'
+          new_import = 'const app = fs.readFileSync(path.join(root, "app.js"), "utf8");\nconst queryController = fs.readFileSync(path.join(root, "src/app/query-library-controller.js"), "utf8");\n'
+          if text.count(old_import) != 1:
+              raise SystemExit('UI foundation app import marker mismatch')
+          text = text.replace(old_import, new_import, 1)
+          old_required = '''  "queryLibrarySelection",
+            "bulkUpdate",
+            "bulkRemove",
+            "exportSelected",
+            "markUsed",
+          '''
+          new_required = '''  "queryLibrarySelection",
+          '''
+          if text.count(old_required) != 1:
+              raise SystemExit('UI foundation Query Library token block mismatch')
+          text = text.replace(old_required, new_required, 1)
+          marker = '''for (const token of required) {
+            if (!app.includes(token)) throw new Error(`Missing UI foundation token: ${token}`);
+          }
+          '''
+          addition = marker + '''for (const token of ["bulkUpdate", "bulkRemove", "exportSelected", "markUsed"]) {
+            if (!queryController.includes(token)) throw new Error(`Missing Query Library controller foundation token: ${token}`);
+          }
+          '''
+          if text.count(marker) != 1:
+              raise SystemExit('UI foundation required-token loop mismatch')
+          path.write_text(text.replace(marker, addition, 1))
           PY
 
       - name: Verify JavaScript and regressions
