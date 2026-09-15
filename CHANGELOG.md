@@ -20,6 +20,11 @@
 - Browser mode remains the default implementation through `storage-adapter.js`; no native installer or unrestricted shell/filesystem bridge is claimed or exposed.
 - Added adapter/project migration and integration coverage for the v2.7 workflow.
 
+### Worker protocol hardening
+- Bound each Dedicated Worker instance to a cryptographically generated per-worker session token passed only in its script URL and validated on every request/response envelope.
+- Added an explicit worker protocol version, allowlisted message types, bounded correlation limits and strict payload-shape checks before filter/index/correlation work executes.
+- Kept worker communication on its dedicated channel rather than applying a cross-window `MessageEvent.origin` check that is not an authentication boundary for `DedicatedWorkerGlobalScope`.
+
 
 ## 2.6.0 — 2026-09-13
 

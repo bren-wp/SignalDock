@@ -20,6 +20,7 @@ Current version: **2.7.0**.
 - `desktop-bridge.js` capability facade isolates future native shell integration from domain/UI code
 - Sequential File System Access workspace writes and post-success recent-history recording
 - Runtime dialog/focus/mobile accessibility hardening without external dependencies
+- Session-bound Dedicated Worker protocol with cryptographic per-worker tokens, protocol versioning and allowlisted/bounded message envelopes
 - Cross-dataset `.sdbaseline` snapshots with aggregate-only service/dependency/trace metrics; raw log entries are never embedded in baseline files
 - Baseline comparison surfaces service entry/error/p95 deltas, explicit dependency call/error/p95 deltas and trace-set regressions while keeping the canonical imported datasets separate
 - Bounded Case Checkpoints preserve local case state + evidence IDs for investigation waypoints without duplicating raw logs

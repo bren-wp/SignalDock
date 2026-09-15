@@ -29,6 +29,7 @@
     workerAvailable: false,
     workerReady: false,
     workerVersion: 0,
+    workerToken: "",
     filterRequestId: 0,
     correlationRequestId: 0,
     correlatedIndexes: [],
@@ -514,6 +515,13 @@
     });
   }
 
+  function createWorkerSessionToken() {
+    const cryptoApi = window.crypto;
+    if (typeof cryptoApi?.randomUUID === "function") return cryptoApi.randomUUID().replace(/-/g, "");
+    if (typeof cryptoApi?.getRandomValues === "function") { const bytes = new Uint8Array(24); cryptoApi.getRandomValues(bytes); return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(""); }
+    return "";
+  }
+
   function initFilterWorker() {
     if (typeof Worker !== "function") return;
     if (window.location?.protocol === "file:") {
@@ -521,8 +529,11 @@
       return;
     }
     try {
-      const worker = new Worker("filter-worker.js");
+      const token = createWorkerSessionToken();
+      if (!token) { state.lastEngine = "main · secure worker token unavailable"; return; }
+      const worker = new Worker(`filter-worker.js?sd_session=${encodeURIComponent(token)}`);
       state.worker = worker;
+      state.workerToken = token;
       worker.onmessage = onWorkerMessage;
       worker.onerror = () => disableWorker("Background filter worker unavailable; using the main thread.");
     } catch {
@@ -531,7 +542,8 @@
   }
 
   function onWorkerMessage(event) {
-    const message = event.data || {};
+    const message = event?.data;
+    if (!message || typeof message !== "object" || Array.isArray(message) || message.protocol !== 1 || !state.workerToken || message.token !== state.workerToken) return;
     if (message.type === "ready") {
       state.workerAvailable = true;
       if (state.entries.length) syncWorkerIndex();
@@ -576,19 +588,20 @@
     state.worker = null;
     state.workerAvailable = false;
     state.workerReady = false;
+    state.workerToken = "";
     state.searchIndex = { enabled: false, tokens: 0, postings: 0, truncated: false, elapsedMs: 0, mode: "linear", candidateCount: state.entries.length, cacheHit: false, cacheEligible: false, cacheSegments: 0 };
     state.lastEngine = "main";
     if (message) toast(message);
   }
 
   function syncWorkerIndex() {
-    if (!state.worker || !state.workerAvailable) return;
+    if (!state.worker || !state.workerAvailable || !state.workerToken) return;
     state.workerReady = false;
     state.searchIndex.mode = "building";
     state.searchIndex.candidateCount = state.entries.length;
     state.workerVersion += 1;
     try {
-      state.worker.postMessage({ type: "index", version: state.workerVersion, entries: state.filterEntries });
+      state.worker.postMessage({ type: "index", protocol: 1, token: state.workerToken, version: state.workerVersion, entries: state.filterEntries });
     } catch {
       disableWorker();
     }
@@ -834,7 +847,7 @@
       state.lastEngine = "worker";
       el.resultsSummary.textContent = "Filtering in background…";
       document.body.classList.add("filtering-active");
-      state.worker.postMessage({ type: "filter", requestId, request });
+      state.worker.postMessage({ type: "filter", protocol: 1, token: state.workerToken, requestId, request });
       if (resetPage) state.page = 1;
       return;
     }
@@ -1450,7 +1463,7 @@
     if (useWorker) {
       state.correlationEngine = "worker · searching";
       renderCorrelationsPane(entry);
-      state.worker.postMessage({ type: "correlate", requestId, correlations, limit: 200, origin: entry.globalIndex });
+      state.worker.postMessage({ type: "correlate", protocol: 1, token: state.workerToken, requestId, correlations, limit: 200, origin: entry.globalIndex });
       return;
     }
     const started = performance.now();
@@ -1549,7 +1562,7 @@
     if (useWorker) {
       state.traceEngine = "worker · searching";
       renderTracePane(entry);
-      state.worker.postMessage({ type: "trace", requestId, correlations, limit: 1000, origin: entry.globalIndex });
+      state.worker.postMessage({ type: "trace", protocol: 1, token: state.workerToken, requestId, correlations, limit: 1000, origin: entry.globalIndex });
       return;
     }
     const started = performance.now();
