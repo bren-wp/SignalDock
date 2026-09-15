@@ -1,0 +1,276 @@
+name: SignalDock v2.7 worker security pass
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v27-worker-security-pass.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Harden dedicated worker protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              return text.replace(old, new, 1)
+
+          worker = dedent(r'''
+          "use strict";
+          importScripts("search-index.js", "search-cache.js", "query-engine.js");
+
+          const WORKER_PROTOCOL_VERSION = 1;
+          const ALLOWED_MESSAGE_TYPES = new Set(["index", "filter", "correlate", "trace"]);
+          const SESSION_TOKEN_PATTERN = /^[A-Za-z0-9._~-]{24,128}$/;
+          const MAX_RELATED_LIMIT = 5000;
+
+          let entries = [];
+          let version = 0;
+          let searchIndex = null;
+          let diskBacked = false;
+          let cacheKey = "";
+
+          function sessionTokenFromLocation() {
+            try {
+              const token = new URL(self.location.href).searchParams.get("sd_session") || "";
+              return SESSION_TOKEN_PATTERN.test(token) ? token : "";
+            } catch {
+              return "";
+            }
+          }
+
+          const sessionToken = sessionTokenFromLocation();
+
+          function isRecord(value) { return Boolean(value) && typeof value === "object" && !Array.isArray(value); }
+          function validEnvelope(message) { return Boolean(sessionToken) && isRecord(message) && message.protocol === WORKER_PROTOCOL_VERSION && message.token === sessionToken && ALLOWED_MESSAGE_TYPES.has(message.type); }
+          function boundedInteger(value, min, max, fallback) { const number = Number(value); return Number.isInteger(number) ? Math.min(max, Math.max(min, number)) : fallback; }
+          function safeCorrelations(value) {
+            if (!isRecord(value)) return {};
+            const out = {};
+            for (const key of ["trace", "span", "request", "session", "user", "correlation"]) {
+              const item = value[key];
+              if (typeof item === "string" && item.length && item.length <= 512) out[key] = item;
+            }
+            return out;
+          }
+          function reply(payload) { self.postMessage({ ...payload, protocol: WORKER_PROTOCOL_VERSION, token: sessionToken }); }
+
+          async function onProtocolMessage(event) {
+            const message = event?.data;
+            // DedicatedWorkerGlobalScope is a private Worker channel, not a cross-window message boundary.
+            // MessageEvent.origin is not an authentication primitive here; the protocol is bound to a
+            // cryptographically generated per-worker session token carried in the Worker script URL.
+            if (!validEnvelope(message)) return;
+
+            if (message.type === "index") {
+              if (!Array.isArray(message.entries)) return;
+              entries = message.entries;
+              version = boundedInteger(message.version, 0, Number.MAX_SAFE_INTEGER, 0);
+              let cacheHit = false;
+              let cacheSegments = 0;
+              diskBacked = false;
+              cacheKey = "";
+              try {
+                cacheKey = await self.SignalDockSearchCache.fingerprint(entries);
+                const cached = await self.SignalDockSearchCache.loadMetadata(cacheKey);
+                if (cached?.index?.stats?.entries === entries.length) {
+                  searchIndex = cached.index;
+                  cacheHit = true;
+                  diskBacked = true;
+                  cacheSegments = Number(cached.metadata?.bucketCount || cached.metadata?.segmentCount) || 0;
+                }
+              } catch { /* IndexedDB cache is optional */ }
+              if (!searchIndex || searchIndex.stats?.entries !== entries.length || !cacheHit) {
+                searchIndex = self.SignalDockSearchIndex.build(entries);
+                diskBacked = false;
+                if (cacheKey) {
+                  const bucketIds = new Set();
+                  for (const key of searchIndex?.tokenMap?.keys?.() || []) bucketIds.add(self.SignalDockSearchCache.bucketId(key));
+                  cacheSegments = bucketIds.size;
+                  self.SignalDockSearchCache.save(cacheKey, searchIndex).catch(() => {});
+                }
+              }
+              reply({ type: "indexed", version, count: entries.length, searchIndex: Object.assign({}, searchIndex.stats, { cacheHit, diskBacked, cacheKey: cacheKey ? cacheKey.slice(0, 12) : "", cacheEligible: self.SignalDockSearchCache.eligible(searchIndex).allowed, cacheSegments }) });
+              return;
+            }
+
+            if (message.type === "filter") {
+              if (!isRecord(message.request)) return;
+              const requestId = boundedInteger(message.requestId, 0, Number.MAX_SAFE_INTEGER, 0);
+              const started = performance.now();
+              const parsed = message.request.parsed || self.SignalDockQueryEngine.parseSmartQuery(message.request.query || "");
+              let candidate;
+              if (diskBacked && cacheKey) {
+                try { candidate = await self.SignalDockSearchCache.candidates(cacheKey, parsed, message.request, self.SignalDockSearchIndex); }
+                catch { candidate = { indexes: null, reason: "disk-cache-error" }; }
+              } else candidate = self.SignalDockSearchIndex.candidates(searchIndex, parsed, message.request);
+              const result = self.SignalDockQueryEngine.filterIndexes(entries, Object.assign({}, message.request, { parsed }), candidate.indexes);
+              reply({
+                type: "filtered",
+                requestId,
+                version,
+                indexes: result.indexes,
+                invalid: result.parsed.invalid,
+                elapsedMs: Math.round((performance.now() - started) * 10) / 10,
+                searchMode: candidate.indexes ? (diskBacked ? "disk-indexed" : "indexed") : "linear",
+                candidateCount: candidate.indexes ? candidate.indexes.length : entries.length,
+                indexReason: candidate.reason
+              });
+              return;
+            }
+
+            if (message.type === "correlate" || message.type === "trace") {
+              const correlations = safeCorrelations(message.correlations);
+              if (!Object.keys(correlations).length) return;
+              const started = performance.now();
+              const requestId = boundedInteger(message.requestId, 0, Number.MAX_SAFE_INTEGER, 0);
+              const limit = boundedInteger(message.limit, 1, MAX_RELATED_LIMIT, message.type === "trace" ? 1000 : 200);
+              const origin = Number.isInteger(Number(message.origin)) ? Number(message.origin) : undefined;
+              const indexes = self.SignalDockQueryEngine.relatedIndexes(entries, correlations, limit, origin);
+              reply({ type: message.type === "trace" ? "trace-related" : "correlated", requestId, version, indexes, elapsedMs: Math.round((performance.now() - started) * 10) / 10 });
+            }
+          }
+
+          self.addEventListener("message", onProtocolMessage);
+          if (sessionToken) reply({ type: "ready" });
+          ''').lstrip()
+          Path('filter-worker.js').write_text(worker)
+
+          app_path = Path('app.js')
+          app = app_path.read_text()
+          app = replace_once(app,
+              '    workerVersion: 0,\n    filterRequestId: 0,',
+              '    workerVersion: 0,\n    workerToken: "",\n    filterRequestId: 0,',
+              'worker state token')
+          app = replace_once(app,
+              '      state.worker.postMessage({ type: "index", version: state.workerVersion, entries: state.filterEntries });',
+              '      state.worker.postMessage({ type: "index", protocol: 1, token: state.workerToken, version: state.workerVersion, entries: state.filterEntries });',
+              'worker index envelope')
+          app = replace_once(app,
+              '      state.worker.postMessage({ type: "filter", requestId, request });',
+              '      state.worker.postMessage({ type: "filter", protocol: 1, token: state.workerToken, requestId, request });',
+              'worker filter envelope')
+          app = replace_once(app,
+              '      state.worker.postMessage({ type: "correlate", requestId, correlations, limit: 200, origin: entry.globalIndex });',
+              '      state.worker.postMessage({ type: "correlate", protocol: 1, token: state.workerToken, requestId, correlations, limit: 200, origin: entry.globalIndex });',
+              'worker correlate envelope')
+          app = replace_once(app,
+              '      state.worker.postMessage({ type: "trace", requestId, correlations, limit: 1000, origin: entry.globalIndex });',
+              '      state.worker.postMessage({ type: "trace", protocol: 1, token: state.workerToken, requestId, correlations, limit: 1000, origin: entry.globalIndex });',
+              'worker trace envelope')
+          app = replace_once(app,
+              '  function initFilterWorker() {\n    if (typeof Worker !== "function") return;',
+              '''  function createWorkerSessionToken() {\n    const cryptoApi = window.crypto;\n    if (typeof cryptoApi?.randomUUID === "function") return cryptoApi.randomUUID().replace(/-/g, "");\n    if (typeof cryptoApi?.getRandomValues === "function") { const bytes = new Uint8Array(24); cryptoApi.getRandomValues(bytes); return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(""); }\n    return "";\n  }\n\n  function initFilterWorker() {\n    if (typeof Worker !== "function") return;''',
+              'worker token helper')
+          app = replace_once(app,
+              '    try {\n      const worker = new Worker("filter-worker.js");\n      state.worker = worker;\n      worker.onmessage = onWorkerMessage;',
+              '''    try {\n      const token = createWorkerSessionToken();\n      if (!token) { state.lastEngine = "main · secure worker token unavailable"; return; }\n      const worker = new Worker(`filter-worker.js?sd_session=${encodeURIComponent(token)}`);\n      state.worker = worker;\n      state.workerToken = token;\n      worker.onmessage = onWorkerMessage;''',
+              'worker constructor token')
+          app = replace_once(app,
+              '  function onWorkerMessage(event) {\n    const message = event.data || {};\n    if (message.type === "ready") {',
+              '''  function onWorkerMessage(event) {\n    const message = event?.data;\n    if (!message || typeof message !== "object" || Array.isArray(message) || message.protocol !== 1 || !state.workerToken || message.token !== state.workerToken) return;\n    if (message.type === "ready") {''',
+              'worker response envelope')
+          app = replace_once(app,
+              '    state.worker = null;\n    state.workerAvailable = false;\n    state.workerReady = false;',
+              '    state.worker = null;\n    state.workerAvailable = false;\n    state.workerReady = false;\n    state.workerToken = "";',
+              'worker disable token reset')
+          app = replace_once(app,
+              '  function syncWorkerIndex() {\n    if (!state.worker || !state.workerAvailable) return;',
+              '  function syncWorkerIndex() {\n    if (!state.worker || !state.workerAvailable || !state.workerToken) return;',
+              'worker sync guard')
+          app_path.write_text(app)
+
+          changelog_path = Path('CHANGELOG.md')
+          changelog = changelog_path.read_text()
+          anchor = '- Added adapter/project migration and integration coverage for the v2.7 workflow.\n'
+          security = '''\n### Worker protocol hardening\n- Bound each Dedicated Worker instance to a cryptographically generated per-worker session token passed only in its script URL and validated on every request/response envelope.\n- Added an explicit worker protocol version, allowlisted message types, bounded correlation limits and strict payload-shape checks before filter/index/correlation work executes.\n- Kept worker communication on its dedicated channel rather than applying a cross-window `MessageEvent.origin` check that is not an authentication boundary for `DedicatedWorkerGlobalScope`.\n'''
+          if anchor in changelog and '### Worker protocol hardening' not in changelog:
+              changelog = changelog.replace(anchor, anchor + security, 1)
+          changelog_path.write_text(changelog)
+
+          technical_path = Path('docs/TECHNICAL.md')
+          technical = technical_path.read_text()
+          anchor = '- Runtime dialog/focus/mobile accessibility hardening without external dependencies\n'
+          addition = '- Session-bound Dedicated Worker protocol with cryptographic per-worker tokens, protocol versioning and allowlisted/bounded message envelopes\n'
+          if anchor in technical and addition not in technical:
+              technical = technical.replace(anchor, anchor + addition, 1)
+          technical_path.write_text(technical)
+
+          security_doc = Path('docs/SECURITY.md')
+          if security_doc.exists():
+              security_text = security_doc.read_text()
+              marker = '## Worker message isolation'
+              if marker not in security_text:
+                  security_text += dedent('''
+
+                  ## Worker message isolation
+
+                  SignalDock's filter worker is a `DedicatedWorkerGlobalScope`, not a cross-window `postMessage` endpoint. Worker messages are therefore bound to a cryptographically generated per-worker session token and an explicit protocol version. The worker ignores unknown message types, malformed envelopes and messages with a missing or incorrect token, and bounds correlation result limits before executing work.
+
+                  `MessageEvent.origin` is intentionally not used as an authentication primitive for this Dedicated Worker channel. The session-bound protocol provides the explicit application-level boundary while preserving valid Worker messaging semantics.
+                  ''')
+                  security_doc.write_text(security_text)
+
+          Path('tests/filter-worker-protocol-smoke.mjs').write_text(dedent(r'''
+          import fs from 'node:fs'; import vm from 'node:vm'; import assert from 'node:assert/strict';
+          const token='a'.repeat(32); const posted=[]; let listener=null; let tick=0;
+          const self={
+            location:{href:`https://local.invalid/filter-worker.js?sd_session=${token}`},
+            addEventListener:(type,fn)=>{ if(type==='message') listener=fn; },
+            postMessage:(message)=>posted.push(message),
+            SignalDockSearchCache:{fingerprint:async()=>'',loadMetadata:async()=>null,bucketId:()=>'',save:async()=>{},eligible:()=>({allowed:false}),candidates:async()=>({indexes:null,reason:'none'})},
+            SignalDockSearchIndex:{build:(entries)=>({stats:{entries:entries.length,tokens:0,postings:0},tokenMap:new Map()}),candidates:()=>({indexes:null,reason:'none'})},
+            SignalDockQueryEngine:{parseSmartQuery:()=>({invalid:[]}),filterIndexes:(entries)=>({indexes:entries.map((_,i)=>i),parsed:{invalid:[]}}),relatedIndexes:()=>[0]}
+          };
+          const ctx={self,importScripts:()=>{},URL,Set,Map,Object,Array,Number,Math,Promise,performance:{now:()=>++tick}}; vm.createContext(ctx); vm.runInContext(fs.readFileSync(new URL('../filter-worker.js',import.meta.url),'utf8'),ctx);
+          assert.equal(typeof listener,'function'); assert.equal(posted.length,1); assert.equal(posted[0].type,'ready'); assert.equal(posted[0].token,token); assert.equal(posted[0].protocol,1);
+          const before=posted.length; await listener({data:{type:'index',protocol:1,token:'wrong',version:1,entries:[{message:'x'}]}}); assert.equal(posted.length,before,'wrong session token must be ignored');
+          await listener({data:{type:'unknown',protocol:1,token,entries:[]}}); assert.equal(posted.length,before,'unknown message type must be ignored');
+          await listener({data:{type:'index',protocol:1,token,version:2,entries:[{message:'x'}]}}); assert.equal(posted.at(-1).type,'indexed'); assert.equal(posted.at(-1).token,token);
+          await listener({data:{type:'filter',protocol:1,token,requestId:7,request:{query:''}}}); assert.equal(posted.at(-1).type,'filtered'); assert.equal(posted.at(-1).requestId,7);
+          await listener({data:{type:'trace',protocol:1,token,requestId:9,correlations:{trace:'abc'},limit:999999,origin:0}}); assert.equal(posted.at(-1).type,'trace-related'); assert.equal(posted.at(-1).token,token);
+          console.log('filter-worker-protocol-smoke PASS');
+          ''').lstrip())
+
+          Path('tests/v27-worker-integration-smoke.mjs').write_text(dedent(r'''
+          import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url'; import assert from 'node:assert/strict';
+          const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'); const app=fs.readFileSync(path.join(root,'app.js'),'utf8'); const worker=fs.readFileSync(path.join(root,'filter-worker.js'),'utf8'); const changelog=fs.readFileSync(path.join(root,'CHANGELOG.md'),'utf8');
+          for(const token of ['workerToken: ""','createWorkerSessionToken','sd_session=','protocol: 1, token: state.workerToken']) assert.ok(app.includes(token),`missing app worker token ${token}`);
+          for(const token of ['WORKER_PROTOCOL_VERSION = 1','SESSION_TOKEN_PATTERN','ALLOWED_MESSAGE_TYPES','validEnvelope','MAX_RELATED_LIMIT']) assert.ok(worker.includes(token),`missing worker hardening token ${token}`);
+          assert.ok(changelog.includes('### Worker protocol hardening')); console.log('v27-worker-integration-smoke PASS');
+          ''').lstrip())
+          PY
+
+          find . -maxdepth 1 -name '*.js' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+          git rm .github/workflows/v27-worker-security-pass.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "security: bind filter worker to session protocol"
+          git push origin HEAD:main
