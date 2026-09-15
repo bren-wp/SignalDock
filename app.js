@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.7.1";
+  const APP_VERSION = "2.7.2";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -91,6 +91,15 @@
   const parserProfiles = () => window.SignalDockParserProfiles;
   const paletteEngine = () => window.SignalDockCommandPalette;
 
+  function setActiveNav(target) {
+    document.querySelectorAll("[data-nav]").forEach((item) => {
+      const active = item.dataset.nav === target;
+      item.classList.toggle("is-active", active);
+      if (active) item.setAttribute("aria-current", "page");
+      else item.removeAttribute("aria-current");
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", init);
 
   function init() {
@@ -148,6 +157,7 @@
     scheduleDatasetAutosave = utils().debounce(() => autosaveDataset(), 1400);
     scheduleViewAutosave = utils().debounce(() => autosaveView(), 450);
     bindEvents();
+    setActiveNav("logs");
     initFilterWorker();
     renderEverything();
     checkRecoverySnapshot();
@@ -380,8 +390,8 @@
     el.caseCheckpoints?.addEventListener("click", onCaseCheckpointClick);
 
     document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => {
-      document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item === button));
       const target = button.dataset.nav;
+      setActiveNav(target);
       if (target === "search") el.queryInput.focus();
       if (target === "map") openServiceMap();
       if (target === "matrix") openServiceMatrix();
@@ -417,25 +427,25 @@
     el.copyDiagnosticsButton?.addEventListener("click", copyDiagnostics);
     el.closeServiceMapButton?.addEventListener("click", closeServiceMap);
     el.serviceMapDialog?.addEventListener("close", () => {
-      document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+      setActiveNav("logs");
     });
     el.healthDialog?.addEventListener("close", () => {
-      document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+      setActiveNav("logs");
     });
-    el.serviceMatrixDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.serviceHeatmapDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.serviceTrendsDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.baselineDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.projectDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.traceExplorerDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.traceCompareDialog?.addEventListener("close", () => { if (el.traceExplorerDialog?.open) return; document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.traceOutlierDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
-    el.queryLibraryDialog?.addEventListener("close", () => { document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs")); });
+    el.serviceMatrixDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    el.serviceHeatmapDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    el.serviceTrendsDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    el.baselineDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    el.projectDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    el.traceExplorerDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    el.traceCompareDialog?.addEventListener("close", () => { if (el.traceExplorerDialog?.open) return; setActiveNav("logs"); });
+    el.traceOutlierDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    el.queryLibraryDialog?.addEventListener("close", () => { setActiveNav("logs"); });
     el.investigationDialog?.addEventListener("close", () => {
-      document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+      setActiveNav("logs");
     });
     el.exceptionDialog?.addEventListener("close", () => {
-      document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+      setActiveNav("logs");
     });
     el.serviceMapResetButton?.addEventListener("click", () => renderServiceMap(null));
     el.serviceMapGroupBy?.addEventListener("change", () => { state.serviceMapGroupBy = el.serviceMapGroupBy.value || "service"; renderServiceMap(); });
@@ -1916,7 +1926,7 @@
   function closeServiceMatrix() {
     if (!el.serviceMatrixDialog) return;
     if (typeof el.serviceMatrixDialog.close === "function" && el.serviceMatrixDialog.open) el.serviceMatrixDialog.close(); else el.serviceMatrixDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderServiceMatrix(useFiltered = state.serviceMatrixScopeFiltered) {
@@ -1966,7 +1976,7 @@
   function closeServiceHeatmap() {
     if (!el.serviceHeatmapDialog) return;
     if (typeof el.serviceHeatmapDialog.close === "function" && el.serviceHeatmapDialog.open) el.serviceHeatmapDialog.close(); else el.serviceHeatmapDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderServiceHeatmap(useFiltered = state.serviceHeatmapScopeFiltered) {
@@ -2012,7 +2022,7 @@
   function closeServiceTrends() {
     if (!el.serviceTrendsDialog) return;
     if (typeof el.serviceTrendsDialog.close === "function" && el.serviceTrendsDialog.open) el.serviceTrendsDialog.close(); else el.serviceTrendsDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderServiceTrends(useFiltered = state.serviceTrendsScopeFiltered) {
@@ -2055,7 +2065,7 @@
   function closeTraceExplorer() {
     if (!el.traceExplorerDialog) return;
     if (typeof el.traceExplorerDialog.close === "function" && el.traceExplorerDialog.open) el.traceExplorerDialog.close(); else el.traceExplorerDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderTraceExplorer(useFiltered = state.traceExplorerScopeFiltered) {
@@ -2134,7 +2144,7 @@
   function closeTraceOutliers() {
     if (!el.traceOutlierDialog) return;
     if (typeof el.traceOutlierDialog.close === "function" && el.traceOutlierDialog.open) el.traceOutlierDialog.close(); else el.traceOutlierDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderTraceOutliers(useFiltered = state.traceOutlierScopeFiltered) {
@@ -2191,7 +2201,7 @@
   function closeQueryLibrary() {
     if (!el.queryLibraryDialog) return;
     if (typeof el.queryLibraryDialog.close === "function" && el.queryLibraryDialog.open) el.queryLibraryDialog.close(); else el.queryLibraryDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderQueryLibraryBulk(folderNames, visible) {
@@ -2317,12 +2327,12 @@ function renderProjects() {
   if (el.projectCount) el.projectCount.textContent = String(state.projects.filter((project) => !project.archived).length);
   const active = state.projects.find((project) => project.id === state.activeProjectId);
   const bridgeCaps = window.SignalDockDesktopBridge?.capabilities?.() || { mode: "browser", filePicker: false, persistentHandles: false };
-  if (el.projectLinkFilesButton) { el.projectLinkFilesButton.disabled = !active || active.archived || !bridgeCaps.filePicker; el.projectLinkFilesButton.title = !active ? "Activate a project first" : !bridgeCaps.filePicker ? "Persistent file linking is unavailable in this runtime" : "Choose local log files, load them and remember reopen access for this project"; }
-  if (el.projectCapabilityMeta) el.projectCapabilityMeta.textContent = bridgeCaps.persistentHandles ? `${bridgeCaps.mode === "native" ? "Native" : "Browser"} capability mode · persistent local reopen available · links never leave this device` : `${bridgeCaps.mode === "native" ? "Native" : "Browser"} capability mode · metadata-only history in this runtime`;
+  if (el.projectLinkFilesButton) { el.projectLinkFilesButton.disabled = !active || active.archived || !bridgeCaps.filePicker; el.projectLinkFilesButton.title = !active ? "Activate a project first" : !bridgeCaps.filePicker ? "File linking is unavailable in this browser" : "Choose local log files, load them and remember reopen access for this project"; }
+  if (el.projectCapabilityMeta) el.projectCapabilityMeta.textContent = bridgeCaps.persistentHandles ? "Linked files can be reopened on this device. File access never leaves SignalDock." : "Project history stays local, but linked files may need to be selected again.";
   el.activeProjectMeta.textContent = active ? `Active · ${active.name} · ${active.recentDatasets.length} recent datasets · ${active.baselines.length} baselines${active.lastWorkspace ? ` · last session: ${active.lastWorkspace}` : ""}` : "No active project.";
   el.projectList.replaceChildren();
   if (!state.projects.length) { const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = "No local projects yet."; el.projectList.appendChild(empty); return; }
-  state.projects.forEach((project) => { const row = document.createElement("article"); row.className = `project-row${project.id === state.activeProjectId ? " is-active" : ""}${project.archived ? " is-archived" : ""}`; const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = `${project.name}${project.archived ? " · Archived" : ""}`; const small = document.createElement("small"); small.textContent = [project.description || "Metadata-only local project", project.tags.join(" · ")].filter(Boolean).join(" · "); copy.append(strong, small, projectHistorySection(project)); const actions = document.createElement("div"); [["activate", project.id === state.activeProjectId ? "Active" : "Activate"], ["duplicate", "Duplicate"], ["archive", project.archived ? "Unarchive" : "Archive"], ["delete", "Delete"]].forEach(([action, label]) => { const button = makeUiButton("", label); button.dataset.projectAction = action; button.dataset.projectId = project.id; button.disabled = action === "activate" && (project.id === state.activeProjectId || project.archived); actions.appendChild(button); }); row.append(copy, actions); el.projectList.appendChild(row); });
+  state.projects.forEach((project) => { const row = document.createElement("article"); row.className = `project-row${project.id === state.activeProjectId ? " is-active" : ""}${project.archived ? " is-archived" : ""}`; const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = `${project.name}${project.archived ? " · Archived" : ""}`; const small = document.createElement("small"); small.textContent = [project.description || "Local project", project.tags.join(" · ")].filter(Boolean).join(" · "); copy.append(strong, small, projectHistorySection(project)); const actions = document.createElement("div"); [["activate", project.id === state.activeProjectId ? "Active" : "Activate"], ["duplicate", "Duplicate"], ["archive", project.archived ? "Unarchive" : "Archive"], ["delete", "Delete"]].forEach(([action, label]) => { const button = makeUiButton("", label); button.dataset.projectAction = action; button.dataset.projectId = project.id; button.disabled = action === "activate" && (project.id === state.activeProjectId || project.archived); actions.appendChild(button); }); row.append(copy, actions); el.projectList.appendChild(row); });
 }
 
 async function linkAndLoadProjectFiles() {
@@ -2409,7 +2419,7 @@ async function onProjectListClick(event) {
     if (!el.healthDialog) return;
     if (typeof el.healthDialog.close === "function" && el.healthDialog.open) el.healthDialog.close();
     else el.healthDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderHealth(useFiltered = state.healthScopeFiltered) {
@@ -2466,7 +2476,7 @@ async function onProjectListClick(event) {
     if (!el.exceptionDialog) return;
     if (typeof el.exceptionDialog.close === "function" && el.exceptionDialog.open) el.exceptionDialog.close();
     else el.exceptionDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderExceptions() {
@@ -2561,7 +2571,7 @@ async function onProjectListClick(event) {
     if (!el.investigationDialog) return;
     if (typeof el.investigationDialog.close === "function" && el.investigationDialog.open) el.investigationDialog.close();
     else el.investigationDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function persistInvestigationMeta() {
@@ -3586,7 +3596,7 @@ async function saveWorkspace() {
     if (!el.serviceMapDialog) return;
     if (typeof el.serviceMapDialog.close === "function" && el.serviceMapDialog.open) el.serviceMapDialog.close();
     else el.serviceMapDialog.removeAttribute("open");
-    document.querySelectorAll("[data-nav]").forEach((item) => item.classList.toggle("is-active", item.dataset.nav === "logs"));
+    setActiveNav("logs");
   }
 
   function renderServiceMap(indexes = state.filteredIndexes) {

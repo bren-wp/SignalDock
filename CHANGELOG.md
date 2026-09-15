@@ -1,6 +1,22 @@
 # Changelog
 
 
+## 2.7.2 — 2026-09-15
+
+### Production UI and UX
+- Fixed undeclared shared CSS tokens that caused borders, surfaces and accent styles to be dropped on newer analysis and investigation views.
+- Restored full navigation access on phone-width layouts instead of hiding workspace navigation below 480 px.
+- Fixed Query Library selection layout by applying the grid display mode its column rules require.
+- Removed the visible Live Tail beta badge and replaced internal project/capability wording with production-facing copy.
+- Added consistent disabled, focus, selection, overscroll and fine-pointer interaction polish while preserving reduced-motion behavior.
+
+### Maintainability and accessibility
+- Deduplicated active-navigation state handling behind one helper and added `aria-current` synchronization.
+- Removed release-number comments from production CSS while retaining semantic section labels.
+- Added a production UI regression test covering CSS variables, mobile navigation, production copy and accessibility state.
+- Updated user-facing diagnostics wording and technical documentation for the production UI standards.
+
+
 ## 2.7.1 — 2026-09-15
 
 ### Source layout and maintainability

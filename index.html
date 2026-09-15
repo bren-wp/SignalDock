@@ -32,7 +32,7 @@
         <span class="status-line" aria-hidden="true"></span>
         <span class="status-copy">YOUR LOGS. YOUR MACHINE. YOUR CONTROL.</span>
         <button class="icon-button command-button" id="commandPaletteButton" type="button" title="Command palette (Ctrl/Cmd+K)" aria-label="Open command palette"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#terminal"></use></svg></button>
-        <span class="local-badge" title="No file uploads. No backend. No telemetry.">
+        <span class="local-badge" title="Your files stay on this device. No uploads or telemetry.">
           <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#shield"></use></svg>
           100% local
         </span>
@@ -118,9 +118,9 @@
             <button class="nav-item" type="button" data-nav="live" title="Follow a local log file as it grows (supported browsers)">
               <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
               <span>Live tail</span>
-              <em>BETA</em>
+
             </button>
-            <button class="nav-item" type="button" data-nav="projects" title="Manage local SignalDock project metadata">
+            <button class="nav-item" type="button" data-nav="projects" title="Manage local projects and workspaces">
               <svg class="icon"><use href="assets/icons.svg#database"></use></svg>
               <span>Projects</span>
               <em id="projectCount">0</em>
@@ -156,7 +156,7 @@
         <div class="sidebar__footer">
           <div class="privacy-card">
             <span class="privacy-card__icon"><svg class="icon"><use href="assets/icons.svg#lock"></use></svg></span>
-            <div><strong>Processing stays local</strong><small>No cloud. No uploads. No telemetry.</small></div>
+            <div><strong>Processing stays local</strong><small>Files stay on this device. Nothing is uploaded.</small></div>
           </div>
           <span class="microcopy">OBSERVE LOCALLY. BUILD FREELY.</span>
         </div>
@@ -222,7 +222,7 @@
           <div class="search-row">
             <label class="smart-search">
               <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg>
-              <input id="queryInput" type="search" placeholder="Search logs… level:error trace:abc any:timeout,retry re:/ECONNRESET/i" autocomplete="off" disabled>
+              <input id="queryInput" type="search" placeholder="Search logs by message, service, trace, level…" autocomplete="off" disabled>
               <kbd>/</kbd>
             </label>
 
@@ -379,11 +379,11 @@
         </div>
       </div>
       <div class="settings-query-help"><strong>Smart query syntax</strong><code>level:error,warn service:auth trace:abc123 exception:ex-1a2b3c4d any:timeout,retry -health has:timestamp after:2026-09-12T10:00:00 re:/ETIMEDOUT|ECONNRESET/i</code><small>Regex patterns are capped at 256 characters and run locally only. Environment and namespace fields can be queried with <code>env:</code> and <code>namespace:</code>.</small></div>
-      <div class="settings-recovery"><button class="button button--ghost button--small" id="clearRecoveryButton" type="button">Clear recovery snapshot</button><button class="button button--ghost button--small" id="clearSearchCacheButton" type="button">Clear search cache</button><span id="autosaveStatus">Recovery status will appear here.</span></div>
+      <div class="settings-recovery"><button class="button button--ghost button--small" id="clearRecoveryButton" type="button">Clear saved recovery</button><button class="button button--ghost button--small" id="clearSearchCacheButton" type="button">Clear local search cache</button><span id="autosaveStatus">Recovery status will appear here.</span></div>
       <section class="diagnostics-card" aria-labelledby="diagnosticsTitle">
-        <div class="diagnostics-card__head"><div><span>PERFORMANCE</span><strong id="diagnosticsTitle">Local diagnostics</strong></div><button class="button button--ghost button--small" id="copyDiagnosticsButton" type="button">Copy diagnostics</button></div>
+        <div class="diagnostics-card__head"><div><span>DEVICE STATUS</span><strong id="diagnosticsTitle">Performance &amp; storage</strong></div><button class="button button--ghost button--small" id="copyDiagnosticsButton" type="button">Copy support details</button></div>
         <div class="diagnostics-grid" id="diagnosticsGrid"><span>No performance samples yet.</span></div>
-        <small>Diagnostics stay local and contain timing, dataset and browser capability metadata only.</small>
+        <small>Support details stay on this device and include performance, dataset size and browser capability information.</small>
       </section>
       <div class="settings-note"><svg class="icon"><use href="assets/icons.svg#shield"></use></svg><span>These preferences are stored locally in this browser only.</span></div>
     </form>
@@ -507,13 +507,13 @@
           <div class="case-milestones__list" id="caseMilestones"><div class="case-findings__empty">No milestones yet.</div></div>
         </section>
         <section class="case-attachments" aria-label="Local attachment references">
-          <div class="case-activity__head"><div><span>ATTACHMENT REFERENCES</span><strong>Local file metadata</strong></div><div><button class="button button--ghost button--small" id="addCaseAttachmentButton" type="button">Add local file reference</button><input id="caseAttachmentInput" type="file" multiple hidden></div></div>
-          <small class="case-attachments__note">SignalDock stores filename/type/size/time metadata only — attachment bytes are never embedded or uploaded.</small>
+          <div class="case-activity__head"><div><span>REFERENCED FILES</span><strong>Files connected to this case</strong></div><div><button class="button button--ghost button--small" id="addCaseAttachmentButton" type="button">Add file reference</button><input id="caseAttachmentInput" type="file" multiple hidden></div></div>
+          <small class="case-attachments__note">SignalDock stores file details only. Referenced file contents are never copied into the case or uploaded.</small>
           <div class="case-attachments__list" id="caseAttachments"><div class="case-findings__empty">No local file references yet.</div></div>
         </section>
         <section class="case-checkpoints" aria-label="Case checkpoints">
           <div class="case-activity__head"><div><span>CASE CHECKPOINTS</span><strong>Local case snapshots</strong></div><div class="checkpoint-create"><input id="caseCheckpointLabel" type="text" maxlength="160" placeholder="Before config change"><button class="button button--ghost button--small" id="addCaseCheckpointButton" type="button">Create checkpoint</button></div></div>
-          <small class="case-attachments__note">Checkpoints store the normalized case state plus evidence IDs, not copies of log data.</small>
+          <small class="case-attachments__note">Checkpoints save case details and evidence references without copying your logs.</small>
           <div class="case-checkpoints__list" id="caseCheckpoints"><div class="case-findings__empty">No case checkpoints yet.</div></div>
         </section>
         <section class="case-unified-timeline" aria-label="Combined case timeline">
@@ -572,12 +572,12 @@
 
   <dialog class="project-dialog" id="projectDialog">
     <section class="project-card" aria-label="SignalDock local project manager">
-      <header class="query-library-head"><div><span>LOCAL PROJECT METADATA</span><strong>Projects &amp; workspaces</strong><small>Organize investigation metadata locally without copying log contents into project records.</small></div><button class="icon-button" id="closeProjectButton" type="button" aria-label="Close project manager"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="query-library-head"><div><span>LOCAL PROJECTS</span><strong>Projects &amp; workspaces</strong><small>Keep investigations, linked files and workspaces organized on this device.</small></div><button class="icon-button" id="closeProjectButton" type="button" aria-label="Close project manager"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="project-toolbar"><label><span>Project name</span><input id="projectName" type="text" maxlength="120" placeholder="Payments production"></label><label><span>Description</span><input id="projectDescription" type="text" maxlength="2000" placeholder="Local context for this investigation"></label><button class="button button--primary button--small" id="createProjectButton" type="button">Create project</button><button class="button button--primary button--small" id="projectLinkFilesButton" type="button" disabled>Link &amp; load files</button><button class="button button--ghost button--small" id="exportProjectsButton" type="button">Export</button><button class="button button--ghost button--small" id="importProjectsButton" type="button">Import</button><input id="projectsFileInput" type="file" accept=".json,.sdprojects" hidden></div>
       <div class="project-active" id="activeProjectMeta">No active project.</div>
-      <div class="project-capability" id="projectCapabilityMeta">Checking local reopen capability…</div>
+      <div class="project-capability" id="projectCapabilityMeta">Checking local file access…</div>
       <div class="project-list" id="projectList"><div class="case-findings__empty">No local projects yet.</div></div>
-      <footer class="query-library-footer"><span>Project records contain metadata only. Persistent reopen links are local capabilities on this device and are stripped from project exports.</span></footer>
+      <footer class="query-library-footer"><span>Project details stay on this device. Linked file access is never included in exported project files.</span></footer>
     </section>
   </dialog>
 

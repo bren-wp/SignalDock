@@ -4,7 +4,7 @@
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.7.1**.
+Current version: **2.7.2**.
 
 ## Highlights
 
@@ -82,12 +82,18 @@ Current version: **2.7.1**.
 - JSON export for normal result sets and NDJSON export for very large result sets
 - Saved views stored only in local browser storage
 - Optional background Web Worker filtering/correlation for large datasets when served over HTTP(S)
-- Experimental local Live Tail using the File System Access API in supported Chromium-based browsers
+- Local Live Tail using the File System Access API in supported Chromium-based browsers
 - Automatic main-thread fallback when opened directly with `file://`
 - Local ZIP extraction with safety limits
 - Content Security Policy with network connections disabled
 - No analytics, telemetry, account system, backend or CDN dependency
 
+
+## Production UI and UX standards
+
+SignalDock user-facing copy avoids implementation-stage labels and internal runtime terminology. Shared CSS design tokens are defined once at the root and newer feature surfaces use semantic aliases instead of undeclared variables. Navigation remains reachable at phone widths, active navigation exposes `aria-current`, dialogs retain keyboard-focus hardening, and reduced-motion/coarse-pointer rules remain first-class.
+
+The production regression suite checks for unresolved CSS custom properties, hidden phone navigation, release-stage labels in the interface and accidental reintroduction of implementation terminology.
 
 ## Cross-dataset baselines and local projects
 
@@ -170,7 +176,7 @@ Clicking a service turns the topology investigation into a normal `service:` que
 
 Settings now includes a local diagnostics panel. It keeps a bounded rolling window of timing samples for parsing, filtering, table rendering, correlation/trace lookup and service-map generation. Where browser support exists it also reports long tasks and JavaScript heap usage.
 
-The **Copy diagnostics** action exports only technical runtime metadata and timing/capability information; it does not include log messages or raw log payloads.
+The **Copy support details** action exports only local performance and browser-capability information; it does not include log messages or raw log payloads.
 
 ## Chunked recovery
 
