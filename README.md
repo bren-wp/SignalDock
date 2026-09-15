@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml/badge.svg"></a>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml/badge.svg"></a>
-    <img alt="Version" src="https://img.shields.io/badge/version-2.8.0-22d3ee?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-2.8.1-22d3ee?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
     <img alt="Local first" src="https://img.shields.io/badge/local--first-yes-67e8f9?style=flat-square">
     <img alt="Telemetry" src="https://img.shields.io/badge/telemetry-none-a7f3d0?style=flat-square">
@@ -28,8 +28,8 @@
 </p>
 
 <p align="center">
-  <strong>SignalDock v2.8.0 — real application UI with the bundled demo dataset</strong><br>
-  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.8.0 application screenshot showing local log analysis" width="100%" />
+  <strong>SignalDock v2.8.1 — real application UI with the bundled demo dataset</strong><br>
+  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.8.1 application screenshot showing local log analysis" width="100%" />
 </p>
 
 ## Your logs should not need a cloud account
@@ -99,6 +99,7 @@ SignalDock includes:
 - Case & Investigation workspace with evidence, findings, milestones and activity history
 - reusable Query Library with folders and favorites
 - feature-level Query Library controller under `src/app/` with explicit state/callback boundaries and no bundler dependency
+- feature-level Baseline controller under `src/app/` with explicit Project/filters/autosave callbacks and preserved aggregate-only baseline semantics
 - local Project Manager and cross-dataset baseline comparison
 - bounded multi-baseline history with saved-baseline A/B comparison and project association
 - Project Manager recent workspace/dataset/baseline/case history, duplicate and archive controls

@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.0";
+  const APP_VERSION = "2.8.1";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -82,6 +82,7 @@
   let scheduleViewAutosave = () => {};
   let virtualSpacerRules = null;
   let queryLibraryController = null;
+  let baselineController = null;
 
   const el = {};
   const $ = (id) => document.getElementById(id);
@@ -109,7 +110,7 @@
       matrix: openServiceMatrix,
       heatmap: openServiceHeatmap,
       trends: openServiceTrends,
-      baseline: openBaseline,
+      baseline: () => baselineController?.open(),
       traces: openTraceExplorer,
       outliers: openTraceOutliers,
       health: openHealth,
@@ -183,6 +184,31 @@
     queryLibraryController.bind();
     queryLibraryController.render();
     state.baselineHistory = window.SignalDockBaselineManager?.loadHistory?.() || [];
+    if (!window.SignalDockBaselineController?.create) throw new Error("SignalDock Baseline controller is unavailable.");
+    baselineController = window.SignalDockBaselineController.create({
+      state,
+      el,
+      appVersion: APP_VERSION,
+      getUtils: utils,
+      toast,
+      quoteIfNeeded,
+      applyFilters,
+      closeCompetingDialogs,
+      showDialogSafely,
+      getProjectName: (projectId) => state.projects.find((project) => project.id === projectId)?.name || "Unassigned",
+      attachBaselineToActiveProject: (baseline, meta = {}) => {
+        if (!state.activeProjectId || !window.SignalDockProjectManager?.attachBaseline) return;
+        state.projects = window.SignalDockProjectManager.attachBaseline(state.projects, state.activeProjectId, {
+          id: baseline.id,
+          name: baseline.name,
+          capturedAt: baseline.capturedAt,
+          tags: meta.tags || []
+        });
+      },
+      renderProjects,
+      scheduleDatasetAutosave: () => scheduleDatasetAutosave()
+    });
+    baselineController.bind();
     state.projects = window.SignalDockProjectManager?.load?.() || [];
     state.activeProjectId = String(utils().loadJson("signaldock-active-project-v1", "") || "");
     state.caseCheckpoints = window.SignalDockCaseCheckpoints?.normalizeList?.([]) || [];
@@ -381,21 +407,6 @@
     el.caseTimelineFilter?.addEventListener("change", () => { state.caseTimelineFilter = el.caseTimelineFilter.value || "all"; renderCaseUnifiedTimeline(); });
     el.caseTimelineList?.addEventListener("click", onCaseTimelineClick);
 
-    el.closeBaselineButton?.addEventListener("click", closeBaseline);
-    el.captureBaselineButton?.addEventListener("click", () => captureBaseline(false));
-    el.captureFilteredBaselineButton?.addEventListener("click", () => captureBaseline(true));
-    el.exportBaselineButton?.addEventListener("click", exportBaseline);
-    el.importBaselineButton?.addEventListener("click", () => el.baselineFileInput?.click());
-    el.baselineFileInput?.addEventListener("change", importBaseline);
-    el.baselineServiceBody?.addEventListener("click", onBaselineServiceClick);
-    el.baselineDependencyBody?.addEventListener("click", onBaselineDependencyClick);
-    el.baselineHistoryList?.addEventListener("click", onBaselineHistoryClick);
-    el.baselineHistoryExportButton?.addEventListener("click", exportBaselineHistory);
-    el.baselineHistoryImportButton?.addEventListener("click", () => el.baselineHistoryFileInput?.click());
-    el.baselineHistoryFileInput?.addEventListener("change", importBaselineHistory);
-    el.compareSavedBaselinesButton?.addEventListener("click", compareSavedBaselines);
-    el.baselineCompareBase?.addEventListener("change", syncBaselineHistorySelection);
-    el.baselineCompareCurrent?.addEventListener("change", syncBaselineHistorySelection);
     el.closeProjectButton?.addEventListener("click", closeProjects);
     el.createProjectButton?.addEventListener("click", createProject);
     el.projectLinkFilesButton?.addEventListener("click", linkAndLoadProjectFiles);
@@ -2182,38 +2193,11 @@
     const button = document.createElement("button"); button.type = "button"; button.id = id; button.className = className; button.textContent = label; return button;
   }
 
-  function formatDelta(value, suffix = "") { if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—"; const number = Number(value); const sign = number > 0 ? "+" : ""; return `${sign}${Math.abs(number) < 1 && suffix === "%" ? (number * 100).toFixed(1) : number.toFixed(Math.abs(number) >= 100 ? 0 : 1)}${suffix}`; }
-  function currentBaselineSnapshot(scopeFiltered = false) { if (!window.SignalDockBaselineManager || !state.entries.length) return null; return window.SignalDockBaselineManager.snapshot(state.entries, scopeFiltered ? state.filteredIndexes : null, { appVersion: APP_VERSION, name: el.baselineName?.value?.trim() || "Current dataset", scope: scopeFiltered ? "filtered" : "all" }); }
-  function openBaseline() { closeCompetingDialogs("baselineDialog"); renderBaseline(); showDialogSafely(el.baselineDialog); }
-  function closeBaseline() { if (el.baselineDialog?.open) el.baselineDialog.close(); else el.baselineDialog?.removeAttribute("open"); }
-  function baselineProjectName(projectId) { return state.projects.find((project) => project.id === projectId)?.name || "Unassigned"; }
-  function syncBaselineHistorySelection() { state.baselineHistorySelection = { baseId: el.baselineCompareBase?.value || "", currentId: el.baselineCompareCurrent?.value || "" }; if (el.compareSavedBaselinesButton) el.compareSavedBaselinesButton.disabled = !state.baselineHistorySelection.baseId || !state.baselineHistorySelection.currentId || state.baselineHistorySelection.baseId === state.baselineHistorySelection.currentId; }
-  function renderBaselineHistory() {
-    if (!window.SignalDockBaselineManager || !el.baselineHistoryList) return; state.baselineHistory = window.SignalDockBaselineManager.normalizeHistory(state.baselineHistory); const items = state.baselineHistory;
-    const previousBase = state.baselineHistorySelection.baseId || el.baselineCompareBase?.value || ""; const previousCurrent = state.baselineHistorySelection.currentId || el.baselineCompareCurrent?.value || ""; const options = () => [new Option("Choose saved baseline…", ""), ...items.map((item) => new Option(`${item.baseline.name} · ${baselineProjectName(item.projectId)} · ${item.baseline.entries.toLocaleString()} entries`, item.id))];
-    if (el.baselineCompareBase) { el.baselineCompareBase.replaceChildren(...options()); el.baselineCompareBase.value = items.some((item) => item.id === previousBase) ? previousBase : (items[1]?.id || ""); }
-    if (el.baselineCompareCurrent) { el.baselineCompareCurrent.replaceChildren(...options()); el.baselineCompareCurrent.value = items.some((item) => item.id === previousCurrent) ? previousCurrent : (items[0]?.id || ""); }
-    syncBaselineHistorySelection(); el.baselineHistoryList.replaceChildren();
-    if (!items.length) { const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = "No saved baselines yet. Captured and imported baselines will appear here."; el.baselineHistoryList.appendChild(empty); return; }
-    items.forEach((item) => { const row = document.createElement("article"); row.className = `baseline-history-row${state.baselineSnapshot?.id === item.baseline.id ? " is-active" : ""}`; const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = item.baseline.name; const small = document.createElement("small"); small.textContent = `${item.baseline.entries.toLocaleString()} entries · ${item.baseline.scope} · ${baselineProjectName(item.projectId)} · ${new Date(item.savedAt).toLocaleString()}${item.tags.length ? ` · ${item.tags.join(" · ")}` : ""}`; copy.append(strong, small); const actions = document.createElement("div"); [["use", "Use"], ["rename", "Rename"], ["remove", "Remove"]].forEach(([action, label]) => { const button = makeUiButton("", label, action === "use" ? "button button--primary button--small" : "button button--ghost button--small"); button.dataset.baselineHistoryAction = action; button.dataset.baselineHistoryId = item.id; actions.appendChild(button); }); row.append(copy, actions); el.baselineHistoryList.appendChild(row); });
-  }
-  function addBaselineToHistory(baseline, meta = {}) { state.baselineHistory = window.SignalDockBaselineManager.addToHistory(state.baselineHistory, baseline, { projectId: state.activeProjectId || "", ...meta }); if (state.activeProjectId && window.SignalDockProjectManager?.attachBaseline) state.projects = window.SignalDockProjectManager.attachBaseline(state.projects, state.activeProjectId, { id: baseline.id, name: baseline.name, capturedAt: baseline.capturedAt, tags: meta.tags || [] }); }
-  function captureBaseline(filtered = false) { if (!state.entries.length) { toast("Load logs before capturing a baseline."); return; } if (filtered && !state.filteredIndexes.length) { toast("The current filters contain no entries to capture."); return; } state.baselineSnapshot = currentBaselineSnapshot(filtered); state.baselineComparison = null; addBaselineToHistory(state.baselineSnapshot); if (el.baselineName) el.baselineName.value = state.baselineSnapshot.name; renderBaseline(); renderProjects(); scheduleDatasetAutosave(); toast(`Captured ${filtered ? "filtered " : ""}baseline · ${state.baselineSnapshot.entries.toLocaleString()} entries.`); }
-  async function exportBaseline() { if (!state.baselineSnapshot || !window.SignalDockBaselineManager) { toast("Capture or import a baseline first."); return; } const text = window.SignalDockBaselineManager.exportJson(state.baselineSnapshot); const safe = (state.baselineSnapshot.name || "baseline").replace(/[^a-z0-9._-]+/gi, "-").replace(/^-|-$/g, "") || "baseline"; if (window.SignalDockStorageAdapter?.saveText) await window.SignalDockStorageAdapter.saveText({ name: `${safe}.sdbaseline`, mime: "application/json;charset=utf-8", text }); else utils().downloadParts(`${safe}.sdbaseline`, [text], "application/json;charset=utf-8"); toast("Baseline exported without raw logs."); }
-  async function importBaseline(event) { const file = event.target.files?.[0]; if (!file || !window.SignalDockBaselineManager) return; try { state.baselineSnapshot = window.SignalDockBaselineManager.parse(await file.text()); addBaselineToHistory(state.baselineSnapshot, { description: `Imported from ${file.name}` }); if (el.baselineName) el.baselineName.value = state.baselineSnapshot.name; renderBaseline(); renderProjects(); scheduleDatasetAutosave(); toast(`Imported baseline “${state.baselineSnapshot.name}”.`); } catch (error) { toast(`Could not import baseline: ${error.message || error}`, "error", 7000); } finally { event.target.value = ""; } }
-  async function exportBaselineHistory() { const text = window.SignalDockBaselineManager.exportHistory(state.baselineHistory); const name = `signaldock-baselines-${new Date().toISOString().slice(0,10)}.sdbaselines`; if (window.SignalDockStorageAdapter?.saveText) await window.SignalDockStorageAdapter.saveText({ name, text, mime: "application/json;charset=utf-8" }); else utils().downloadParts(name, [text], "application/json;charset=utf-8"); toast(`Exported ${state.baselineHistory.length} saved baselines.`); }
-  async function importBaselineHistory(event) { const file = event.target.files?.[0]; if (!file) return; try { state.baselineHistory = window.SignalDockBaselineManager.importHistory(await file.text(), state.baselineHistory); renderBaselineHistory(); toast(`Baseline history now contains ${state.baselineHistory.length} snapshots.`); } catch (error) { toast(`Could not import baseline history: ${error.message || error}`, "error", 7000); } finally { event.target.value = ""; } }
-  function onBaselineHistoryClick(event) { const button = event.target.closest("[data-baseline-history-action]"); if (!button) return; const id = button.dataset.baselineHistoryId; const item = state.baselineHistory.find((candidate) => candidate.id === id); if (!item) return; if (button.dataset.baselineHistoryAction === "use") { state.baselineSnapshot = item.baseline; if (el.baselineName) el.baselineName.value = item.baseline.name; renderBaseline(); return; } if (button.dataset.baselineHistoryAction === "remove") { state.baselineHistory = window.SignalDockBaselineManager.removeFromHistory(state.baselineHistory, id); renderBaselineHistory(); toast("Saved baseline removed from local history."); return; } if (button.dataset.baselineHistoryAction === "rename") { const name = window.prompt("Rename saved baseline:", item.baseline.name); if (!name?.trim()) return; state.baselineHistory = window.SignalDockBaselineManager.renameInHistory(state.baselineHistory, id, name); if (state.baselineSnapshot?.id === item.baseline.id) state.baselineSnapshot = state.baselineHistory.find((candidate) => candidate.id === id)?.baseline || state.baselineSnapshot; renderBaseline(); } }
-  function renderBaselineComparisonResult(comparison, currentSnapshot, baselineSnapshot, label = "") { state.baselineComparison = comparison; const regression = window.SignalDockTraceRegression?.compare?.(currentSnapshot, baselineSnapshot) || { rows: [], summary: { regressed: 0 } }; const sum = comparison.summary; el.baselineSummary.textContent = `${label ? `${label} · ` : ""}${currentSnapshot.name}: ${sum.currentEntries.toLocaleString()} vs ${baselineSnapshot.name}: ${sum.baselineEntries.toLocaleString()} entries · ${sum.serviceChanges} service changes · ${sum.dependencyChanges} dependency changes · ${regression.summary.regressed || 0} regressed trace sets`; if (el.baselineChangeCount) el.baselineChangeCount.textContent = String((sum.serviceChanges || 0) + (regression.summary.regressed || 0)); el.baselineServiceBody.replaceChildren(); comparison.services.slice(0, 80).forEach((row) => { const tr = document.createElement("tr"); [row.service, formatDelta(row.entryDelta), formatDelta(row.errorRateDelta, "%"), formatDelta(row.p95Delta, " ms")].forEach((value) => { const td = document.createElement("td"); td.textContent = value; tr.appendChild(td); }); const action = document.createElement("td"); const button = makeUiButton("", "Filter"); button.dataset.baselineService = row.service; action.appendChild(button); tr.appendChild(action); el.baselineServiceBody.appendChild(tr); }); el.baselineDependencyBody.replaceChildren(); comparison.dependencies.slice(0, 80).forEach((row) => { const tr = document.createElement("tr"); [`${row.from} → ${row.to}`, formatDelta(row.callDelta), formatDelta(row.errorRateDelta, "%"), formatDelta(row.p95Delta, " ms")].forEach((value) => { const td = document.createElement("td"); td.textContent = value; tr.appendChild(td); }); const action = document.createElement("td"); const button = makeUiButton("", "Filter target"); button.dataset.baselineDependencyTo = row.to; action.appendChild(button); tr.appendChild(action); el.baselineDependencyBody.appendChild(tr); }); el.baselineTraceBody.replaceChildren(); regression.rows.slice(0, 80).forEach((row) => { const tr = document.createElement("tr"); [row.signature, row.status, formatDelta(row.countDelta), formatDelta(row.p95Delta, " ms"), formatDelta(row.errorRateDelta, "%")].forEach((value) => { const td = document.createElement("td"); td.textContent = value; tr.appendChild(td); }); tr.dataset.status = row.status; el.baselineTraceBody.appendChild(tr); }); }
-  function compareSavedBaselines() { syncBaselineHistorySelection(); const { baseId, currentId } = state.baselineHistorySelection; if (!baseId || !currentId || baseId === currentId) return; try { const comparison = window.SignalDockBaselineManager.compareById(state.baselineHistory, currentId, baseId); const current = state.baselineHistory.find((item) => item.id === currentId)?.baseline; const baseline = state.baselineHistory.find((item) => item.id === baseId)?.baseline; renderBaselineComparisonResult(comparison, current, baseline, "Saved baseline comparison"); } catch (error) { toast(error.message || String(error), "error"); } }
-  function renderBaseline() { if (!el.baselineSummary) return; renderBaselineHistory(); const baseline = state.baselineSnapshot; if (!baseline) { el.baselineMeta.textContent = "Capture/import a baseline or choose one from local history."; el.baselineSummary.textContent = state.baselineHistory.length ? `${state.baselineHistory.length} saved baseline snapshots available.` : "No baseline loaded."; el.baselineServiceBody.replaceChildren(); el.baselineDependencyBody.replaceChildren(); el.baselineTraceBody.replaceChildren(); if (el.baselineChangeCount) el.baselineChangeCount.textContent = "0"; return; } el.baselineMeta.textContent = `${baseline.name} · ${baseline.entries.toLocaleString()} entries · captured ${baseline.capturedAt ? new Date(baseline.capturedAt).toLocaleString() : "locally"}`; if (!state.entries.length) { el.baselineSummary.textContent = "Baseline ready. Load another dataset to compare it."; return; } const current = currentBaselineSnapshot(false); renderBaselineComparisonResult(window.SignalDockBaselineManager.compare(current, baseline), current, baseline, "Current dataset comparison"); }
-  function onBaselineServiceClick(event) { const button = event.target.closest("[data-baseline-service]"); if (!button) return; closeBaseline(); el.queryInput.value = `service:${quoteIfNeeded(button.dataset.baselineService)}`; applyFilters(true); }
-  function onBaselineDependencyClick(event) { const button = event.target.closest("[data-baseline-dependency-to]"); if (!button) return; closeBaseline(); el.queryInput.value = `service:${quoteIfNeeded(button.dataset.baselineDependencyTo)}`; applyFilters(true); }
 
 function openProjects() { closeCompetingDialogs("projectDialog"); renderProjects(); showDialogSafely(el.projectDialog); }
 function closeProjects() { if (el.projectDialog?.open) el.projectDialog.close(); else el.projectDialog?.removeAttribute("open"); }
 function persistActiveProject() { utils().saveJson("signaldock-active-project-v1", state.activeProjectId || ""); }
-function createProject() { if (!window.SignalDockProjectManager) return; try { const result = window.SignalDockProjectManager.create(state.projects, { name: el.projectName.value, description: el.projectDescription.value }); state.projects = result.projects; state.activeProjectId = result.project.id; persistActiveProject(); el.projectName.value = ""; el.projectDescription.value = ""; renderProjects(); renderBaselineHistory(); toast(`Created project “${result.project.name}”.`); } catch (error) { toast(error.message || String(error), "error", 6500); } }
+function createProject() { if (!window.SignalDockProjectManager) return; try { const result = window.SignalDockProjectManager.create(state.projects, { name: el.projectName.value, description: el.projectDescription.value }); state.projects = result.projects; state.activeProjectId = result.project.id; persistActiveProject(); el.projectName.value = ""; el.projectDescription.value = ""; renderProjects(); baselineController?.renderHistory(); toast(`Created project “${result.project.name}”.`); } catch (error) { toast(error.message || String(error), "error", 6500); } }
 
 function projectHistoryButton(project, field, item, action, label, primary = false) {
   const button = makeUiButton("", label, primary ? "button button--primary button--small" : "button button--ghost button--small");
@@ -2300,7 +2284,7 @@ async function reopenProjectHistoryItem(project, field, item) {
       if (!(result?.loadedIds || []).includes(item.id)) return;
       state.projects = window.SignalDockProjectManager.markHistoryReopened(state.projects, project.id, field, item.id);
     }
-    renderProjects(); renderBaselineHistory(); toast(`Reopened “${item.name}” locally.`);
+    renderProjects(); baselineController?.renderHistory(); toast(`Reopened “${item.name}” locally.`);
   } catch (error) { toast(`Could not reopen “${item.name}”: ${error.message || error}`, "error", 7500); }
 }
 
@@ -2316,13 +2300,13 @@ async function onProjectHistoryAction(button) {
 async function onProjectListClick(event) {
   const historyButton = event.target.closest("[data-project-history-action]"); if (historyButton) { await onProjectHistoryAction(historyButton); return; }
   const button = event.target.closest("[data-project-action]"); if (!button || !window.SignalDockProjectManager) return; const id = button.dataset.projectId; const project = state.projects.find((item) => item.id === id); if (!project) return;
-  if (button.dataset.projectAction === "activate") { state.activeProjectId = id; persistActiveProject(); renderProjects(); renderBaselineHistory(); toast(`Active project: ${project.name}.`); return; }
+  if (button.dataset.projectAction === "activate") { state.activeProjectId = id; persistActiveProject(); renderProjects(); baselineController?.renderHistory(); toast(`Active project: ${project.name}.`); return; }
   if (button.dataset.projectAction === "duplicate") { const result = window.SignalDockProjectManager.duplicate(state.projects, id); state.projects = result.projects; state.activeProjectId = result.project.id; persistActiveProject(); renderProjects(); toast(`Duplicated project as “${result.project.name}” without copying local file capabilities.`); return; }
   if (button.dataset.projectAction === "archive") { state.projects = window.SignalDockProjectManager.archive(state.projects, id, !project.archived); if (!project.archived && state.activeProjectId === id) { state.activeProjectId = ""; persistActiveProject(); } renderProjects(); return; }
-  if (button.dataset.projectAction === "delete" && window.confirm(`Delete local project metadata “${project.name}”? Log files are not affected; saved reopen permissions for this project will also be forgotten.`)) { try { await window.SignalDockDesktopBridge?.forgetProjectHandles?.(id); } catch { /* metadata removal must remain possible */ } state.projects = window.SignalDockProjectManager.remove(state.projects, id); if (state.activeProjectId === id) { state.activeProjectId = ""; persistActiveProject(); } renderProjects(); renderBaselineHistory(); }
+  if (button.dataset.projectAction === "delete" && window.confirm(`Delete local project metadata “${project.name}”? Log files are not affected; saved reopen permissions for this project will also be forgotten.`)) { try { await window.SignalDockDesktopBridge?.forgetProjectHandles?.(id); } catch { /* metadata removal must remain possible */ } state.projects = window.SignalDockProjectManager.remove(state.projects, id); if (state.activeProjectId === id) { state.activeProjectId = ""; persistActiveProject(); } renderProjects(); baselineController?.renderHistory(); }
 }
   async function exportProjects() { if (!window.SignalDockProjectManager) return; const text = window.SignalDockProjectManager.exportJson(state.projects, state.activeProjectId); if (window.SignalDockStorageAdapter?.saveText) await window.SignalDockStorageAdapter.saveText({ name: "signaldock-projects.sdprojects", mime: "application/json;charset=utf-8", text }); else utils().downloadParts("signaldock-projects.sdprojects", [text], "application/json;charset=utf-8"); toast("Project metadata exported."); }
-  async function importProjects(event) { const file = event.target.files?.[0]; if (!file || !window.SignalDockProjectManager) return; try { const result = window.SignalDockProjectManager.importJson(await file.text()); state.projects = result.projects; state.activeProjectId = result.activeId && result.projects.some((project) => project.id === result.activeId) ? result.activeId : ""; persistActiveProject(); renderProjects(); renderBaselineHistory(); toast(`Imported ${state.projects.length} project records.`); } catch (error) { toast(`Could not import projects: ${error.message || error}`, "error", 7000); } finally { event.target.value = ""; } }
+  async function importProjects(event) { const file = event.target.files?.[0]; if (!file || !window.SignalDockProjectManager) return; try { const result = window.SignalDockProjectManager.importJson(await file.text()); state.projects = result.projects; state.activeProjectId = result.activeId && result.projects.some((project) => project.id === result.activeId) ? result.activeId : ""; persistActiveProject(); renderProjects(); baselineController?.renderHistory(); toast(`Imported ${state.projects.length} project records.`); } catch (error) { toast(`Could not import projects: ${error.message || error}`, "error", 7000); } finally { event.target.value = ""; } }
 
   function createCaseCheckpoint() { if (!window.SignalDockCaseCheckpoints) return; const checkpoint = window.SignalDockCaseCheckpoints.create(state.caseFile, state.investigation, { label: el.caseCheckpointLabel?.value?.trim() || "" }); state.caseCheckpoints = window.SignalDockCaseCheckpoints.add(state.caseCheckpoints, checkpoint); if (el.caseCheckpointLabel) el.caseCheckpointLabel.value = ""; renderCaseCheckpoints(); scheduleDatasetAutosave(); toast("Case checkpoint created."); }
   function checkpointChangeRow(label, value) { const row = document.createElement("span"); const strong = document.createElement("strong"); strong.textContent = label; row.append(strong, document.createTextNode(` ${value}`)); return row; }

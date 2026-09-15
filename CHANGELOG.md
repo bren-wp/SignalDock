@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.1 — 2026-09-16
+
+### Baseline application controller
+- Extracted Baseline Compare and Baseline History rendering, event ownership, import/export and capture actions from the root `app.js` into `src/app/baseline-controller.js`.
+- Kept aggregate snapshot/comparison rules in `src/investigation/baseline-manager.js`; the new controller receives Project naming/attachment, filter application and autosave operations through explicit callbacks.
+- Added idempotent listener binding/teardown and hardened stale saved-baseline comparison selection handling.
+- Replaced implicit global `Option` construction with document-owned option creation so the controller has a narrower runtime surface and is easier to test.
+
+### Regression coverage
+- Added a dedicated Baseline controller architecture smoke test and extended the source-layout/HTTP gates to require both application controllers.
+- Kept retained feature tests version-forward so patch/minor releases no longer fail merely because a feature introduced in an earlier release remains present.
+
 ## 2.8.0 — 2026-09-16
 
 ### Application controller architecture

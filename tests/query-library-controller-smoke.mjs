@@ -11,7 +11,8 @@ const html = read("index.html");
 const app = read("app.js");
 const controller = read("src/app/query-library-controller.js");
 
-assert.equal(version, "2.8.0");
+const queryFeatureVersion = version.split(".").map(Number);
+assert.ok(queryFeatureVersion.length === 3 && queryFeatureVersion.every(Number.isFinite) && (queryFeatureVersion[0] > 2 || (queryFeatureVersion[0] === 2 && queryFeatureVersion[1] >= 8)), `expected SignalDock >= 2.8.x, got ${version}`);
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
 const controllerIndex = scripts.indexOf("src/app/query-library-controller.js");
 const appIndex = scripts.indexOf("app.js");

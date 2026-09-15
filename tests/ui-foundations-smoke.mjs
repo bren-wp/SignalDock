@@ -5,12 +5,11 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const queryController = fs.readFileSync(path.join(root, "src/app/query-library-controller.js"), "utf8");
+const baselineController = fs.readFileSync(path.join(root, "src/app/baseline-controller.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
 const required = [
   "baselineHistoryList",
-  "compareSavedBaselines",
-  "compareById",
   "touchWorkspace",
   "touchDataset",
   "attachBaseline",
@@ -23,6 +22,9 @@ for (const token of required) {
 }
 for (const token of ["bulkUpdate", "bulkRemove", "exportSelected", "markUsed"]) {
   if (!queryController.includes(token)) throw new Error(`Missing Query Library controller foundation token: ${token}`);
+}
+for (const token of ["renderHistory", "compareById", "baselineHistoryList", "renderComparisonResult"]) {
+  if (!baselineController.includes(token)) throw new Error(`Missing Baseline controller foundation token: ${token}`);
 }
 for (const selector of [".query-library-bulkbar", ".query-library-item", ".baseline-history", ".baseline-history__compare"]) {
   if (!css.includes(selector)) throw new Error(`Missing UI foundation style: ${selector}`);
