@@ -1,0 +1,33 @@
+import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+const version = read("VERSION").trim();
+const html = read("index.html");
+const app = read("app.js");
+const hardening = read("src/ui/ui-hardening.js");
+const query = read("src/core/query-library.js");
+const readme = read("README.md");
+
+assert.match(version, /^2\.7\.\d+$/);
+assert.ok(html.includes('id="clearAllButton" type="button" title="Clear all logs" aria-label="Clear all logs"'));
+assert.ok(html.includes('id="resetButton" type="button" title="Reset filters" aria-label="Reset filters"'));
+for (const tag of html.match(/<svg class="icon[^"]*"[^>]*>/g) || []) assert.ok(tag.includes('aria-hidden="true"'), `decorative icon is exposed to accessibility tree: ${tag}`);
+for (const [tab, pane] of [["Details","detailsPane"],["Context","contextPane"],["Correlations","correlationsPane"],["Trace","tracePane"],["Raw","rawPane"],["Json","jsonPane"]]) {
+  assert.ok(html.includes(`id="inspectorTab${tab}"`));
+  assert.ok(html.includes(`aria-controls="${pane}"`));
+  assert.ok(html.includes(`id="${pane}" aria-labelledby="inspectorTab${tab}"`));
+}
+assert.ok(html.includes('role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="commandPaletteList" aria-expanded="false"'));
+for (const token of ['function activateNavView(target)', 'function bindDialogNavReset(...dialogs)', 'el.settingsDialog,', 'function onInspectorTabKeydown(event)', 'button.tabIndex = active ? 0 : -1', 'aria-activedescendant']) assert.ok(app.includes(token), `missing interaction token: ${token}`);
+assert.ok(app.includes('remove.setAttribute("aria-label", `Delete saved view ${view.name}`)'));
+assert.ok(hardening.includes('doc.addEventListener("click", (event) =>'));
+assert.ok(hardening.includes('element.closest(\'[hidden], [aria-hidden="true"]\')'));
+assert.ok(hardening.includes('event.key === "Escape" && typeof dialog.close !== "function"'));
+assert.ok(query.includes('LEGACY_VERSION = 1'));
+assert.ok(query.includes('LEGACY_STORAGE_KEY = "signaldock-query-library-v1"'));
+assert.ok(!readme.includes('experimental local Live Tail'));
+console.log('accessibility-production-smoke PASS');

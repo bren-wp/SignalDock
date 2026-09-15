@@ -4,7 +4,7 @@
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.7.2**.
+Current version: **2.7.3**.
 
 ## Highlights
 
@@ -94,6 +94,8 @@ Current version: **2.7.2**.
 SignalDock user-facing copy avoids implementation-stage labels and internal runtime terminology. Shared CSS design tokens are defined once at the root and newer feature surfaces use semantic aliases instead of undeclared variables. Navigation remains reachable at phone widths, active navigation exposes `aria-current`, dialogs retain keyboard-focus hardening, and reduced-motion/coarse-pointer rules remain first-class.
 
 The production regression suite checks for unresolved CSS custom properties, hidden phone navigation, release-stage labels in the interface and accidental reintroduction of implementation terminology.
+
+- Inspector tabs use a roving-tab keyboard model with Arrow/Home/End navigation, command-palette combobox semantics are exposed to assistive technology, and dialog focus return works for both pointer and keyboard activation.
 
 ## Cross-dataset baselines and local projects
 

@@ -1,6 +1,22 @@
 # Changelog
 
 
+## 2.7.3 — 2026-09-16
+
+### Interaction and accessibility hardening
+- Added complete accessible names for remaining icon-only static controls and hid decorative SVG icons from assistive technology.
+- Added roving Inspector tabs with Arrow, Home and End keyboard navigation plus explicit tab/panel relationships.
+- Improved Command Palette combobox semantics with expanded state and active-descendant tracking.
+- Fixed dialog focus return for keyboard-triggered opens and added a safe Escape fallback for browsers without native dialog closing.
+- Fixed Settings navigation state so closing the dialog always returns the workspace navigation to Logs.
+
+### Maintainability and compatibility
+- Consolidated navigation dispatch and repeated dialog navigation-reset wiring.
+- Restored Query Library v1 compatibility aliases alongside the newer legacy-version arrays.
+- Made v2.7 feature gates patch-version agnostic so patch releases do not require unrelated test rewrites.
+- Removed the remaining experimental-stage wording for Live Tail from the user-facing README and aligned support-detail messages with the production UI.
+
+
 ## 2.7.2 — 2026-09-15
 
 ### Production UI and UX

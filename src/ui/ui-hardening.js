@@ -25,7 +25,7 @@
 
   function focusable(dialog) {
     return [...dialog.querySelectorAll('button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])')]
-      .filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
+      .filter((element) => !element.hidden && !element.closest('[hidden], [aria-hidden="true"]'));
   }
 
   function focusInitial(dialog) {
@@ -71,15 +71,23 @@
     const dialogs = [...doc.querySelectorAll("dialog")];
     dialogs.forEach(labelDialog);
 
-    doc.addEventListener("pointerdown", (event) => {
+    doc.addEventListener("pointerdown", () => {
+      doc.documentElement.dataset.inputModality = "pointer";
+    }, true);
+
+    doc.addEventListener("click", (event) => {
       const trigger = event.target.closest?.("button, a, [role='button']");
       if (trigger) state.lastTrigger = trigger;
-      doc.documentElement.dataset.inputModality = "pointer";
     }, true);
 
     doc.addEventListener("keydown", (event) => {
       doc.documentElement.dataset.inputModality = "keyboard";
       const dialog = topDialog();
+      if (dialog && event.key === "Escape" && typeof dialog.close !== "function") {
+        event.preventDefault();
+        dialog.removeAttribute("open");
+        return;
+      }
       if (dialog) trapTab(event, dialog);
     }, true);
 

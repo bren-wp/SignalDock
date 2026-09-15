@@ -15,8 +15,8 @@ const storage = read('src/platform/storage-adapter.js');
 const changelog = read('CHANGELOG.md');
 const workflows = fs.readdirSync(path.join(root, '.github', 'workflows'));
 
-assert.equal(version, '2.7.2');
-assert.match(app, /APP_VERSION\s*=\s*["']2\.7\.2["']/);
+assert.match(version, /^2\.7\.\d+$/);
+assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
 for (const token of ['projectLinkFilesButton', 'linkAndLoadProjectFiles', 'reopenProjectHistoryItem', 'SignalDockDesktopBridge.saveParts', 'createWorkerSessionToken', 'workerToken: ""']) assert.ok(app.includes(token), `missing app token: ${token}`);
 for (const token of ['src/platform/desktop-bridge.js', 'projectLinkFilesButton', 'projectCapabilityMeta']) assert.ok(html.includes(token), `missing HTML token: ${token}`);
 for (const token of ['WORKER_PROTOCOL_VERSION = 1', 'SESSION_TOKEN_PATTERN', 'ALLOWED_MESSAGE_TYPES', 'validEnvelope', 'MAX_RELATED_LIMIT', 'self.addEventListener("message"']) assert.ok(worker.includes(token), `missing worker token: ${token}`);

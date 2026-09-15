@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.7.2";
+  const APP_VERSION = "2.7.3";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -98,6 +98,32 @@
       if (active) item.setAttribute("aria-current", "page");
       else item.removeAttribute("aria-current");
     });
+  }
+
+  function activateNavView(target) {
+    setActiveNav(target);
+    const action = {
+      search: () => el.queryInput?.focus(),
+      map: openServiceMap,
+      matrix: openServiceMatrix,
+      heatmap: openServiceHeatmap,
+      trends: openServiceTrends,
+      baseline: openBaseline,
+      traces: openTraceExplorer,
+      outliers: openTraceOutliers,
+      health: openHealth,
+      investigation: openInvestigation,
+      exceptions: openExceptions,
+      projects: openProjects,
+      settings: openSettings,
+      live: startLiveTail,
+      saved: openQueryLibrary
+    }[target];
+    action?.();
+  }
+
+  function bindDialogNavReset(...dialogs) {
+    dialogs.filter(Boolean).forEach((dialog) => dialog.addEventListener("close", () => setActiveNav("logs")));
   }
 
   document.addEventListener("DOMContentLoaded", init);
@@ -280,11 +306,10 @@
       if (row) selectEntry(row.dataset.traceEntryId);
     });
 
-    document.querySelectorAll("[data-inspector-tab]").forEach((button) => button.addEventListener("click", () => {
-      state.inspectorTab = button.dataset.inspectorTab;
-      renderInspectorTab();
-      scheduleViewAutosave();
-    }));
+    document.querySelectorAll("[data-inspector-tab]").forEach((button) => {
+      button.addEventListener("click", () => selectInspectorTab(button.dataset.inspectorTab));
+      button.addEventListener("keydown", onInspectorTabKeydown);
+    });
     el.closeInspector.addEventListener("click", closeInspector);
     el.copyButton.addEventListener("click", copySelectedRaw);
     el.filterBySourceButton.addEventListener("click", filterBySelectedSource);
@@ -389,25 +414,7 @@
     el.addCaseCheckpointButton?.addEventListener("click", createCaseCheckpoint);
     el.caseCheckpoints?.addEventListener("click", onCaseCheckpointClick);
 
-    document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => {
-      const target = button.dataset.nav;
-      setActiveNav(target);
-      if (target === "search") el.queryInput.focus();
-      if (target === "map") openServiceMap();
-      if (target === "matrix") openServiceMatrix();
-      if (target === "heatmap") openServiceHeatmap();
-      if (target === "trends") openServiceTrends();
-      if (target === "baseline") openBaseline();
-      if (target === "traces") openTraceExplorer();
-      if (target === "outliers") openTraceOutliers();
-      if (target === "health") openHealth();
-      if (target === "investigation") openInvestigation();
-      if (target === "exceptions") openExceptions();
-      if (target === "projects") openProjects();
-      if (target === "settings") openSettings();
-      if (target === "live") startLiveTail();
-      if (target === "saved") openQueryLibrary();
-    }));
+    document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
 
     [el.wrapToggle, el.compactToggle, el.unknownToggle, el.workerToggle, el.autosaveToggle, el.parserProfile, el.customParserPattern, el.customParserFlags].forEach((control) => {
       const eventName = control === el.customParserPattern || control === el.customParserFlags ? "input" : "change";
@@ -426,27 +433,22 @@
     el.clearSearchCacheButton?.addEventListener("click", clearSearchCache);
     el.copyDiagnosticsButton?.addEventListener("click", copyDiagnostics);
     el.closeServiceMapButton?.addEventListener("click", closeServiceMap);
-    el.serviceMapDialog?.addEventListener("close", () => {
-      setActiveNav("logs");
-    });
-    el.healthDialog?.addEventListener("close", () => {
-      setActiveNav("logs");
-    });
-    el.serviceMatrixDialog?.addEventListener("close", () => { setActiveNav("logs"); });
-    el.serviceHeatmapDialog?.addEventListener("close", () => { setActiveNav("logs"); });
-    el.serviceTrendsDialog?.addEventListener("close", () => { setActiveNav("logs"); });
-    el.baselineDialog?.addEventListener("close", () => { setActiveNav("logs"); });
-    el.projectDialog?.addEventListener("close", () => { setActiveNav("logs"); });
-    el.traceExplorerDialog?.addEventListener("close", () => { setActiveNav("logs"); });
+    bindDialogNavReset(
+      el.settingsDialog,
+      el.serviceMapDialog,
+      el.healthDialog,
+      el.serviceMatrixDialog,
+      el.serviceHeatmapDialog,
+      el.serviceTrendsDialog,
+      el.baselineDialog,
+      el.projectDialog,
+      el.traceExplorerDialog,
+      el.traceOutlierDialog,
+      el.queryLibraryDialog,
+      el.investigationDialog,
+      el.exceptionDialog
+    );
     el.traceCompareDialog?.addEventListener("close", () => { if (el.traceExplorerDialog?.open) return; setActiveNav("logs"); });
-    el.traceOutlierDialog?.addEventListener("close", () => { setActiveNav("logs"); });
-    el.queryLibraryDialog?.addEventListener("close", () => { setActiveNav("logs"); });
-    el.investigationDialog?.addEventListener("close", () => {
-      setActiveNav("logs");
-    });
-    el.exceptionDialog?.addEventListener("close", () => {
-      setActiveNav("logs");
-    });
     el.serviceMapResetButton?.addEventListener("click", () => renderServiceMap(null));
     el.serviceMapGroupBy?.addEventListener("change", () => { state.serviceMapGroupBy = el.serviceMapGroupBy.value || "service"; renderServiceMap(); });
     el.serviceMapList?.addEventListener("click", (event) => {
@@ -624,7 +626,7 @@
       return;
     }
     if (typeof window.showOpenFilePicker !== "function") {
-      toast("Live tail requires a browser with the File System Access API (Chromium-based browsers).", "error", 6500);
+      toast("Live tail is not available in this browser. You can still import updated files manually.", "error", 6500);
       return;
     }
     try {
@@ -1877,11 +1879,31 @@
     return String(value).slice(0, 500);
   }
 
+  function selectInspectorTab(tab, focus = false) {
+    const available = ["details", "context", "correlations", "trace", "raw", "json"];
+    if (!available.includes(tab)) return;
+    state.inspectorTab = tab;
+    renderInspectorTab();
+    scheduleViewAutosave();
+    if (focus) document.querySelector(`[data-inspector-tab="${tab}"]`)?.focus();
+  }
+
+  function onInspectorTabKeydown(event) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    const tabs = [...document.querySelectorAll("[data-inspector-tab]")];
+    if (!tabs.length) return;
+    const current = Math.max(0, tabs.indexOf(event.currentTarget));
+    const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    event.preventDefault();
+    selectInspectorTab(tabs[next].dataset.inspectorTab, true);
+  }
+
   function renderInspectorTab() {
     document.querySelectorAll("[data-inspector-tab]").forEach((button) => {
       const active = button.dataset.inspectorTab === state.inspectorTab;
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-selected", active ? "true" : "false");
+      button.tabIndex = active ? 0 : -1;
     });
     el.detailsPane.hidden = state.inspectorTab !== "details";
     el.contextPane.hidden = state.inspectorTab !== "context";
@@ -3019,7 +3041,7 @@ async function onProjectListClick(event) {
   }
 
 
-async function saveWorkspace() {
+  async function saveWorkspace() {
   if (!state.entries.length) return;
   const workspace = currentWorkspaceState(); const parts = window.SignalDockWorkspace.serializeParts(state.entries, workspace, APP_VERSION); const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19); const filename = `signaldock-${stamp}.sdsession`;
   const size = parts.reduce((sum, part) => sum + new Blob([part]).size, 0);
@@ -3146,7 +3168,7 @@ async function saveWorkspace() {
       button.type = "button";
       button.className = "saved-button";
       button.dataset.viewId = view.id;
-      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg"); icon.setAttribute("class", "icon");
+      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg"); icon.setAttribute("class", "icon"); icon.setAttribute("aria-hidden", "true");
       const use = document.createElementNS("http://www.w3.org/2000/svg", "use"); use.setAttribute("href", "assets/icons.svg#bookmark"); icon.appendChild(use);
       const name = document.createElement("span"); name.textContent = view.name; name.title = view.name;
       const count = document.createElement("em"); count.textContent = view.level || view.timeRange || "VIEW";
@@ -3156,7 +3178,8 @@ async function saveWorkspace() {
       remove.className = "icon-button icon-button--tiny";
       remove.dataset.deleteView = view.id;
       remove.title = `Delete ${view.name}`;
-      const x = document.createElementNS("http://www.w3.org/2000/svg", "svg"); x.setAttribute("class", "icon");
+      remove.setAttribute("aria-label", `Delete saved view ${view.name}`);
+      const x = document.createElementNS("http://www.w3.org/2000/svg", "svg"); x.setAttribute("class", "icon"); x.setAttribute("aria-hidden", "true");
       const xu = document.createElementNS("http://www.w3.org/2000/svg", "use"); xu.setAttribute("href", "assets/icons.svg#close"); x.appendChild(xu); remove.appendChild(x);
       wrap.append(button, remove);
       el.savedList.appendChild(wrap);
@@ -3254,27 +3277,27 @@ async function saveWorkspace() {
     return [
       { id: "import", title: "Import logs", keywords: "open file json log zip", hint: "⌘O", run: () => el.fileInput.click() },
       { id: "search", title: "Focus smart search", keywords: "query filter find", hint: "/", disabled: !state.entries.length, run: () => el.queryInput.focus() },
-      { id: "service-map", title: "Open service map", keywords: "topology trace dependencies", disabled: !state.entries.length, run: openServiceMap },
-      { id: "service-matrix", title: "Open service latency matrix", keywords: "latency p95 edge errors dependency calls", disabled: !state.entries.length, run: openServiceMatrix },
-      { id: "service-heatmap", title: "Open dependency heatmap", keywords: "time heatmap service dependency edge errors", disabled: !state.entries.length, run: openServiceHeatmap },
-      { id: "service-trends", title: "Compare dependency periods", keywords: "trend service edge period delta calls errors p95", disabled: !state.entries.length, run: openServiceTrends },
-      { id: "baseline", title: "Open cross-dataset baseline comparison", keywords: "baseline regression compare dataset service dependency", run: openBaseline },
-      { id: "projects", title: "Open local project manager", keywords: "projects workspace metadata organize", run: openProjects },
-      { id: "trace-explorer", title: "Open distributed trace explorer", keywords: "trace inventory spans coverage duration", disabled: !state.entries.length, run: openTraceExplorer },
-      { id: "trace-outliers", title: "Rank trace outliers", keywords: "trace latency robust errors anomalies unusual", disabled: !state.entries.length, run: openTraceOutliers },
-      { id: "query-library", title: "Open query library", keywords: "saved reusable searches filters presets", run: openQueryLibrary },
-      { id: "health", title: "Open observed health", keywords: "health service errors warnings p95 exceptions", disabled: !state.entries.length, run: openHealth },
-      { id: "investigation", title: "Open case & investigation workspace", keywords: "case evidence notes incident findings hypothesis bookmark", run: openInvestigation },
+      { id: "service-map", title: "Open service map", keywords: "topology trace dependencies", disabled: !state.entries.length, run: () => activateNavView("map") },
+      { id: "service-matrix", title: "Open service latency matrix", keywords: "latency p95 edge errors dependency calls", disabled: !state.entries.length, run: () => activateNavView("matrix") },
+      { id: "service-heatmap", title: "Open dependency heatmap", keywords: "time heatmap service dependency edge errors", disabled: !state.entries.length, run: () => activateNavView("heatmap") },
+      { id: "service-trends", title: "Compare dependency periods", keywords: "trend service edge period delta calls errors p95", disabled: !state.entries.length, run: () => activateNavView("trends") },
+      { id: "baseline", title: "Open cross-dataset baseline comparison", keywords: "baseline regression compare dataset service dependency", run: () => activateNavView("baseline") },
+      { id: "projects", title: "Open local project manager", keywords: "projects workspace metadata organize", run: () => activateNavView("projects") },
+      { id: "trace-explorer", title: "Open distributed trace explorer", keywords: "trace inventory spans coverage duration", disabled: !state.entries.length, run: () => activateNavView("traces") },
+      { id: "trace-outliers", title: "Rank trace outliers", keywords: "trace latency robust errors anomalies unusual", disabled: !state.entries.length, run: () => activateNavView("outliers") },
+      { id: "query-library", title: "Open query library", keywords: "saved reusable searches filters presets", run: () => activateNavView("saved") },
+      { id: "health", title: "Open observed health", keywords: "health service errors warnings p95 exceptions", disabled: !state.entries.length, run: () => activateNavView("health") },
+      { id: "investigation", title: "Open case & investigation workspace", keywords: "case evidence notes incident findings hypothesis bookmark", run: () => activateNavView("investigation") },
       { id: "case-report", title: "Export case report (Markdown)", keywords: "case report markdown findings health exceptions", run: exportCaseMarkdown },
-      { id: "exceptions", title: "Open exception groups", keywords: "errors fingerprint recurring failure crash trends", disabled: !state.entries.length, run: openExceptions },
+      { id: "exceptions", title: "Open exception groups", keywords: "errors fingerprint recurring failure crash trends", disabled: !state.entries.length, run: () => activateNavView("exceptions") },
       { id: "add-evidence", title: "Add selected log to investigation", keywords: "evidence pin bookmark", disabled: !selectedEntry(), run: addSelectedEvidence },
       { id: "save-workspace", title: "Save workspace", keywords: "session sdsession bookmark", hint: "⇧⌘S", disabled: !state.entries.length, run: saveWorkspace },
       { id: "export", title: "Export current results", keywords: "download json ndjson", disabled: !state.filteredIndexes.length, run: exportFiltered },
       { id: "save-view", title: "Save current view", keywords: "filters preset", disabled: !state.entries.length, run: saveCurrentView },
       { id: "reset", title: "Reset filters", keywords: "clear query search", disabled: !state.entries.length, run: resetFilters },
       { id: "windowed", title: state.renderMode === "virtual" ? "Switch to paged table" : "Switch to windowed table", keywords: "virtual large performance viewport", disabled: !state.entries.length || state.settings.wrap || window.innerWidth < 780, run: () => { state.renderMode = state.renderMode === "virtual" ? "paged" : "virtual"; el.renderMode.value = state.renderMode; el.logTable.scrollTop = 0; renderTable(); scheduleViewAutosave(); } },
-      { id: "live", title: state.tail.active ? "Stop live tail" : "Start local live tail", keywords: "follow file stream", run: startLiveTail },
-      { id: "settings", title: "Open settings", keywords: "preferences parser performance recovery", run: openSettings },
+      { id: "live", title: state.tail.active ? "Stop live tail" : "Start local live tail", keywords: "follow file stream", run: () => activateNavView("live") },
+      { id: "settings", title: "Open settings", keywords: "preferences parser performance recovery", run: () => activateNavView("settings") },
       { id: "clear", title: "Clear loaded logs", keywords: "remove dataset", disabled: !state.entries.length, run: clearAll }
     ];
   }
@@ -3309,6 +3332,7 @@ async function saveWorkspace() {
     closeCompetingDialogs("commandPaletteDialog");
     state.commandPaletteIndex = 0;
     el.commandPaletteInput.value = "";
+    el.commandPaletteInput.setAttribute("aria-expanded", "true");
     renderCommandPalette();
     showDialogSafely(el.commandPaletteDialog);
     requestAnimationFrame(() => el.commandPaletteInput.focus());
@@ -3316,6 +3340,8 @@ async function saveWorkspace() {
 
   function closeCommandPalette() {
     if (!el.commandPaletteDialog) return;
+    el.commandPaletteInput?.setAttribute("aria-expanded", "false");
+    el.commandPaletteInput?.removeAttribute("aria-activedescendant");
     if (typeof el.commandPaletteDialog.close === "function" && el.commandPaletteDialog.open) el.commandPaletteDialog.close();
     else el.commandPaletteDialog.removeAttribute("open");
   }
@@ -3326,15 +3352,16 @@ async function saveWorkspace() {
     state.commandPaletteIndex = Math.max(0, Math.min(state.commandPaletteIndex, Math.max(0, commands.length - 1)));
     el.commandPaletteList.replaceChildren();
     if (!commands.length) {
-      const empty = document.createElement("p"); empty.className = "command-empty"; empty.textContent = "No matching commands."; el.commandPaletteList.appendChild(empty); return;
+      el.commandPaletteInput?.removeAttribute("aria-activedescendant"); const empty = document.createElement("p"); empty.className = "command-empty"; empty.textContent = "No matching commands."; el.commandPaletteList.appendChild(empty); return;
     }
     commands.forEach((command, index) => {
-      const button = document.createElement("button"); button.type = "button"; button.className = `command-item${index === state.commandPaletteIndex ? " is-active" : ""}`; button.dataset.commandId = command.id; button.setAttribute("role", "option"); button.setAttribute("aria-selected", index === state.commandPaletteIndex ? "true" : "false"); button.disabled = Boolean(command.disabled);
+      const button = document.createElement("button"); button.type = "button"; button.id = `commandPaletteOption-${index}`; button.className = `command-item${index === state.commandPaletteIndex ? " is-active" : ""}`; button.dataset.commandId = command.id; button.setAttribute("role", "option"); button.setAttribute("aria-selected", index === state.commandPaletteIndex ? "true" : "false"); button.disabled = Boolean(command.disabled);
       const copy = document.createElement("span"); const strong = document.createElement("strong"); strong.textContent = command.title; const small = document.createElement("small"); small.textContent = command.keywords || "SignalDock action"; copy.append(strong, small); button.appendChild(copy);
       if (command.hint) { const kbd = document.createElement("kbd"); kbd.textContent = command.hint; button.appendChild(kbd); }
       el.commandPaletteList.appendChild(button);
     });
-    el.commandPaletteList.querySelector(".is-active")?.scrollIntoView?.({ block: "nearest" });
+    const activeOption = el.commandPaletteList.querySelector(".is-active"); if (activeOption) el.commandPaletteInput?.setAttribute("aria-activedescendant", activeOption.id); else el.commandPaletteInput?.removeAttribute("aria-activedescendant");
+    activeOption?.scrollIntoView?.({ block: "nearest" });
   }
 
   function runCommand(id) {
@@ -3722,8 +3749,8 @@ async function saveWorkspace() {
     };
     try {
       await utils().copyText(JSON.stringify(payload, null, 2));
-      toast("Local diagnostics copied.");
-    } catch { toast("Could not copy diagnostics.", "error"); }
+      toast("Support details copied.");
+    } catch { toast("Could not copy support details.", "error"); }
   }
 
   function setProcessing(active, title = "Processing logs…", detail = "Reading files locally") {

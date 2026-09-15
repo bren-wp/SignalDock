@@ -1,6 +1,6 @@
 (function (root) {
   "use strict";
-  const SCHEMA = "signaldock.query-library", VERSION = 3, LEGACY_VERSIONS = [1, 2], STORAGE_KEY = "signaldock-query-library-v3", LEGACY_STORAGE_KEYS = ["signaldock-query-library-v2", "signaldock-query-library-v1"], MAX_ITEMS = 500;
+  const SCHEMA = "signaldock.query-library", VERSION = 3, LEGACY_VERSION = 1, LEGACY_VERSIONS = [1, 2], STORAGE_KEY = "signaldock-query-library-v3", LEGACY_STORAGE_KEY = "signaldock-query-library-v1", LEGACY_STORAGE_KEYS = ["signaldock-query-library-v2", LEGACY_STORAGE_KEY], MAX_ITEMS = 500;
   function clean(value, max = 512) { return String(value ?? "").trim().slice(0, max); }
   function cleanTags(value) { const input = Array.isArray(value) ? value : String(value || "").split(/[;,]/); return [...new Set(input.map((tag) => clean(tag, 48).toLowerCase().replace(/\s+/g, "-")).filter(Boolean))].slice(0, 20); }
   function cleanFolder(value) { const folder = clean(value || "General", 80).replace(/[\\<>:"|?*]/g, "-").replace(/\s+/g, " "); return folder || "General"; }
@@ -24,5 +24,5 @@
   function exportJson(items) { return JSON.stringify({ schema: SCHEMA, version: VERSION, exportedAt: new Date().toISOString(), items: normalize(items) }, null, 2); }
   function exportSelected(items, ids) { const wanted = new Set((Array.isArray(ids) ? ids : []).map((id) => clean(id, 96))); return exportJson(normalize(items).filter((item) => wanted.has(item.id))); }
   function importJson(text, mergeWith = []) { const parsed = JSON.parse(String(text || "")); if (parsed?.schema !== SCHEMA || ![...LEGACY_VERSIONS, VERSION].includes(Number(parsed?.version)) || !Array.isArray(parsed.items)) throw new Error("Unsupported SignalDock query library file."); const byId = new Map(normalize(mergeWith).map((item) => [item.id, item])); normalize(parsed.items).forEach((item) => byId.set(item.id, item)); return save([...byId.values()].slice(0, MAX_ITEMS)); }
-  root.SignalDockQueryLibrary = { SCHEMA, VERSION, LEGACY_VERSIONS, STORAGE_KEY, LEGACY_STORAGE_KEYS, MAX_ITEMS, normalize, load, save, upsert, remove, toggleFavorite, moveToFolder, markUsed, duplicate, bulkUpdate, bulkRemove, folders, search, renameFolder, deleteFolder, exportJson, exportSelected, importJson };
+  root.SignalDockQueryLibrary = { SCHEMA, VERSION, LEGACY_VERSION, LEGACY_VERSIONS, STORAGE_KEY, LEGACY_STORAGE_KEY, LEGACY_STORAGE_KEYS, MAX_ITEMS, normalize, load, save, upsert, remove, toggleFavorite, moveToFolder, markUsed, duplicate, bulkUpdate, bulkRemove, folders, search, renameFolder, deleteFolder, exportJson, exportSelected, importJson };
 }(typeof self !== "undefined" ? self : window));

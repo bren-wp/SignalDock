@@ -13,8 +13,8 @@ const version = read("VERSION").trim();
 const readme = read("README.md");
 const changelog = read("CHANGELOG.md");
 
-assert.equal(version, "2.7.2");
-assert.match(app, /APP_VERSION\s*=\s*["']2\.7\.2["']/);
+assert.match(version, /^2\.7\.\d+$/);
+assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
 for (const token of ["projectLinkFilesButton", "linkAndLoadProjectFiles", "reopenProjectHistoryItem", "markHistoryReopened", "SignalDockDesktopBridge.saveParts"]) {
   assert.ok(app.includes(token), `missing app token ${token}`);
 }

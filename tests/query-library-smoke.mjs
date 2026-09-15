@@ -3,6 +3,7 @@ const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve
 const store=new Map(); const context={localStorage:{getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}}; context.self=context; context.window=context; vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(root,'src/core/query-library.js'),'utf8'),context,{filename:'src/core/query-library.js'});
 const api=context.SignalDockQueryLibrary; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
+assert(api.LEGACY_VERSION===1,"legacy version alias missing"); assert(api.LEGACY_STORAGE_KEY==="signaldock-query-library-v1","legacy storage alias missing"); assert(api.LEGACY_VERSIONS.includes(api.LEGACY_VERSION),"legacy version alias not represented"); assert(api.LEGACY_STORAGE_KEYS.includes(api.LEGACY_STORAGE_KEY),"legacy storage alias not represented");
 let items=[]; items=api.upsert(items,{name:'Auth errors',folder:'Production / Auth',favorite:true,query:'level:error service:auth',tags:'auth, production',description:'Recurring auth errors',level:'ERROR',timeRange:'1h'});
 assert(items.length===1&&items[0].folder==='Production / Auth'&&items[0].favorite,'v3 query save failed');
 const originalId=items[0].id;items=api.markUsed(items,originalId,'2026-09-13T01:00:00.000Z');assert(items.find(x=>x.id===originalId).useCount===1,'usage counter failed');

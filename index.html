@@ -51,82 +51,82 @@
 
           <nav class="nav-list" aria-label="Workspace navigation">
             <button class="nav-item is-active" type="button" data-nav="logs">
-              <svg class="icon"><use href="assets/icons.svg#file"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#file"></use></svg>
               <span>Logs</span>
               <em id="navLogCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="search">
-              <svg class="icon"><use href="assets/icons.svg#search"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg>
               <span>Search</span>
               <kbd>/</kbd>
             </button>
             <button class="nav-item" type="button" data-nav="map" title="Explore service relationships derived from trace/span data">
-              <svg class="icon"><use href="assets/icons.svg#network"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#network"></use></svg>
               <span>Service map</span>
               <em id="serviceMapCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="matrix" title="Inspect service-to-service latency and error edges">
-              <svg class="icon"><use href="assets/icons.svg#database"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#database"></use></svg>
               <span>Service matrix</span>
               <em id="serviceMatrixCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="heatmap" title="Inspect explicit service dependencies across time">
-              <svg class="icon"><use href="assets/icons.svg#network"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#network"></use></svg>
               <span>Dependency heatmap</span>
               <em id="serviceHeatmapCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="trends" title="Compare explicit dependency edges between adjacent time periods">
-              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#pulse"></use></svg>
               <span>Dependency trends</span>
               <em id="serviceTrendsCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="baseline" title="Compare the current dataset against a compact local baseline snapshot">
-              <svg class="icon"><use href="assets/icons.svg#rotate"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#rotate"></use></svg>
               <span>Baseline compare</span>
               <em id="baselineChangeCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="traces" title="Explore distributed traces across the loaded dataset">
-              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#pulse"></use></svg>
               <span>Trace explorer</span>
               <em id="traceExplorerCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="outliers" title="Rank unusual traces by measured latency, errors and service breadth">
-              <svg class="icon"><use href="assets/icons.svg#alert"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#alert"></use></svg>
               <span>Trace outliers</span>
               <em id="traceOutlierCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="health" title="Observed service health derived from the loaded logs">
-              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#pulse"></use></svg>
               <span>Observed health</span>
               <em id="healthIssueCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="saved">
-              <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#bookmark"></use></svg>
               <span>Query library</span>
               <em id="savedCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="investigation" title="Collect evidence and local investigation notes">
-              <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#bookmark"></use></svg>
               <span>Investigation</span>
               <em id="investigationCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="exceptions" title="Group recurring errors and exception signatures">
-              <svg class="icon"><use href="assets/icons.svg#alert"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#alert"></use></svg>
               <span>Exceptions</span>
               <em id="exceptionGroupCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="live" title="Follow a local log file as it grows (supported browsers)">
-              <svg class="icon"><use href="assets/icons.svg#pulse"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#pulse"></use></svg>
               <span>Live tail</span>
 
             </button>
             <button class="nav-item" type="button" data-nav="projects" title="Manage local projects and workspaces">
-              <svg class="icon"><use href="assets/icons.svg#database"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#database"></use></svg>
               <span>Projects</span>
               <em id="projectCount">0</em>
             </button>
             <button class="nav-item" type="button" data-nav="settings">
-              <svg class="icon"><use href="assets/icons.svg#settings"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#settings"></use></svg>
               <span>Settings</span>
             </button>
           </nav>
@@ -135,8 +135,8 @@
         <section class="sidebar-section" aria-labelledby="sourcesTitle">
           <div class="sidebar-section__head">
             <span id="sourcesTitle">Sources</span>
-            <button class="icon-button icon-button--tiny" id="clearAllButton" type="button" title="Clear all logs" disabled>
-              <svg class="icon"><use href="assets/icons.svg#trash"></use></svg>
+            <button class="icon-button icon-button--tiny" id="clearAllButton" type="button" title="Clear all logs" aria-label="Clear all logs" disabled>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#trash"></use></svg>
             </button>
           </div>
           <div class="source-list" id="sourceList">
@@ -155,7 +155,7 @@
 
         <div class="sidebar__footer">
           <div class="privacy-card">
-            <span class="privacy-card__icon"><svg class="icon"><use href="assets/icons.svg#lock"></use></svg></span>
+            <span class="privacy-card__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#lock"></use></svg></span>
             <div><strong>Processing stays local</strong><small>Files stay on this device. Nothing is uploaded.</small></div>
           </div>
           <span class="microcopy">OBSERVE LOCALLY. BUILD FREELY.</span>
@@ -170,16 +170,16 @@
           <div class="file-strip__meta">
             <span id="loadedMeta">No files loaded</span>
             <button class="icon-button" id="workspaceSaveButton" type="button" title="Save SignalDock workspace" aria-label="Save SignalDock workspace" disabled>
-              <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#bookmark"></use></svg>
             </button>
             <button class="icon-button" id="exportButton" type="button" title="Export current results" aria-label="Export current results" disabled>
-              <svg class="icon"><use href="assets/icons.svg#download"></use></svg>
+              <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#download"></use></svg>
             </button>
           </div>
         </div>
 
         <section class="recovery-banner" id="recoveryBanner" hidden aria-live="polite">
-          <div class="recovery-banner__icon"><svg class="icon"><use href="assets/icons.svg#rotate"></use></svg></div>
+          <div class="recovery-banner__icon"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#rotate"></use></svg></div>
           <div class="recovery-banner__copy"><strong>Local recovery snapshot available</strong><span id="recoveryMeta">A previous SignalDock workspace can be restored from this browser.</span></div>
           <div class="recovery-banner__actions">
             <button class="button button--primary button--small" id="recoveryRestoreButton" type="button">Restore</button>
@@ -189,22 +189,22 @@
 
         <section class="metrics" aria-label="Log summary">
           <article class="metric-card">
-            <span class="metric-card__icon metric-card__icon--cyan"><svg class="icon"><use href="assets/icons.svg#file"></use></svg></span>
+            <span class="metric-card__icon metric-card__icon--cyan"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#file"></use></svg></span>
             <div><strong id="metricEntries">0</strong><span>Total entries</span></div>
             <i class="spark spark--cyan" aria-hidden="true"></i>
           </article>
           <article class="metric-card">
-            <span class="metric-card__icon metric-card__icon--red"><svg class="icon"><use href="assets/icons.svg#alert"></use></svg></span>
+            <span class="metric-card__icon metric-card__icon--red"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#alert"></use></svg></span>
             <div><strong id="metricErrors">0</strong><span>Errors</span></div>
             <i class="spark spark--red" aria-hidden="true"></i>
           </article>
           <article class="metric-card">
-            <span class="metric-card__icon metric-card__icon--amber"><svg class="icon"><use href="assets/icons.svg#warning"></use></svg></span>
+            <span class="metric-card__icon metric-card__icon--amber"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#warning"></use></svg></span>
             <div><strong id="metricWarnings">0</strong><span>Warnings</span></div>
             <i class="spark spark--amber" aria-hidden="true"></i>
           </article>
           <article class="metric-card metric-card--compact">
-            <span class="metric-card__icon metric-card__icon--emerald"><svg class="icon"><use href="assets/icons.svg#database"></use></svg></span>
+            <span class="metric-card__icon metric-card__icon--emerald"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#database"></use></svg></span>
             <div><strong id="metricSources">0</strong><span>Sources</span></div>
           </article>
         </section>
@@ -279,10 +279,10 @@
 
             <div class="query-actions">
               <button class="button button--ghost" id="saveViewButton" type="button" disabled>
-                <svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg> Save view
+                <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#bookmark"></use></svg> Save view
               </button>
-              <button class="icon-button" id="resetButton" type="button" title="Reset filters" disabled>
-                <svg class="icon"><use href="assets/icons.svg#rotate"></use></svg>
+              <button class="icon-button" id="resetButton" type="button" title="Reset filters" aria-label="Reset filters" disabled>
+                <svg class="icon" aria-hidden="true"><use href="assets/icons.svg#rotate"></use></svg>
               </button>
             </div>
           </div>
@@ -297,9 +297,9 @@
             <div class="table-footer">
               <span id="resultsSummary">Load logs to begin</span>
               <div class="pagination" id="pagination" aria-label="Pagination">
-                <button class="icon-button icon-button--small" id="prevPage" type="button" disabled aria-label="Previous page"><svg class="icon icon--flip"><use href="assets/icons.svg#chevron"></use></svg></button>
+                <button class="icon-button icon-button--small" id="prevPage" type="button" disabled aria-label="Previous page"><svg class="icon icon--flip" aria-hidden="true"><use href="assets/icons.svg#chevron"></use></svg></button>
                 <span id="pageLabel">1 / 1</span>
-                <button class="icon-button icon-button--small" id="nextPage" type="button" disabled aria-label="Next page"><svg class="icon"><use href="assets/icons.svg#chevron"></use></svg></button>
+                <button class="icon-button icon-button--small" id="nextPage" type="button" disabled aria-label="Next page"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#chevron"></use></svg></button>
                 <label class="page-size"><select id="pageSize" disabled><option>50</option><option selected>100</option><option>250</option><option>500</option><option>1000</option></select><span>/ page</span></label>
                 <label class="page-size render-mode"><select id="renderMode" disabled><option value="paged" selected>Paged</option><option value="virtual">Windowed</option></select><span>view</span></label>
               </div>
@@ -308,7 +308,7 @@
 
           <aside class="inspector" id="inspector" aria-label="Log details">
             <div class="inspector__empty" id="inspectorEmpty">
-              <span class="inspector__empty-icon"><svg class="icon"><use href="assets/icons.svg#terminal"></use></svg></span>
+              <span class="inspector__empty-icon"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#terminal"></use></svg></span>
               <strong>Select a log entry</strong>
               <p>Inspect parsed fields, raw data and context without leaving your local workspace.</p>
             </div>
@@ -316,32 +316,32 @@
             <div class="inspector__content" id="inspectorContent" hidden>
               <div class="inspector__head">
                 <div><span class="level-badge" id="inspectorLevel">INFO</span><time id="inspectorTime">—</time></div>
-                <button class="icon-button icon-button--small" id="closeInspector" type="button" aria-label="Close inspector"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+                <button class="icon-button icon-button--small" id="closeInspector" type="button" aria-label="Close inspector"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button>
               </div>
               <h2 id="inspectorMessage">Log entry</h2>
               <div class="inspector__meta" id="inspectorMeta"></div>
 
               <div class="inspector-tabs" role="tablist" aria-label="Inspector views">
-                <button class="inspector-tab is-active" type="button" role="tab" aria-selected="true" data-inspector-tab="details">Details</button>
-                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="context">Context</button>
-                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="correlations">Correlated</button>
-                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="trace">Trace</button>
-                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="raw">Raw</button>
-                <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="json">JSON</button>
+                <button class="inspector-tab is-active" id="inspectorTabDetails" type="button" role="tab" aria-selected="true" aria-controls="detailsPane" tabindex="0" data-inspector-tab="details">Details</button>
+                <button class="inspector-tab" id="inspectorTabContext" type="button" role="tab" aria-selected="false" aria-controls="contextPane" tabindex="-1" data-inspector-tab="context">Context</button>
+                <button class="inspector-tab" id="inspectorTabCorrelations" type="button" role="tab" aria-selected="false" aria-controls="correlationsPane" tabindex="-1" data-inspector-tab="correlations">Correlated</button>
+                <button class="inspector-tab" id="inspectorTabTrace" type="button" role="tab" aria-selected="false" aria-controls="tracePane" tabindex="-1" data-inspector-tab="trace">Trace</button>
+                <button class="inspector-tab" id="inspectorTabRaw" type="button" role="tab" aria-selected="false" aria-controls="rawPane" tabindex="-1" data-inspector-tab="raw">Raw</button>
+                <button class="inspector-tab" id="inspectorTabJson" type="button" role="tab" aria-selected="false" aria-controls="jsonPane" tabindex="-1" data-inspector-tab="json">JSON</button>
               </div>
 
-              <div class="inspector-pane" role="tabpanel" id="detailsPane"></div>
-              <div class="inspector-pane" role="tabpanel" id="contextPane" hidden></div>
-              <div class="inspector-pane" role="tabpanel" id="correlationsPane" hidden></div>
-              <div class="inspector-pane" role="tabpanel" id="tracePane" hidden></div>
-              <pre class="inspector-pane inspector-code" role="tabpanel" id="rawPane" hidden></pre>
-              <pre class="inspector-pane inspector-code" role="tabpanel" id="jsonPane" hidden></pre>
+              <div class="inspector-pane" role="tabpanel" id="detailsPane" aria-labelledby="inspectorTabDetails" tabindex="0"></div>
+              <div class="inspector-pane" role="tabpanel" id="contextPane" aria-labelledby="inspectorTabContext" tabindex="0" hidden></div>
+              <div class="inspector-pane" role="tabpanel" id="correlationsPane" aria-labelledby="inspectorTabCorrelations" tabindex="0" hidden></div>
+              <div class="inspector-pane" role="tabpanel" id="tracePane" aria-labelledby="inspectorTabTrace" tabindex="0" hidden></div>
+              <pre class="inspector-pane inspector-code" role="tabpanel" id="rawPane" aria-labelledby="inspectorTabRaw" tabindex="0" hidden></pre>
+              <pre class="inspector-pane inspector-code" role="tabpanel" id="jsonPane" aria-labelledby="inspectorTabJson" tabindex="0" hidden></pre>
 
               <div class="inspector-actions">
-                <button class="button button--ghost" id="copyButton" type="button"><svg class="icon"><use href="assets/icons.svg#copy"></use></svg> Copy raw</button>
-                <button class="button button--ghost" id="filterBySourceButton" type="button"><svg class="icon"><use href="assets/icons.svg#filter"></use></svg> Filter source</button>
-                <button class="button button--ghost" id="filterByServiceButton" type="button"><svg class="icon"><use href="assets/icons.svg#filter"></use></svg> Filter service</button>
-                <button class="button button--ghost" id="addEvidenceButton" type="button"><svg class="icon"><use href="assets/icons.svg#bookmark"></use></svg> Add evidence</button>
+                <button class="button button--ghost" id="copyButton" type="button"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#copy"></use></svg> Copy raw</button>
+                <button class="button button--ghost" id="filterBySourceButton" type="button"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#filter"></use></svg> Filter source</button>
+                <button class="button button--ghost" id="filterByServiceButton" type="button"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#filter"></use></svg> Filter service</button>
+                <button class="button button--ghost" id="addEvidenceButton" type="button"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#bookmark"></use></svg> Add evidence</button>
               </div>
             </div>
           </aside>
@@ -354,7 +354,7 @@
     <form method="dialog" class="settings-card">
       <div class="settings-card__head">
         <div><span>SignalDock settings</span><strong>Workspace preferences</strong></div>
-        <button class="icon-button" value="cancel" aria-label="Close settings"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+        <button class="icon-button" value="cancel" aria-label="Close settings"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button>
       </div>
       <label class="settings-option"><span><strong>Wrap long messages</strong><small>Allow long messages to use multiple lines in the table.</small></span><input id="wrapToggle" type="checkbox"></label>
       <label class="settings-option"><span><strong>Compact density</strong><small>Fit more entries on screen.</small></span><input id="compactToggle" type="checkbox"></label>
@@ -385,7 +385,7 @@
         <div class="diagnostics-grid" id="diagnosticsGrid"><span>No performance samples yet.</span></div>
         <small>Support details stay on this device and include performance, dataset size and browser capability information.</small>
       </section>
-      <div class="settings-note"><svg class="icon"><use href="assets/icons.svg#shield"></use></svg><span>These preferences are stored locally in this browser only.</span></div>
+      <div class="settings-note"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#shield"></use></svg><span>These preferences are stored locally in this browser only.</span></div>
     </form>
   </dialog>
 
@@ -393,7 +393,7 @@
     <section class="service-map-card">
       <header class="service-map-head">
         <div><span>SIGNALDOCK TOPOLOGY</span><strong>Service map</strong><small id="serviceMapMeta">Derived locally from trace/span parent relationships.</small></div>
-        <div class="service-map-head__actions"><label class="compact-select"><span class="sr-only">Group topology</span><select id="serviceMapGroupBy"><option value="service">By service</option><option value="environment">By environment</option><option value="namespace">By namespace</option><option value="environment-service">Environment + service</option><option value="namespace-service">Namespace + service</option></select></label><button class="icon-button" id="closeServiceMapButton" type="button" aria-label="Close service map"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></div>
+        <div class="service-map-head__actions"><label class="compact-select"><span class="sr-only">Group topology</span><select id="serviceMapGroupBy"><option value="service">By service</option><option value="environment">By environment</option><option value="namespace">By namespace</option><option value="environment-service">Environment + service</option><option value="namespace-service">Namespace + service</option></select></label><button class="icon-button" id="closeServiceMapButton" type="button" aria-label="Close service map"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></div>
       </header>
       <div class="service-map-summary" id="serviceMapSummary"></div>
       <div class="service-map-canvas-wrap">
@@ -409,7 +409,7 @@
     <section class="health-card" aria-label="Observed service health">
       <header class="health-head">
         <div><span>OBSERVED HEALTH</span><strong>Service health matrix</strong><small>Derived only from the logs currently loaded: error/warning rates, recurring exceptions, trace duration samples and recent failure trend.</small></div>
-        <button class="icon-button" id="closeHealthButton" type="button" aria-label="Close observed health"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+        <button class="icon-button" id="closeHealthButton" type="button" aria-label="Close observed health"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button>
       </header>
       <div class="health-summary" id="healthSummary"></div>
       <div class="health-table-wrap"><table class="health-table"><thead><tr><th>Service</th><th>Status</th><th>Entries</th><th>Error rate</th><th>Warnings</th><th>Exceptions</th><th>p95 span</th><th>Recent Δ</th><th></th></tr></thead><tbody id="healthTableBody"></tbody></table></div>
@@ -419,7 +419,7 @@
 
   <dialog class="matrix-dialog" id="serviceMatrixDialog">
     <section class="matrix-card" aria-label="Service-to-service latency and error matrix">
-      <header class="matrix-head"><div><span>EXPLICIT TRACE EDGES</span><strong>Service latency &amp; error matrix</strong><small id="serviceMatrixMeta">Derived only from parent-span relationships in the loaded dataset.</small></div><button class="icon-button" id="closeServiceMatrixButton" type="button" aria-label="Close service matrix"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="matrix-head"><div><span>EXPLICIT TRACE EDGES</span><strong>Service latency &amp; error matrix</strong><small id="serviceMatrixMeta">Derived only from parent-span relationships in the loaded dataset.</small></div><button class="icon-button" id="closeServiceMatrixButton" type="button" aria-label="Close service matrix"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="matrix-summary" id="serviceMatrixSummary"></div>
       <div class="matrix-table-wrap"><table class="matrix-table"><thead><tr><th>From</th><th>To</th><th>Calls</th><th>Error rate</th><th>Median</th><th>p95</th><th>Max</th><th>Traces</th><th></th></tr></thead><tbody id="serviceMatrixBody"></tbody></table></div>
       <footer class="matrix-footer"><span>Latency is shown only when child spans contain explicit duration data; no synthetic timings are generated.</span><button class="button button--ghost button--small" id="serviceMatrixResetButton" type="button">Analyze all logs</button></footer>
@@ -428,7 +428,7 @@
 
   <dialog class="trace-explorer-dialog" id="traceExplorerDialog">
     <section class="trace-explorer-card" aria-label="Distributed trace explorer">
-      <header class="trace-explorer-head"><div><span>TRACE INVENTORY</span><strong>Distributed trace explorer</strong><small id="traceExplorerMeta">Summaries are derived locally from explicit trace/span IDs.</small></div><button class="icon-button" id="closeTraceExplorerButton" type="button" aria-label="Close trace explorer"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="trace-explorer-head"><div><span>TRACE INVENTORY</span><strong>Distributed trace explorer</strong><small id="traceExplorerMeta">Summaries are derived locally from explicit trace/span IDs.</small></div><button class="icon-button" id="closeTraceExplorerButton" type="button" aria-label="Close trace explorer"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="trace-explorer-summary" id="traceExplorerSummary"></div>
       <div class="trace-explorer-table-wrap"><table class="trace-explorer-table"><thead><tr><th>Trace</th><th>Services</th><th>Spans</th><th>Errors</th><th>Events</th><th>Duration</th><th>Parent coverage</th><th></th></tr></thead><tbody id="traceExplorerBody"></tbody></table></div>
       <footer class="trace-explorer-footer"><span>Incomplete parent coverage is surfaced explicitly rather than hidden.</span><div><button class="button button--primary button--small" id="traceCompareButton" type="button" disabled>Compare selected (0/2)</button><button class="button button--ghost button--small" id="traceExplorerResetButton" type="button">Show all traces</button></div></footer>
@@ -437,7 +437,7 @@
 
   <dialog class="heatmap-dialog" id="serviceHeatmapDialog">
     <section class="heatmap-card">
-      <header class="matrix-head"><div><span>DEPENDENCY OVER TIME</span><strong>Service dependency heatmap</strong><small id="serviceHeatmapMeta">Explicit parent-span edges bucketed by real timestamps.</small></div><button class="icon-button" id="closeServiceHeatmapButton" type="button" aria-label="Close dependency heatmap"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="matrix-head"><div><span>DEPENDENCY OVER TIME</span><strong>Service dependency heatmap</strong><small id="serviceHeatmapMeta">Explicit parent-span edges bucketed by real timestamps.</small></div><button class="icon-button" id="closeServiceHeatmapButton" type="button" aria-label="Close dependency heatmap"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="matrix-summary" id="serviceHeatmapSummary"></div>
       <div class="heatmap-wrap" id="serviceHeatmapBody"></div>
       <footer class="matrix-footer"><span>Cell intensity is call volume; red inset marks observed errors. No synthetic edge or timing data is generated.</span><button class="button button--ghost button--small" id="serviceHeatmapResetButton" type="button">Analyze all logs</button></footer>
@@ -446,7 +446,7 @@
 
   <dialog class="trend-dialog" id="serviceTrendsDialog">
     <section class="trend-card" aria-label="Service dependency trend comparison">
-      <header class="matrix-head"><div><span>DEPENDENCY PERIOD DIFF</span><strong>Service dependency trends</strong><small id="serviceTrendsMeta">Compare explicit parent-span edges across two adjacent real-time windows.</small></div><button class="icon-button" id="closeServiceTrendsButton" type="button" aria-label="Close dependency trends"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="matrix-head"><div><span>DEPENDENCY PERIOD DIFF</span><strong>Service dependency trends</strong><small id="serviceTrendsMeta">Compare explicit parent-span edges across two adjacent real-time windows.</small></div><button class="icon-button" id="closeServiceTrendsButton" type="button" aria-label="Close dependency trends"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="trend-controls"><label><span>Period split</span><select id="serviceTrendsSplit"><option value="0.5">Half vs half</option><option value="0.75">First 75% vs last 25%</option><option value="0.25">First 25% vs last 75%</option></select></label><span id="serviceTrendsWindow">Waiting for timestamped dependency data.</span></div>
       <div class="matrix-summary" id="serviceTrendsSummary"></div>
       <div class="trend-table-wrap"><table class="trend-table"><thead><tr><th>Dependency</th><th>Trend</th><th>Before</th><th>After</th><th>Δ calls</th><th>Δ errors</th><th>Δ p95</th><th></th></tr></thead><tbody id="serviceTrendsBody"></tbody></table></div>
@@ -456,7 +456,7 @@
 
   <dialog class="trace-outlier-dialog" id="traceOutlierDialog">
     <section class="trace-outlier-card" aria-label="Trace outlier ranking">
-      <header class="trace-explorer-head"><div><span>ROBUST TRACE RANKING</span><strong>Trace outliers</strong><small id="traceOutlierMeta">Ranked from measured duration, explicit errors and service breadth. No AI inference.</small></div><button class="icon-button" id="closeTraceOutlierButton" type="button" aria-label="Close trace outliers"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="trace-explorer-head"><div><span>ROBUST TRACE RANKING</span><strong>Trace outliers</strong><small id="traceOutlierMeta">Ranked from measured duration, explicit errors and service breadth. No AI inference.</small></div><button class="icon-button" id="closeTraceOutlierButton" type="button" aria-label="Close trace outliers"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="trace-explorer-summary" id="traceOutlierSummary"></div>
       <div class="trace-outlier-table-wrap"><table class="trace-explorer-table"><thead><tr><th>Trace</th><th>Score</th><th>Duration</th><th>Errors</th><th>Services</th><th>Why it ranks</th><th></th></tr></thead><tbody id="traceOutlierBody"></tbody></table></div>
       <footer class="trace-explorer-footer"><span>Outlier score is descriptive; it does not claim root cause or regression.</span><button class="button button--ghost button--small" id="traceOutlierResetButton" type="button">Analyze all traces</button></footer>
@@ -465,7 +465,7 @@
 
   <dialog class="trace-compare-dialog" id="traceCompareDialog">
     <section class="trace-compare-card">
-      <header class="trace-explorer-head"><div><span>TRACE DIFF</span><strong>Compare two distributed traces</strong><small>Only measured services, spans, events, errors, durations and parent coverage are compared.</small></div><button class="icon-button" id="closeTraceCompareButton" type="button" aria-label="Close trace comparison"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="trace-explorer-head"><div><span>TRACE DIFF</span><strong>Compare two distributed traces</strong><small>Only measured services, spans, events, errors, durations and parent coverage are compared.</small></div><button class="icon-button" id="closeTraceCompareButton" type="button" aria-label="Close trace comparison"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="trace-compare-grid" id="traceCompareBody"></div>
       <footer class="trace-explorer-footer"><span>Positive deltas mean the second selected trace has a higher value.</span></footer>
     </section>
@@ -473,7 +473,7 @@
 
   <dialog class="query-library-dialog" id="queryLibraryDialog">
     <section class="query-library-card" aria-label="Saved query library">
-      <header class="query-library-head"><div><span>LOCAL QUERY LIBRARY</span><strong>Reusable searches</strong><small>Store structured queries and filters locally; export or import them as JSON when needed.</small></div><button class="icon-button" id="closeQueryLibraryButton" type="button" aria-label="Close query library"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="query-library-head"><div><span>LOCAL QUERY LIBRARY</span><strong>Reusable searches</strong><small>Store structured queries and filters locally; export or import them as JSON when needed.</small></div><button class="icon-button" id="closeQueryLibraryButton" type="button" aria-label="Close query library"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="query-library-toolbar"><label><span>Name</span><input id="queryLibraryName" type="text" maxlength="120" placeholder="Auth timeout investigation"></label><label><span>Folder</span><input id="queryLibraryFolder" type="text" maxlength="80" placeholder="Production / Auth"></label><label><span>Tags</span><input id="queryLibraryTags" type="text" maxlength="240" placeholder="auth, timeout, production"></label><label class="query-library-toolbar__wide"><span>Description</span><input id="queryLibraryDescription" type="text" maxlength="1000" placeholder="Why this query is useful"></label><label class="query-library-favorite"><input id="queryLibraryFavorite" type="checkbox"><span>Favorite</span></label><button class="button button--primary button--small" id="queryLibrarySaveButton" type="button">Save current query</button><button class="button button--ghost button--small" id="queryLibraryExportButton" type="button">Export</button><button class="button button--ghost button--small" id="queryLibraryImportButton" type="button">Import</button><input id="queryLibraryFileInput" type="file" accept=".json" hidden></div>
       <div class="query-library-browser"><label class="query-library-search"><span>Search library</span><input id="queryLibrarySearch" type="search" placeholder="name, query, tag, folder…"></label><label><span>Show folder</span><select id="queryLibraryFolderFilter"><option value="*">All folders</option></select></label><label><span>Manage folder</span><select id="queryLibraryManageFolder"><option value="General">General</option></select></label><label><span>Rename to</span><input id="queryLibraryRenameFolder" type="text" maxlength="80" placeholder="New folder name"></label><button class="button button--ghost button--small" id="queryLibraryRenameFolderButton" type="button">Rename folder</button><button class="button button--ghost button--small" id="queryLibraryDeleteFolderButton" type="button">Move folder to General</button></div>
       <div class="query-library-list" id="queryLibraryList"><div class="case-findings__empty">No reusable queries saved yet.</div></div>
@@ -485,7 +485,7 @@
     <section class="investigation-card" aria-label="SignalDock investigation notebook">
       <header class="investigation-head">
         <div><span>LOCAL CASE WORKSPACE</span><strong>Investigation &amp; evidence</strong><small>Form a hypothesis, record findings, pin evidence and export a local handoff.</small></div>
-        <button class="icon-button" id="closeInvestigationButton" type="button" aria-label="Close investigation"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+        <button class="icon-button" id="closeInvestigationButton" type="button" aria-label="Close investigation"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button>
       </header>
       <div class="investigation-meta">
         <label><span>Title</span><input id="investigationTitle" type="text" maxlength="96" value="Investigation"></label>
@@ -550,7 +550,7 @@
     <section class="exception-card" aria-label="SignalDock exception groups">
       <header class="exception-head">
         <div><span>LOCAL FAILURE ANALYSIS</span><strong>Exception groups</strong><small>Recurring failures are grouped by a deterministic normalized fingerprint. Dynamic IDs, timestamps, IPs and numbers are removed from the signature.</small></div>
-        <button class="icon-button" id="closeExceptionButton" type="button" aria-label="Close exception groups"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button>
+        <button class="icon-button" id="closeExceptionButton" type="button" aria-label="Close exception groups"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button>
       </header>
       <div class="exception-summary" id="exceptionSummary"></div>
       <section class="exception-trend" id="exceptionTrend"><div class="exception-trend__empty">Timestamped recurring failures will show trend analysis here.</div></section>
@@ -561,7 +561,7 @@
 
   <dialog class="baseline-dialog" id="baselineDialog">
     <section class="baseline-card" aria-label="Cross-dataset baseline comparison">
-      <header class="matrix-head"><div><span>CROSS-DATASET BASELINE</span><strong>Baseline comparison</strong><small id="baselineMeta">Capture or import a compact baseline, then compare a different loaded dataset against it.</small></div><button class="icon-button" id="closeBaselineButton" type="button" aria-label="Close baseline comparison"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="matrix-head"><div><span>CROSS-DATASET BASELINE</span><strong>Baseline comparison</strong><small id="baselineMeta">Capture or import a compact baseline, then compare a different loaded dataset against it.</small></div><button class="icon-button" id="closeBaselineButton" type="button" aria-label="Close baseline comparison"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="baseline-toolbar"><label><span>Baseline name</span><input id="baselineName" type="text" maxlength="120" placeholder="Production before deploy"></label><button class="button button--primary button--small" id="captureBaselineButton" type="button">Capture all logs</button><button class="button button--ghost button--small" id="captureFilteredBaselineButton" type="button">Capture filtered</button><button class="button button--ghost button--small" id="exportBaselineButton" type="button">Export .sdbaseline</button><button class="button button--ghost button--small" id="importBaselineButton" type="button">Import baseline</button><input id="baselineFileInput" type="file" accept=".sdbaseline,.json" hidden></div>
       <div class="matrix-summary" id="baselineSummary"></div>
       <div class="baseline-grid"><section><h3>Service deltas</h3><div class="baseline-table-wrap"><table class="matrix-table"><thead><tr><th>Service</th><th>Entries Δ</th><th>Error Δ</th><th>p95 Δ</th><th></th></tr></thead><tbody id="baselineServiceBody"></tbody></table></div></section><section><h3>Dependency deltas</h3><div class="baseline-table-wrap"><table class="matrix-table"><thead><tr><th>Dependency</th><th>Calls Δ</th><th>Error Δ</th><th>p95 Δ</th><th></th></tr></thead><tbody id="baselineDependencyBody"></tbody></table></div></section></div>
@@ -572,7 +572,7 @@
 
   <dialog class="project-dialog" id="projectDialog">
     <section class="project-card" aria-label="SignalDock local project manager">
-      <header class="query-library-head"><div><span>LOCAL PROJECTS</span><strong>Projects &amp; workspaces</strong><small>Keep investigations, linked files and workspaces organized on this device.</small></div><button class="icon-button" id="closeProjectButton" type="button" aria-label="Close project manager"><svg class="icon"><use href="assets/icons.svg#close"></use></svg></button></header>
+      <header class="query-library-head"><div><span>LOCAL PROJECTS</span><strong>Projects &amp; workspaces</strong><small>Keep investigations, linked files and workspaces organized on this device.</small></div><button class="icon-button" id="closeProjectButton" type="button" aria-label="Close project manager"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#close"></use></svg></button></header>
       <div class="project-toolbar"><label><span>Project name</span><input id="projectName" type="text" maxlength="120" placeholder="Payments production"></label><label><span>Description</span><input id="projectDescription" type="text" maxlength="2000" placeholder="Local context for this investigation"></label><button class="button button--primary button--small" id="createProjectButton" type="button">Create project</button><button class="button button--primary button--small" id="projectLinkFilesButton" type="button" disabled>Link &amp; load files</button><button class="button button--ghost button--small" id="exportProjectsButton" type="button">Export</button><button class="button button--ghost button--small" id="importProjectsButton" type="button">Import</button><input id="projectsFileInput" type="file" accept=".json,.sdprojects" hidden></div>
       <div class="project-active" id="activeProjectMeta">No active project.</div>
       <div class="project-capability" id="projectCapabilityMeta">Checking local file access…</div>
@@ -583,7 +583,7 @@
 
   <dialog class="command-palette-dialog" id="commandPaletteDialog">
     <section class="command-palette-card" aria-label="SignalDock command palette">
-      <div class="command-palette-search"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg><input id="commandPaletteInput" type="search" placeholder="Type a command…" autocomplete="off"><kbd>ESC</kbd></div>
+      <div class="command-palette-search"><svg class="icon" aria-hidden="true"><use href="assets/icons.svg#search"></use></svg><input id="commandPaletteInput" type="search" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="commandPaletteList" aria-expanded="false" placeholder="Type a command…" autocomplete="off"><kbd>ESC</kbd></div>
       <div class="command-palette-list" id="commandPaletteList" role="listbox"></div>
       <footer><span>Navigate with ↑ ↓ · run with Enter</span><button class="button button--ghost button--small" id="closeCommandPaletteButton" type="button">Close</button></footer>
     </section>

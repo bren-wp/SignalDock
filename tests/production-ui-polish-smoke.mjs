@@ -11,8 +11,8 @@ const css = read("styles.css");
 const app = read("app.js");
 const technical = read("docs/TECHNICAL.md");
 
-assert.equal(version, "2.7.2");
-assert.match(app, /APP_VERSION\s*=\s*["']2\.7\.2["']/);
+assert.match(version, /^2\.7\.\d+$/);
+assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
 assert.ok(!html.includes("BETA"), "production UI must not expose beta labels");
 assert.ok(!html.includes("LOCAL PROJECT METADATA"), "project UI still exposes implementation terminology");
 assert.ok(!app.includes("capability mode"), "project UI still exposes capability-mode implementation copy");
@@ -24,7 +24,7 @@ assert.ok(!css.includes(".nav-list { display: none; }"), "mobile navigation must
 assert.match(app, /function setActiveNav\(target\)/);
 assert.match(app, /setAttribute\("aria-current", "page"\)/);
 assert.ok(!/\/\*\s*(?:SignalDock\s+)?v\d+\.\d+/.test(css), "release-number CSS comments should not ship in production styles");
-assert.ok(technical.includes("Current version: **2.7.2**."));
+assert.ok(technical.includes(`Current version: **${version}**.`));
 
 const defs = new Set([...css.matchAll(/(--[a-zA-Z0-9-]+)\s*:/g)].map((m) => m[1]));
 const missing = new Set();
