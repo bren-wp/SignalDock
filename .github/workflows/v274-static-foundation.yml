@@ -1,0 +1,81 @@
+name: SignalDock v2.7.4 static foundation
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Apply static foundation migration
+        run: python3 .github/scripts/v274-static-foundation.py
+
+      - name: Verify JavaScript and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+      - name: Static structure assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'id="queryLibraryBulkBar" role="group" aria-label="Bulk query actions"' index.html
+          grep -q 'class="baseline-history" aria-labelledby="baselineHistoryTitle"' index.html
+          ! grep -q 'function ensureFoundationUi()' app.js
+          ! grep -q 'ensureFoundationUi();' app.js
+          test "$(cat VERSION)" = "2.7.4"
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-v274-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-v274-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          grep -q 'queryLibraryBulkBar' /tmp/signaldock-v274-index.html
+          grep -q 'baselineHistoryList' /tmp/signaldock-v274-index.html
+          curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/styles.css -o /dev/null
+
+      - name: Commit verified v2.7.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION index.html app.js README.md CHANGELOG.md docs/TECHNICAL.md tests/static-foundation-ui-smoke.mjs
+          git diff --cached --check
+          git commit -m "refactor: move stable workspace controls into static HTML"
+          git push origin HEAD:main
