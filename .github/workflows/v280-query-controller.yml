@@ -1,0 +1,90 @@
+name: SignalDock v2.8 Query Library controller
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  modularize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Apply v2.8 controller migration
+        run: python3 .github/scripts/v280-query-controller.py
+
+      - name: Verify JavaScript and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+      - name: Verify controller architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "2.8.0"
+          test -f src/app/query-library-controller.js
+          grep -q 'src/app/query-library-controller.js' index.html
+          grep -q 'SignalDockQueryLibraryController.create' app.js
+          ! grep -q 'function openQueryLibrary()' app.js
+          ! grep -q 'function renderQueryLibrary()' app.js
+          ! grep -q 'el.queryLibrarySaveButton?.addEventListener' app.js
+          grep -q 'const visibleByFolder = new Map()' src/app/query-library-controller.js
+          grep -q 'Move ${item.name} to folder' src/app/query-library-controller.js
+          before_size=$(git show HEAD:app.js | wc -c)
+          after_size=$(wc -c < app.js)
+          echo "app.js size: ${before_size} -> ${after_size} bytes"
+          test "$after_size" -lt "$before_size"
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-v280-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-v280-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          grep -q 'src/app/query-library-controller.js' /tmp/signaldock-v280-index.html
+          curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/app/query-library-controller.js -o /tmp/signaldock-query-controller.js
+          grep -q 'SignalDockQueryLibraryController' /tmp/signaldock-query-controller.js
+
+      - name: Commit verified v2.8.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION app.js index.html src/app/query-library-controller.js src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/source-layout-smoke.mjs tests/query-library-controller-smoke.mjs
+          git diff --cached --check
+          git commit -m "refactor: extract Query Library application controller"
+          git push origin HEAD:main
