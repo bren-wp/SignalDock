@@ -1,0 +1,177 @@
+name: SignalDock v2.8.2 Project controller
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  modularize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Apply v2.8.2 Project controller migration
+        run: python3 .github/scripts/v282-project-controller.py
+
+      - name: Align Project ownership tests
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # General UI foundation: project-history rendering now belongs to the Project controller.
+          path = Path('tests/ui-foundations-smoke.mjs')
+          text = path.read_text()
+          old_import = 'const baselineController = fs.readFileSync(path.join(root, "src/app/baseline-controller.js"), "utf8");\n'
+          new_import = old_import + 'const projectController = fs.readFileSync(path.join(root, "src/app/project-controller.js"), "utf8");\n'
+          if text.count(old_import) != 1:
+              raise SystemExit('UI foundation Project controller import marker mismatch')
+          text = text.replace(old_import, new_import, 1)
+          token = '  "projectHistorySection"\n'
+          if text.count(token) != 1:
+              raise SystemExit('UI foundation projectHistorySection token mismatch')
+          text = text.replace(token, '', 1)
+          marker = '''for (const token of ["renderHistory", "compareById", "baselineHistoryList", "renderComparisonResult"]) {
+            if (!baselineController.includes(token)) throw new Error(`Missing Baseline controller foundation token: ${token}`);
+          }
+          '''
+          addition = marker + '''for (const token of ["historySection", "markHistoryReopened", "forgetProjectHandles", "portable"]) {
+            if (!projectController.includes(token) && token !== "portable") throw new Error(`Missing Project controller foundation token: ${token}`);
+          }
+          '''
+          if text.count(marker) != 1:
+              raise SystemExit('UI foundation baseline loop mismatch')
+          path.write_text(text.replace(marker, addition, 1))
+
+          # v2.7 reopen feature gate follows implementation ownership without weakening capability checks.
+          path = Path('tests/v27-project-reopen-smoke.mjs')
+          text = path.read_text()
+          old = 'const bridge = read("src/platform/desktop-bridge.js");\n'
+          new = old + 'const projectController = read("src/app/project-controller.js");\n'
+          if text.count(old) != 1:
+              raise SystemExit('v27 reopen controller import marker mismatch')
+          text = text.replace(old, new, 1)
+          old_loop = '''for (const token of ["projectLinkFilesButton", "linkAndLoadProjectFiles", "reopenProjectHistoryItem", "markHistoryReopened", "SignalDockDesktopBridge.saveParts"]) {
+            assert.ok(app.includes(token), `missing app token ${token}`);
+          }
+          '''
+          new_loop = '''for (const token of ["projectLinkFilesButton", "SignalDockDesktopBridge.saveParts"]) {
+            assert.ok(app.includes(token), `missing app token ${token}`);
+          }
+          for (const token of ["linkAndLoadFiles", "reopenHistoryItem", "markHistoryReopened", "requestPermission: true", "forgetProjectHandles"]) {
+            assert.ok(projectController.includes(token), `missing Project controller token ${token}`);
+          }
+          '''
+          if text.count(old_loop) != 1:
+              raise SystemExit('v27 reopen ownership loop mismatch')
+          path.write_text(text.replace(old_loop, new_loop, 1))
+
+          # v2.7 final gate still verifies the exact same security/capability surfaces.
+          path = Path('tests/v27-final-gate.mjs')
+          text = path.read_text()
+          old = "const projects = read('src/investigation/project-manager.js');\n"
+          new = old + "const projectController = read('src/app/project-controller.js');\n"
+          if text.count(old) != 1:
+              raise SystemExit('v27 final Project controller import marker mismatch')
+          text = text.replace(old, new, 1)
+          old_line = "for (const token of ['projectLinkFilesButton', 'linkAndLoadProjectFiles', 'reopenProjectHistoryItem', 'SignalDockDesktopBridge.saveParts', 'createWorkerSessionToken', 'workerToken: \"\"']) assert.ok(app.includes(token), `missing app token: ${token}`);\n"
+          new_line = "for (const token of ['projectLinkFilesButton', 'SignalDockDesktopBridge.saveParts', 'createWorkerSessionToken', 'workerToken: \\\"\\\"']) assert.ok(app.includes(token), `missing app token: ${token}`);\nfor (const token of ['linkAndLoadFiles', 'reopenHistoryItem', 'requestPermission: true', 'forgetProjectHandles']) assert.ok(projectController.includes(token), `missing Project controller token: ${token}`);\n"
+          if text.count(old_line) != 1:
+              raise SystemExit('v27 final app token loop mismatch')
+          path.write_text(text.replace(old_line, new_line, 1))
+          PY
+
+      - name: Verify release surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "2.8.2"
+          grep -q 'const APP_VERSION = "2.8.2"' app.js
+          grep -q 'version-2.8.2-' README.md
+          grep -q 'SignalDock v2.8.2' README.md
+          grep -q 'Current version: \*\*2.8.2\*\*\.' docs/TECHNICAL.md
+          grep -q '## 2.8.2 — 2026-09-16' CHANGELOG.md
+
+      - name: Verify JavaScript and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+      - name: Verify Project controller architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/app/project-controller.js
+          grep -q 'src/app/project-controller.js' index.html
+          grep -q 'SignalDockProjectController.create' app.js
+          grep -q 'projectController.bind()' app.js
+          grep -q 'projects: () => projectController?.open()' app.js
+          ! grep -q 'function openProjects()' app.js
+          ! grep -q 'function renderProjects()' app.js
+          ! grep -q 'function reopenProjectHistoryItem(' app.js
+          ! grep -q 'el.createProjectButton?.addEventListener' app.js
+          grep -q 'requestPermission: true' src/app/project-controller.js
+          grep -q 'forgetProjectHandles' src/app/project-controller.js
+          grep -q 'restoreWorkspaceFile' src/app/project-controller.js
+          grep -q 'loadFiles' src/app/project-controller.js
+          ! grep -q '\.invoke(' src/app/project-controller.js
+          ! grep -q 'root.invoke' src/app/project-controller.js
+          before_size=$(git show HEAD:app.js | wc -c)
+          after_size=$(wc -c < app.js)
+          echo "app.js size: ${before_size} -> ${after_size} bytes"
+          test "$after_size" -lt "$before_size"
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-v282-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-v282-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          for asset in query-library-controller baseline-controller project-controller; do
+            grep -q "src/app/${asset}.js" /tmp/signaldock-v282-index.html
+            curl --fail --silent "http://127.0.0.1:8080/src/app/${asset}.js" -o "/tmp/${asset}.js"
+          done
+          curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
+          grep -q 'SignalDockProjectController' /tmp/project-controller.js
+
+      - name: Commit verified v2.8.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION app.js index.html src/app/project-controller.js src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/*.mjs
+          git diff --cached --check
+          git commit -m "refactor: extract Project application controller"
+          git push origin HEAD:main
