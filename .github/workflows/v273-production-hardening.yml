@@ -23,6 +23,24 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Align staging script with current test harness
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/v273-production-hardening.py')
+          text = path.read_text()
+          old = """    marker = 'const api = sandbox.SignalDockQueryLibrary;'
+              insertion = marker + '\\nassert.equal(api.LEGACY_VERSION, 1);\\nassert.equal(api.LEGACY_STORAGE_KEY, \"signaldock-query-library-v1\");\\nassert.ok(api.LEGACY_VERSIONS.includes(api.LEGACY_VERSION));\\nassert.ok(api.LEGACY_STORAGE_KEYS.includes(api.LEGACY_STORAGE_KEY));'
+              ql_test = replace_exact(ql_test, marker, insertion, 'query library compatibility test')"""
+          new = """    marker = 'const api=context.SignalDockQueryLibrary; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};'
+              insertion = marker + '\\nassert(api.LEGACY_VERSION===1,\"legacy version alias missing\"); assert(api.LEGACY_STORAGE_KEY===\"signaldock-query-library-v1\",\"legacy storage alias missing\"); assert(api.LEGACY_VERSIONS.includes(api.LEGACY_VERSION),\"legacy version alias not represented\"); assert(api.LEGACY_STORAGE_KEYS.includes(api.LEGACY_STORAGE_KEY),\"legacy storage alias not represented\");'
+              ql_test = replace_exact(ql_test, marker, insertion, 'query library compatibility test')"""
+          if old not in text:
+              raise SystemExit('staging query-library block not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Apply v2.7.3 hardening
         run: python3 .github/scripts/v273-production-hardening.py
 
