@@ -6,7 +6,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.self = globalThis;
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, "trace-flame.js"), "utf8"), { filename: "trace-flame.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/analysis/trace-flame.js"), "utf8"), { filename: "src/analysis/trace-flame.js" });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 const base = Date.parse("2026-09-12T20:00:00Z");
 const entries = [

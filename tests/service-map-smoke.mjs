@@ -6,9 +6,9 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, "service-map.js"), "utf8"), { filename: "service-map.js" });
-vm.runInThisContext(fs.readFileSync(path.join(root, "zip.js"), "utf8"), { filename: "zip.js" });
-vm.runInThisContext(fs.readFileSync(path.join(root, "parser.js"), "utf8"), { filename: "parser.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/analysis/service-map.js"), "utf8"), { filename: "src/analysis/service-map.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/vendor/zip.js"), "utf8"), { filename: "src/vendor/zip.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/core/parser.js"), "utf8"), { filename: "src/core/parser.js" });
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 

@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..'); globalThis.window=globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root,'trace-explorer.js'),'utf8'),{filename:'trace-explorer.js'});
+vm.runInThisContext(fs.readFileSync(path.join(root,'src/analysis/trace-explorer.js'),'utf8'),{filename:'src/analysis/trace-explorer.js'});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
 const entries=[
  {service:'api',level:'INFO',timestampMs:1000,correlations:{trace:'t1',span:'s1'},traceMeta:{durationMs:100,parentSpan:'',otel:{events:[{name:'start'}]}}},

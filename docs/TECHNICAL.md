@@ -4,7 +4,7 @@
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.7.0**.
+Current version: **2.7.1**.
 
 ## Highlights
 
@@ -17,7 +17,7 @@ Current version: **2.7.0**.
 - Bounded Service Matrix latency retention using exact small samples and compact histograms for high-volume edges
 - IndexedDB-backed local File System Access handle registry; handle keys are stripped from portable project exports
 - Project Reopen UI for explicit link/load, relink, reopen and capability removal flows
-- `desktop-bridge.js` capability facade isolates future native shell integration from domain/UI code
+- `src/platform/desktop-bridge.js` capability facade isolates future native shell integration from domain/UI code
 - Sequential File System Access workspace writes and post-success recent-history recording
 - Runtime dialog/focus/mobile accessibility hardening without external dependencies
 - Session-bound Dedicated Worker protocol with cryptographic per-worker tokens, protocol versioning and allowlisted/bounded message envelopes
@@ -148,7 +148,7 @@ The Trace inspector includes a local quality/completeness summary for the select
 
 ## Parser plugin API
 
-`parser-plugins.js` provides a small registry for trusted parsers bundled with SignalDock or added directly to a controlled local build. Plugins expose `id`, `test()` and `parse()` functions and participate only in Auto mode. Plugin failures are isolated so the normal parser chain continues.
+`src/core/parser-plugins.js` provides a small registry for trusted parsers bundled with SignalDock or added directly to a controlled local build. Plugins expose `id`, `test()` and `parse()` functions and participate only in Auto mode. Plugin failures are isolated so the normal parser chain continues.
 
 SignalDock ships with a CEF (Common Event Format) plugin as the first concrete extension. The application does **not** dynamically load arbitrary JavaScript plugins from URLs or user-selected script files; that would undermine the CSP/local-first security model.
 
@@ -363,7 +363,7 @@ The Last 15 minutes / 1 hour / 6 hours / 24 hours / 7 days filters are calculate
 
 SignalDock keeps filtered results as integer indexes rather than creating a second array of log-entry references. The timeline also iterates those indexes directly instead of first building a duplicate timestamped-results array.
 
-For larger page sizes, table rows are appended in animation-frame batches so the UI remains responsive while a 500/1000-row page is drawn. Table rows also use browser-native layout/paint containment and `content-visibility` so offscreen rows can be skipped by supporting rendering engines. Windowed mode delegates row-range calculation to `virtual-viewport.js`; once the logical document would exceed a browser-friendly scroll range, SignalDock compresses only the invisible scroll pitch while keeping rendered rows at normal physical height. Filtering can move into `filter-worker.js` above the internal threshold when the application is served from HTTP(S), where the worker can additionally use the bounded local full-text index.
+For larger page sizes, table rows are appended in animation-frame batches so the UI remains responsive while a 500/1000-row page is drawn. Table rows also use browser-native layout/paint containment and `content-visibility` so offscreen rows can be skipped by supporting rendering engines. Windowed mode delegates row-range calculation to `src/core/virtual-viewport.js`; once the logical document would exceed a browser-friendly scroll range, SignalDock compresses only the invisible scroll pitch while keeping rendered rows at normal physical height. Filtering can move into `filter-worker.js` above the internal threshold when the application is served from HTTP(S), where the worker can additionally use the bounded local full-text index.
 
 For exports above 50,000 rows, SignalDock produces NDJSON in chunks instead of a pretty-printed JSON array to reduce transient serialization overhead.
 
@@ -416,43 +416,43 @@ SignalDock/
 ├── index.html
 ├── styles.css
 ├── app.js
-├── parser.js
-├── parser-plugins.js
-├── query-engine.js
-├── search-index.js
-├── search-cache.js
+├── src/core/parser.js
+├── src/core/parser-plugins.js
+├── src/core/query-engine.js
+├── src/core/search-index.js
+├── src/core/search-cache.js
 ├── filter-worker.js
-├── trace-analysis.js
-├── trace-flame.js
-├── span-events.js
-├── virtual-viewport.js
-├── service-map.js
-├── service-matrix.js
-├── service-heatmap.js
-├── service-trends.js
-├── baseline-manager.js
-├── trace-regression.js
-├── trace-explorer.js
-├── trace-compare.js
-├── trace-outliers.js
-├── query-library.js
-├── case-timeline.js
-├── storage-adapter.js
-├── command-palette.js
-├── exception-groups.js
-├── investigation.js
-├── case-workspace.js
-├── case-checkpoints.js
-├── project-manager.js
-├── service-health.js
-├── exception-trends.js
-├── trace-insights.js
-├── parser-profiles.js
-├── workspace.js
-├── persistence.js
-├── performance.js
-├── utils.js
-├── zip.js
+├── src/analysis/trace-analysis.js
+├── src/analysis/trace-flame.js
+├── src/analysis/span-events.js
+├── src/core/virtual-viewport.js
+├── src/analysis/service-map.js
+├── src/analysis/service-matrix.js
+├── src/analysis/service-heatmap.js
+├── src/analysis/service-trends.js
+├── src/investigation/baseline-manager.js
+├── src/analysis/trace-regression.js
+├── src/analysis/trace-explorer.js
+├── src/analysis/trace-compare.js
+├── src/analysis/trace-outliers.js
+├── src/core/query-library.js
+├── src/investigation/case-timeline.js
+├── src/platform/storage-adapter.js
+├── src/ui/command-palette.js
+├── src/analysis/exception-groups.js
+├── src/investigation/investigation.js
+├── src/investigation/case-workspace.js
+├── src/investigation/case-checkpoints.js
+├── src/investigation/project-manager.js
+├── src/analysis/service-health.js
+├── src/analysis/exception-trends.js
+├── src/analysis/trace-insights.js
+├── src/core/parser-profiles.js
+├── src/core/workspace.js
+├── src/core/persistence.js
+├── src/core/performance.js
+├── src/core/utils.js
+├── src/vendor/zip.js
 ├── assets/
 │   ├── logo.svg
 │   ├── favicon.svg
@@ -579,7 +579,7 @@ The new **Trace Outliers** workspace ranks traces locally from measured duration
 
 The **Case Timeline** combines timestamped pinned evidence, investigation milestones and case activity into one chronological view while preserving the existing focused evidence/activity views. Evidence timeline rows can navigate back to their original local log entry when that entry is still present in the workspace.
 
-Query Library adds local search, folder filtering, inline folder rename/move management and per-query folder selectors. `storage-adapter.js` centralizes local export capability detection and uses the browser File System Access save picker where supported, with a normal local download fallback. Neither path uploads content.
+Query Library adds local search, folder filtering, inline folder rename/move management and per-query folder selectors. `src/platform/storage-adapter.js` centralizes local export capability detection and uses the browser File System Access save picker where supported, with a normal local download fallback. Neither path uploads content.
 
 ## v2.2 investigation + comparison workflow
 

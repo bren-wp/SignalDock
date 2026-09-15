@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..'); globalThis.window=globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root,'service-trends.js'),'utf8'),{filename:'service-trends.js'});
+vm.runInThisContext(fs.readFileSync(path.join(root,'src/analysis/service-trends.js'),'utf8'),{filename:'src/analysis/service-trends.js'});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg)}; const t=Date.parse('2026-01-01T00:00:00Z');
 const entries=[
  {service:'api',level:'INFO',timestampMs:t,correlations:{span:'a'},traceMeta:{}},

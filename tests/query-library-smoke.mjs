@@ -1,7 +1,7 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..');
 const store=new Map(); const context={localStorage:{getItem:k=>store.has(k)?store.get(k):null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}}; context.self=context; context.window=context; vm.createContext(context);
-vm.runInContext(fs.readFileSync(path.join(root,'query-library.js'),'utf8'),context,{filename:'query-library.js'});
+vm.runInContext(fs.readFileSync(path.join(root,'src/core/query-library.js'),'utf8'),context,{filename:'src/core/query-library.js'});
 const api=context.SignalDockQueryLibrary; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
 let items=[]; items=api.upsert(items,{name:'Auth errors',folder:'Production / Auth',favorite:true,query:'level:error service:auth',tags:'auth, production',description:'Recurring auth errors',level:'ERROR',timeRange:'1h'});
 assert(items.length===1&&items[0].folder==='Production / Auth'&&items[0].favorite,'v3 query save failed');

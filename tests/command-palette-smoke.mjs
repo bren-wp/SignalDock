@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, "command-palette.js"), "utf8"), { filename: "command-palette.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/ui/command-palette.js"), "utf8"), { filename: "src/ui/command-palette.js" });
 function assert(condition, message) { if (!condition) throw new Error(message); }
 const commands = [
   { id: "import", title: "Import logs", keywords: "open files" },

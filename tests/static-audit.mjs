@@ -4,9 +4,21 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
+const srcRoot = path.join(root, "src");
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+function collectFiles(dir, predicate, out = []) {
+  for (const name of fs.readdirSync(dir)) {
+    if (name === ".git" || name === "node_modules") continue;
+    const full = path.join(dir, name);
+    const stat = fs.statSync(full);
+    if (stat.isDirectory()) collectFiles(full, predicate, out);
+    else if (predicate(full, name)) out.push(full);
+  }
+  return out;
 }
 
 const appHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -17,9 +29,6 @@ const ids = [...appHtml.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 const idSet = new Set(ids);
 assert(idSet.size === ids.length, "index.html contains duplicate ids");
 
-// SignalDock may construct bounded local-only UI controls from trusted application code.
-// Audit constant ids assigned through element.id and the central makeUiButton helper as
-// first-class DOM declarations while still rejecting unresolved $(...) references.
 const assignedDynamicIds = [...appJs.matchAll(/\.id\s*=\s*"([^"]+)"/g)].map((match) => match[1]);
 const buttonDynamicIds = [...appJs.matchAll(/makeUiButton\("([^"]+)"/g)].map((match) => match[1]).filter(Boolean);
 const dynamicIds = [...new Set([...assignedDynamicIds, ...buttonDynamicIds])];
@@ -37,20 +46,16 @@ for (const [name, html] of [["index.html", appHtml], ["website/index.html", webs
   assert(!/(?:src|href)=["']https?:\/\//i.test(html), `${name} contains external runtime resources`);
 }
 
-const jsFiles = fs.readdirSync(root).filter((name) => name.endsWith(".js"));
-const combinedJs = jsFiles.map((name) => fs.readFileSync(path.join(root, name), "utf8")).join("\n");
+const productionJs = [
+  path.join(root, "app.js"),
+  path.join(root, "filter-worker.js"),
+  ...collectFiles(srcRoot, (_full, name) => name.endsWith(".js")),
+  ...collectFiles(path.join(root, "website"), (_full, name) => name.endsWith(".js"))
+];
+const combinedJs = productionJs.map((file) => fs.readFileSync(file, "utf8")).join("\n");
 assert(!/\bfetch\s*\(|XMLHttpRequest|WebSocket\s*\(|EventSource\s*\(/.test(combinedJs), "runtime network primitive detected");
 
-const textFiles = [];
-function collect(dir) {
-  for (const name of fs.readdirSync(dir)) {
-    const full = path.join(dir, name);
-    const stat = fs.statSync(full);
-    if (stat.isDirectory()) collect(full);
-    else if (/\.(?:html|css|js|md|svg|txt|json|ndjson|log)$/i.test(name)) textFiles.push(full);
-  }
-}
-collect(root);
+const textFiles = collectFiles(root, (_full, name) => /\.(?:html|css|js|md|svg|txt|json|ndjson|log)$/i.test(name));
 const combinedText = textFiles.map((file) => fs.readFileSync(file, "utf8")).join("\n");
 assert(!/LogFrog|TraceNest|PulseRoot/i.test(combinedText), "old product branding detected");
 
@@ -66,6 +71,7 @@ verifyLocalRefs(websiteHtml, path.join(root, "website"), "website/index.html");
 console.log(`PASS unique static DOM ids (${ids.length})`);
 console.log(`PASS trusted dynamic DOM ids (${dynamicIds.length})`);
 console.log(`PASS DOM references (${new Set(jsRefs).size})`);
+console.log(`PASS recursive production JS audit (${productionJs.length} files)`);
 console.log("PASS no inline CSS/JS");
 console.log("PASS no external runtime resources");
 console.log("PASS no runtime network primitives");

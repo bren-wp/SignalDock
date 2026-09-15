@@ -6,7 +6,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.self = globalThis;
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, "virtual-viewport.js"), "utf8"), { filename: "virtual-viewport.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/core/virtual-viewport.js"), "utf8"), { filename: "src/core/virtual-viewport.js" });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 const million = SignalDockVirtualViewport.calculate({ total: 1_000_000, rowHeight: 46, viewportHeight: 700, scrollTop: 4_000_000, overscan: 24, maxScrollPx: 8_000_000 });
 assert(million.compressed, "million-row viewport should use compressed scroll scale");

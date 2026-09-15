@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml/badge.svg"></a>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml/badge.svg"></a>
-    <img alt="Version" src="https://img.shields.io/badge/version-2.7.0-22d3ee?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-2.7.1-22d3ee?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
     <img alt="Local first" src="https://img.shields.io/badge/local--first-yes-67e8f9?style=flat-square">
     <img alt="Telemetry" src="https://img.shields.io/badge/telemetry-none-a7f3d0?style=flat-square">
@@ -28,8 +28,8 @@
 </p>
 
 <p align="center">
-  <strong>SignalDock v2.7.0 — real application UI with the bundled demo dataset</strong><br>
-  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.7.0 application screenshot showing local log analysis" width="100%" />
+  <strong>SignalDock v2.7.1 — real application UI with the bundled demo dataset</strong><br>
+  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.7.1 application screenshot showing local log analysis" width="100%" />
 </p>
 
 ## Your logs should not need a cloud account
@@ -108,7 +108,7 @@ SignalDock includes:
 - local File System Access handle registry foundation for project dataset/workspace reopening without uploading file contents
 - real Project Reopen workflow with link/load, relink, permission recovery, reopen counters and capability cleanup
 - streamed workspace writes through the local storage adapter, with recent-workspace metadata recorded only after a successful save
-- narrow `desktop-bridge.js` capability facade that keeps browser mode first-class while defining an explicit future native-shell contract
+- narrow `src/platform/desktop-bridge.js` capability facade that keeps browser mode first-class while defining an explicit future native-shell contract
 - dialog focus management, keyboard focus trapping, coarse-pointer touch targets and reduced-motion hardening
 - crash/restart recovery snapshots in IndexedDB
 - experimental local Live Tail through the File System Access API
@@ -186,30 +186,33 @@ That design principle matters when logs are being used to make production decisi
 
 ```text
 SignalDock/
-├── index.html                 # application shell
-├── app.js                     # app orchestration
-├── parser.js                  # parsing + normalization
-├── query-engine.js            # canonical query semantics
-├── filter-worker.js           # background filtering/index path
-├── persistence.js             # recovery snapshots
-├── search-cache.js            # bucketed local search cache
-├── service-*.js               # topology, health and dependency analysis
-├── trace-*.js                 # trace exploration and comparison
-├── case-*.js                  # investigation/case workflow
+├── index.html                 # public application shell
+├── app.js                     # application orchestration entrypoint
+├── filter-worker.js           # background worker entrypoint
+├── styles.css                 # application styles
+├── src/
+│   ├── core/                  # parsing, query/search, workspace and persistence
+│   ├── analysis/              # trace, service, span and exception analysis
+│   ├── investigation/         # projects, baselines, cases and evidence workflows
+│   ├── platform/              # browser/native storage capability boundary
+│   ├── ui/                    # reusable UI and accessibility behavior
+│   └── vendor/                # bundled local-only vendor runtime
 ├── assets/                    # local logo, favicon and icon sprite
 ├── sample/                    # safe example datasets
 ├── tests/                     # Node-based regression suite
 ├── website/                   # static product landing page
-└── docs/                      # technical reference + README media
+└── docs/                      # technical and architecture documentation
 ```
+
+See **[docs/SOURCE-LAYOUT.md](./docs/SOURCE-LAYOUT.md)** for module-placement rules and quality-gate expectations.
 
 ## Development & tests
 
 No dependency installation is required for the current test suite.
 
 ```bash
-# syntax-check root modules
-find . -maxdepth 1 -name '*.js' -print0 | xargs -0 -n1 node --check
+# syntax-check all runtime modules recursively
+find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
 
 # run all regression tests
 for test in tests/*.mjs; do

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, "performance.js"), "utf8"), { filename: "performance.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/core/performance.js"), "utf8"), { filename: "src/core/performance.js" });
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 const perf = globalThis.SignalDockPerformance;

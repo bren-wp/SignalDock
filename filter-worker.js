@@ -1,5 +1,5 @@
 "use strict";
-importScripts("search-index.js", "search-cache.js", "query-engine.js");
+importScripts("src/core/search-index.js", "src/core/search-cache.js", "src/core/query-engine.js");
 
 const WORKER_PROTOCOL_VERSION = 1;
 const ALLOWED_MESSAGE_TYPES = new Set(["index", "filter", "correlate", "trace"]);

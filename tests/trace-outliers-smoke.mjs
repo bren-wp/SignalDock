@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..'); globalThis.window=globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root,'trace-outliers.js'),'utf8'),{filename:'trace-outliers.js'});
+vm.runInThisContext(fs.readFileSync(path.join(root,'src/analysis/trace-outliers.js'),'utf8'),{filename:'src/analysis/trace-outliers.js'});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg)}; const t=Date.parse('2026-01-01T00:00:00Z');
 const entries=[];
 for(let n=0;n<8;n++){entries.push({service:'api',level:'INFO',timestampMs:t+n*1000,correlations:{trace:`t${n}`,span:`s${n}`},traceMeta:{durationMs:20+n}});}

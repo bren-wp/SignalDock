@@ -12,7 +12,7 @@ SignalDock is currently a local browser application. This document defines the b
 
 ## Recommended boundary
 
-UI and domain modules should depend on small capabilities instead of browser globals. `storage-adapter.js` is the first browser implementation of this boundary and should evolve into interfaces for text/binary open and save, directory access, metadata-only recent-file references, persistence, workspace lifecycle and application lifecycle.
+UI and domain modules should depend on small capabilities instead of browser globals. `src/platform/storage-adapter.js` is the first browser implementation of this boundary and should evolve into interfaces for text/binary open and save, directory access, metadata-only recent-file references, persistence, workspace lifecycle and application lifecycle.
 
 The browser adapter may use File System Access APIs, downloads, localStorage and IndexedDB. A future desktop adapter may implement the same operations with native filesystem APIs. Direct `showOpenFilePicker`, `showSaveFilePicker`, IndexedDB or shell-specific calls should not be spread through feature modules.
 
@@ -48,7 +48,7 @@ Do not expose unrestricted shell execution or broad filesystem roots to frontend
 
 ## Migration sequence
 
-1. Finish consolidating browser file operations in `storage-adapter.js`.
+1. Finish consolidating browser file operations in `src/platform/storage-adapter.js`.
 2. Extract persistence operations behind an adapter while preserving IndexedDB compatibility and migrations.
 3. Move recent workspace/dataset/project metadata into the shared project layer.
 4. Add adapter conformance tests that can run without a native shell.
@@ -60,6 +60,6 @@ Until those steps are complete, product copy must continue to describe SignalDoc
 
 ## Current implementation status
 
-SignalDock v2.7 adds `desktop-bridge.js` as the application-facing capability facade. Browser mode delegates to `storage-adapter.js`; a future native shell may inject only the narrow methods documented by the bridge. Project Reopen now exercises that boundary for pick, save, reopen, permission recovery and capability cleanup.
+SignalDock v2.7 adds `src/platform/desktop-bridge.js` as the application-facing capability facade. Browser mode delegates to `src/platform/storage-adapter.js`; a future native shell may inject only the narrow methods documented by the bridge. Project Reopen now exercises that boundary for pick, save, reopen, permission recovery and capability cleanup.
 
 This does **not** mean native installers are shipped. Tauri/Electron packaging, signing, updater behavior and OS integration remain future packaging work. The frontend must not receive a generic shell command or unrestricted path API.

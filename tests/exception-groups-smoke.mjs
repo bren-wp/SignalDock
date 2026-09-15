@@ -1,5 +1,5 @@
 import fs from 'node:fs'; import vm from 'node:vm';
-const code=fs.readFileSync(new URL('../exception-groups.js',import.meta.url),'utf8'); const context={self:{},window:{},console,Map,Set,Math,Date}; vm.createContext(context); vm.runInContext(code,context); const api=context.self.SignalDockExceptionGroups;
+const code=fs.readFileSync(new URL('../src/analysis/exception-groups.js',import.meta.url),'utf8'); const context={self:{},window:{},console,Map,Set,Math,Date}; vm.createContext(context); vm.runInContext(code,context); const api=context.self.SignalDockExceptionGroups;
 function assert(c,m){if(!c)throw new Error(m)}
 const base={service:'api',source:'api.log',level:'ERROR',timestampMs:1000};
 const a={...base,id:'a',globalIndex:0,message:'TimeoutError: request 123 failed for 10.0.0.12 at /srv/app/user.js:42'};

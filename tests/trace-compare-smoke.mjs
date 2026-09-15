@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..'); globalThis.window=globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root,'trace-compare.js'),'utf8'),{filename:'trace-compare.js'});
+vm.runInThisContext(fs.readFileSync(path.join(root,'src/analysis/trace-compare.js'),'utf8'),{filename:'src/analysis/trace-compare.js'});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg)}; const t=Date.parse('2026-01-01T00:00:00Z');
 const entries=[
  {service:'api',level:'INFO',timestampMs:t,correlations:{trace:'a',span:'a1'},traceMeta:{durationMs:20}},

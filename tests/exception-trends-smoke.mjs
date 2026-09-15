@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm';
 const context={self:{},window:{}}; context.self=context; context.window=context; vm.createContext(context);
-vm.runInContext(fs.readFileSync(new URL('../exception-trends.js', import.meta.url),'utf8'),context);
+vm.runInContext(fs.readFileSync(new URL('../src/analysis/exception-trends.js', import.meta.url),'utf8'),context);
 const now=Date.parse('2026-09-13T00:00:00Z');
 const entries=[];
 for(let i=0;i<2;i++) entries.push({exceptionFingerprint:'ex-a',timestampMs:now-90*60*1000+i,level:'ERROR',service:'api'});

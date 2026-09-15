@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url)); const root = path.resolve(here, '..');
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, 'service-matrix.js'), 'utf8'), { filename:'service-matrix.js' });
+vm.runInThisContext(fs.readFileSync(path.join(root, 'src/analysis/service-matrix.js'), 'utf8'), { filename:'src/analysis/service-matrix.js' });
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
 const entries=[
  {service:'api',level:'INFO',correlations:{trace:'t1',span:'a'},traceMeta:{parentSpan:'',durationMs:50}},

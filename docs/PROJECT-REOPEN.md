@@ -16,4 +16,4 @@ Workspace saves follow the same trust model. A workspace is added to project his
 
 `.sdprojects` exports intentionally strip `handleRef`, handle kind and linked capability state. Duplicated projects also drop those capabilities so a copy does not silently inherit local filesystem access. Deleting project metadata removes its stored handle records but never deletes user files.
 
-`desktop-bridge.js` exposes only pick, save, reopen, status and forget operations. A future native shell must implement those operations with bounded payloads and must not expose arbitrary shell execution or unrestricted filesystem roots.
+`src/platform/desktop-bridge.js` exposes only pick, save, reopen, status and forget operations. A future native shell must implement those operations with bounded payloads and must not expose arbitrary shell execution or unrestricted filesystem roots.

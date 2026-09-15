@@ -8,7 +8,7 @@ const root = path.resolve(here, "..");
 const values = new Map();
 globalThis.localStorage = { getItem: (key) => values.has(key) ? values.get(key) : null, setItem: (key, value) => values.set(key, String(value)), removeItem: (key) => values.delete(key) };
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, "parser-profiles.js"), "utf8"), { filename: "parser-profiles.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/core/parser-profiles.js"), "utf8"), { filename: "src/core/parser-profiles.js" });
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 const api = globalThis.SignalDockParserProfiles;

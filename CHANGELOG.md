@@ -1,6 +1,20 @@
 # Changelog
 
 
+## 2.7.1 — 2026-09-15
+
+### Source layout and maintainability
+- Reorganized internal runtime modules into `src/core`, `src/analysis`, `src/investigation`, `src/platform`, `src/ui` and `src/vendor` while keeping only stable public JavaScript entrypoints at repository root.
+- Moved brand documentation under `docs/` and added explicit source-layout documentation and regression coverage.
+- Updated all application, Worker, test and documentation references for the new zero-build static layout.
+
+### Quality gates
+- Expanded JavaScript syntax checks from root-only files to the full repository runtime tree.
+- Expanded the static no-network audit to every production JavaScript module under `src/` and the public entrypoints.
+- Extended HTTP smoke coverage to representative core, analysis and platform modules so path regressions fail CI.
+
+
+
 ## 2.7.0 — 2026-09-15
 
 ### Project Reopen workflow

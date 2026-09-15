@@ -1,5 +1,5 @@
 import fs from 'node:fs'; import vm from 'node:vm';
-const code=fs.readFileSync(new URL('../span-events.js', import.meta.url),'utf8'); const context={console, Date, JSON, self:{}}; vm.createContext(context); vm.runInContext(code,context); const api=context.self.SignalDockSpanEvents;
+const code=fs.readFileSync(new URL('../src/analysis/span-events.js', import.meta.url),'utf8'); const context={console, Date, JSON, self:{}}; vm.createContext(context); vm.runInContext(code,context); const api=context.self.SignalDockSpanEvents;
 const raw={span:{events:[{name:'exception',timeUnixNano:1720000000123000000,attributes:[{key:'exception.type',value:{stringValue:'TimeoutError'}},{key:'retry',value:{intValue:3}}]}]}};
 const events=api.extract(raw); if(events.length!==1||events[0].name!=='exception'||events[0].attributes['exception.type']!=='TimeoutError') throw new Error('extract failed');
 const rows=api.collect([{id:'x',globalIndex:0,service:'api',level:'ERROR',correlations:{trace:'t',span:'s'},traceMeta:{events}}]); if(rows.length!==1||rows[0].span!=='s') throw new Error('collect failed');

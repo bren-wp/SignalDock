@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.window = globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root, "trace-analysis.js"), "utf8"), { filename: "trace-analysis.js" });
+vm.runInThisContext(fs.readFileSync(path.join(root, "src/analysis/trace-analysis.js"), "utf8"), { filename: "src/analysis/trace-analysis.js" });
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 const base = Date.parse("2026-09-12T20:00:00Z");

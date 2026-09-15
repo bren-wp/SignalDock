@@ -7,7 +7,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.window = globalThis;
 
-for (const file of ["zip.js", "span-events.js", "parser.js", "query-engine.js"]) {
+for (const file of ["src/vendor/zip.js", "src/analysis/span-events.js", "src/core/parser.js", "src/core/query-engine.js"]) {
   vm.runInThisContext(fs.readFileSync(path.join(root, file), "utf8"), { filename: file });
 }
 

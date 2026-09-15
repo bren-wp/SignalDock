@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm';
 const context={self:{},window:{}}; context.self=context; context.window=context; vm.createContext(context);
-vm.runInContext(fs.readFileSync(new URL('../case-workspace.js',import.meta.url),'utf8'),context);
+vm.runInContext(fs.readFileSync(new URL('../src/investigation/case-workspace.js',import.meta.url),'utf8'),context);
 const api=context.SignalDockCaseWorkspace; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
 let c=api.empty('Auth incident'); assert(c.version===3&&c.activity.length===1,'v3 case should start with activity history');
 c=api.updateMeta(c,{status:'investigating',severity:'sev2',hypothesis:'token regression'});

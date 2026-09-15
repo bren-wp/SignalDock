@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..'); const context={};context.self=context;context.window=context;vm.createContext(context);
-vm.runInContext(fs.readFileSync(path.join(root,'storage-adapter.js'),'utf8'),context,{filename:'storage-adapter.js'});
+vm.runInContext(fs.readFileSync(path.join(root,'src/platform/storage-adapter.js'),'utf8'),context,{filename:'src/platform/storage-adapter.js'});
 const api=context.SignalDockStorageAdapter; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
 assert(api.sanitizeName('bad:name?.json')==='bad-name-.json','filename sanitizer mismatch');
 const ref=api.reference({name:'dump.log',type:'text/plain',size:42,lastModified:123},'evidence');

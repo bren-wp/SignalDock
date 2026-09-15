@@ -54,7 +54,7 @@ globalThis.indexedDB = {
   }
 };
 
-for (const file of ["workspace.js", "persistence.js"]) vm.runInThisContext(fs.readFileSync(path.join(root, file), "utf8"), { filename: file });
+for (const file of ["src/core/workspace.js", "src/core/persistence.js"]) vm.runInThisContext(fs.readFileSync(path.join(root, file), "utf8"), { filename: file });
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 

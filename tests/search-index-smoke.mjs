@@ -7,7 +7,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 globalThis.self = globalThis;
 globalThis.window = globalThis;
-for (const name of ["search-index.js", "query-engine.js"]) vm.runInThisContext(fs.readFileSync(path.join(root, name), "utf8"), { filename: name });
+for (const name of ["src/core/search-index.js", "src/core/query-engine.js"]) vm.runInThisContext(fs.readFileSync(path.join(root, name), "utf8"), { filename: name });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
 const entries = Array.from({ length: 25000 }, (_, i) => ({

@@ -1,6 +1,6 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const here=path.dirname(fileURLToPath(import.meta.url)); const root=path.resolve(here,'..'); globalThis.window=globalThis;
-vm.runInThisContext(fs.readFileSync(path.join(root,'service-heatmap.js'),'utf8'),{filename:'service-heatmap.js'});
+vm.runInThisContext(fs.readFileSync(path.join(root,'src/analysis/service-heatmap.js'),'utf8'),{filename:'src/analysis/service-heatmap.js'});
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
 const t=Date.parse('2026-01-01T00:00:00Z');
 const entries=[

@@ -16,7 +16,7 @@ const ctx = {
   }
 };
 vm.createContext(ctx);
-for (const file of ['trace-explorer.js', 'service-matrix.js', 'storage-adapter.js', 'project-manager.js']) {
+for (const file of ['src/analysis/trace-explorer.js', 'src/analysis/service-matrix.js', 'src/platform/storage-adapter.js', 'src/investigation/project-manager.js']) {
   vm.runInContext(fs.readFileSync(path.join(root, file), 'utf8'), ctx, { filename: file });
 }
 

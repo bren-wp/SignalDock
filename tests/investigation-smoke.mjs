@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
-const exCode=fs.readFileSync(new URL('../exception-groups.js', import.meta.url),'utf8');
-const code = fs.readFileSync(new URL('../investigation.js', import.meta.url), 'utf8');
+const exCode=fs.readFileSync(new URL('../src/analysis/exception-groups.js', import.meta.url),'utf8');
+const code = fs.readFileSync(new URL('../src/investigation/investigation.js', import.meta.url), 'utf8');
 const context = { console, Date, Math, JSON, self: {} }; vm.createContext(context); vm.runInContext(exCode, context); vm.runInContext(code, context);
 const api = context.self.SignalDockInvestigation;
 let notebook = api.empty();
