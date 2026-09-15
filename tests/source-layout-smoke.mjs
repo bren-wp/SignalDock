@@ -13,7 +13,9 @@ for (const dir of expectedDirs) assert.ok(fs.statSync(path.join(root, dir)).isDi
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
 assert.ok(scripts.includes("app.js"), "app.js entrypoint missing from index.html");
-assert.ok(scripts.some((ref) => ref.startsWith("src/app/")), "application controllers are not loaded from src/app");
+for (const ref of ["src/app/query-library-controller.js", "src/app/baseline-controller.js"]) {
+  assert.ok(scripts.includes(ref), `application controller missing from index.html: ${ref}`);
+}
 assert.ok(scripts.some((ref) => ref.startsWith("src/core/")), "core scripts are not loaded from src/core");
 assert.ok(scripts.some((ref) => ref.startsWith("src/analysis/")), "analysis scripts are not loaded from src/analysis");
 assert.ok(scripts.some((ref) => ref.startsWith("src/platform/")), "platform scripts are not loaded from src/platform");
@@ -24,7 +26,8 @@ for (const ref of ["src/core/search-index.js", "src/core/search-cache.js", "src/
 
 const ci = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
 assert.ok(ci.includes("find . -type f -name '*.js'"), "CI syntax check must recurse into organized source directories");
-assert.ok(ci.includes("src/app/query-library-controller.js"), "HTTP smoke must verify application controller assets");
+assert.ok(ci.includes("src/app/query-library-controller.js"), "HTTP smoke must verify Query Library controller asset");
+assert.ok(ci.includes("src/app/baseline-controller.js"), "HTTP smoke must verify Baseline controller asset");
 assert.ok(ci.includes("src/core/parser.js"), "HTTP smoke must verify organized core assets");
 assert.ok(ci.includes("src/analysis/trace-explorer.js"), "HTTP smoke must verify organized analysis assets");
 assert.ok(ci.includes("src/platform/desktop-bridge.js"), "HTTP smoke must verify organized platform assets");
