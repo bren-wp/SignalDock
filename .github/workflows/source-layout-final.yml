@@ -83,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git rm .github/workflows/source-layout-pass.yml .github/workflows/source-layout-retry.yml .github/workflows/source-layout-final.yml
+          git rm -f .github/workflows/source-layout-pass.yml .github/workflows/source-layout-retry.yml .github/workflows/source-layout-final.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
