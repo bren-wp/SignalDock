@@ -49,6 +49,25 @@ jobs:
       - name: Apply v2.8 controller migration
         run: python3 .github/scripts/v280-query-controller.py
 
+      - name: Synchronize release documentation
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          technical = Path('docs/TECHNICAL.md')
+          text = technical.read_text()
+          old = 'Current version: **2.7.4**.'
+          new = 'Current version: **2.8.0**.'
+          if text.count(old) != 1:
+              raise SystemExit(f'Technical version marker mismatch: found {text.count(old)}')
+          technical.write_text(text.replace(old, new, 1))
+          PY
+          grep -q 'Current version: \*\*2.8.0\*\*\.' docs/TECHNICAL.md
+          grep -q 'version-2.8.0-' README.md
+          grep -q 'SignalDock v2.8.0' README.md
+          grep -q 'const APP_VERSION = "2.8.0"' app.js
+          test "$(cat VERSION)" = "2.8.0"
+
       - name: Make retained feature gates version-forward
         shell: bash
         run: |
