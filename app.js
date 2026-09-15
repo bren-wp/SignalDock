@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.3";
+  const APP_VERSION = "2.8.4";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -84,6 +84,7 @@
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
+  let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
   const el = {};
@@ -227,6 +228,19 @@
       refreshBaselineHistory: () => baselineController?.renderHistory()
     });
     projectController.bind();
+    if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
+    caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
+      state,
+      el,
+      getUtils: utils,
+      toast,
+      getSelectedEntry: selectedEntry,
+      recordCaseActivity,
+      refreshCaseWorkspace: (rebuild = true) => renderCaseWorkspace(rebuild),
+      scheduleViewAutosave: () => scheduleViewAutosave(),
+      scheduleDatasetAutosave: () => scheduleDatasetAutosave()
+    });
+    caseWorkspaceController.bind();
     state.caseCheckpoints = window.SignalDockCaseCheckpoints?.normalizeList?.([]) || [];
     if (!window.SignalDockCaseCheckpointController?.create) throw new Error("SignalDock Case Checkpoint controller is unavailable.");
     caseCheckpointController = window.SignalDockCaseCheckpointController.create({
@@ -389,22 +403,10 @@
     el.investigationList?.addEventListener("change", onInvestigationEdit);
     [el.caseStatus, el.caseSeverity].forEach((control) => control?.addEventListener("change", persistCaseMeta));
     [el.caseHypothesis, el.caseImpact, el.caseNextSteps].forEach((control) => control?.addEventListener("input", persistCaseMeta));
-    el.addCaseFindingButton?.addEventListener("click", addCaseFinding);
     el.exportCaseMarkdownButton?.addEventListener("click", exportCaseMarkdown);
     el.exportCaseJsonButton?.addEventListener("click", exportCaseJson);
     el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
     el.caseFileInput?.addEventListener("change", importCaseJson);
-    el.caseFindings?.addEventListener("input", onCaseFindingEdit);
-    el.caseFindings?.addEventListener("change", onCaseFindingEdit);
-    el.caseFindings?.addEventListener("click", onCaseFindingClick);
-    el.addCaseMilestoneButton?.addEventListener("click", addCaseMilestone);
-    el.caseMilestones?.addEventListener("click", onCaseMilestoneClick);
-    el.caseMilestones?.addEventListener("change", onCaseMilestoneEdit);
-    el.caseMilestones?.addEventListener("input", onCaseMilestoneEdit);
-    el.addCaseAttachmentButton?.addEventListener("click", () => el.caseAttachmentInput?.click());
-    el.caseAttachmentInput?.addEventListener("change", addCaseAttachmentMetadata);
-    el.caseAttachments?.addEventListener("click", onCaseAttachmentClick);
-    el.caseAttachments?.addEventListener("input", onCaseAttachmentEdit);
     el.closeExceptionButton?.addEventListener("click", closeExceptions);
     el.exceptionResetButton?.addEventListener("click", () => { state.exceptionViewFingerprint = ""; renderExceptions(); });
     el.exceptionList?.addEventListener("click", onExceptionClick);
@@ -2496,84 +2498,9 @@
     if (el.caseWorkspaceStats) el.caseWorkspaceStats.textContent = `${summary.findings} findings · ${summary.confirmed} confirmed · ${summary.linkedEvidence} linked evidence`;
     renderCaseActivity();
     renderCaseUnifiedTimeline();
-    renderCaseMilestones();
-    renderCaseAttachments();
+    caseWorkspaceController?.render({ rebuildFindings: rebuild });
     caseCheckpointController?.render();
-    if (!rebuild) return;
-    el.caseFindings.replaceChildren();
-    if (!state.caseFile.findings.length) {
-      const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = "No findings yet. Add a finding when evidence supports or disproves a hypothesis."; el.caseFindings.appendChild(empty); return;
-    }
-    const evidence = Array.isArray(state.investigation?.items) ? state.investigation.items : [];
-    state.caseFile.findings.forEach((finding) => {
-      const card = document.createElement("article"); card.className = "case-finding"; card.dataset.caseFindingId = finding.id;
-      const top = document.createElement("div"); top.className = "case-finding__top";
-      const title = document.createElement("input"); title.type = "text"; title.maxLength = 180; title.value = finding.title || ""; title.dataset.caseField = "title"; title.dataset.caseFindingId = finding.id; title.setAttribute("aria-label", "Finding title");
-      const stateSelect = document.createElement("select"); stateSelect.dataset.caseField = "state"; stateSelect.dataset.caseFindingId = finding.id; [["open","Open"],["confirmed","Confirmed"],["dismissed","Dismissed"]].forEach(([value,label]) => { const option = new Option(label,value); stateSelect.add(option); }); stateSelect.value = finding.state;
-      const remove = document.createElement("button"); remove.type = "button"; remove.className = "button button--ghost button--small"; remove.dataset.caseAction = "remove"; remove.dataset.caseFindingId = finding.id; remove.textContent = "Remove";
-      top.append(title, stateSelect, remove);
-      const body = document.createElement("textarea"); body.rows = 2; body.maxLength = 12000; body.value = finding.body || ""; body.dataset.caseField = "body"; body.dataset.caseFindingId = finding.id; body.placeholder = "What did the evidence establish?";
-      const meta = document.createElement("div"); meta.className = "case-finding__meta";
-      const tagLabel = document.createElement("label"); tagLabel.append(document.createTextNode("Tags")); const tags = document.createElement("input"); tags.type = "text"; tags.value = (finding.tags || []).join(", "); tags.dataset.caseField = "tags"; tags.dataset.caseFindingId = finding.id; tags.placeholder = "root-cause, auth, regression"; tagLabel.appendChild(tags);
-      const evidenceLabel = document.createElement("label"); evidenceLabel.append(document.createTextNode("Linked evidence")); const select = document.createElement("select"); select.multiple = true; select.dataset.caseField = "evidenceIds"; select.dataset.caseFindingId = finding.id; evidence.forEach((item, index) => { const option = new Option(`${index + 1}. ${item.level} · ${item.service || "—"} · ${(item.message || "").slice(0, 80)}`, item.id); option.selected = finding.evidenceIds.includes(item.id); select.add(option); }); evidenceLabel.appendChild(select);
-      meta.append(tagLabel, evidenceLabel); card.append(top, body, meta); el.caseFindings.appendChild(card);
-    });
   }
-
-  function addCaseFinding() {
-    if (!window.SignalDockCaseWorkspace) return;
-    const selected = selectedEntry();
-    const pinned = selected ? state.investigation?.items?.find((item) => item.entryId === selected.id) : null;
-    const result = window.SignalDockCaseWorkspace.addFinding(state.caseFile, { evidenceIds: pinned ? [pinned.id] : [] });
-    state.caseFile = result.caseFile;
-    recordCaseActivity("finding.added", "Finding added", result.finding.title || "New finding", { findingId: result.finding.id });
-    renderCaseWorkspace();
-    scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave();
-    toast("Case finding added.");
-  }
-
-  function onCaseFindingEdit(event) {
-    if (!window.SignalDockCaseWorkspace) return;
-    const target = event.target;
-    const id = target.dataset.caseFindingId; const field = target.dataset.caseField;
-    if (!id || !field) return;
-    let value = target.value;
-    if (field === "evidenceIds") value = [...target.selectedOptions].map((option) => option.value);
-    state.caseFile = window.SignalDockCaseWorkspace.updateFinding(state.caseFile, id, { [field]: value });
-    if (event.type === "change") recordCaseActivity("finding.updated", "Finding updated", `${field} changed`, { findingId: id });
-    renderCaseWorkspace(false);
-    scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave();
-  }
-
-  function onCaseFindingClick(event) {
-    const button = event.target.closest("[data-case-action]");
-    if (!button || !window.SignalDockCaseWorkspace) return;
-    const id = button.dataset.caseFindingId;
-    if (button.dataset.caseAction === "remove") {
-      const finding = state.caseFile?.findings?.find((item) => item.id === id);
-      state.caseFile = window.SignalDockCaseWorkspace.removeFinding(state.caseFile, id);
-      recordCaseActivity("finding.removed", "Finding removed", finding?.title || id, { findingId: id });
-      renderCaseWorkspace(); scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave();
-    }
-  }
-
-  function renderCaseMilestones() {
-    if (!el.caseMilestones || !window.SignalDockCaseWorkspace) return;
-    state.caseFile = window.SignalDockCaseWorkspace.normalize(state.caseFile); el.caseMilestones.replaceChildren();
-    if (!state.caseFile.milestones.length) { const empty=document.createElement("div"); empty.className="case-findings__empty"; empty.textContent="No milestones yet."; el.caseMilestones.appendChild(empty); return; }
-    [...state.caseFile.milestones].sort((a,b)=>String(a.at).localeCompare(String(b.at))).forEach((item)=>{ const row=document.createElement("article"); row.className="case-milestone"; row.dataset.caseMilestoneId=item.id; const input=document.createElement("input"); input.value=item.title; input.dataset.caseMilestoneField="title"; input.maxLength=180; const status=document.createElement("select"); status.dataset.caseMilestoneField="status"; ["planned","reached","blocked"].forEach((value)=>{const opt=document.createElement("option"); opt.value=value; opt.textContent=value[0].toUpperCase()+value.slice(1); opt.selected=item.status===value; status.appendChild(opt);}); const at=document.createElement("input"); at.type="datetime-local"; at.dataset.caseMilestoneField="at"; const ms=Date.parse(item.at); if(Number.isFinite(ms)) at.value=new Date(ms-new Date(ms).getTimezoneOffset()*60000).toISOString().slice(0,16); const note=document.createElement("textarea"); note.rows=2; note.maxLength=4000; note.value=item.note||""; note.dataset.caseMilestoneField="note"; const remove=document.createElement("button"); remove.type="button"; remove.className="button button--ghost button--small"; remove.dataset.caseMilestoneAction="remove"; remove.textContent="Remove"; row.append(input,status,at,note,remove); el.caseMilestones.appendChild(row); });
-  }
-
-  function addCaseMilestone() {
-    if (!window.SignalDockCaseWorkspace) return; const result=window.SignalDockCaseWorkspace.addMilestone(state.caseFile,{title:`Milestone ${(state.caseFile?.milestones?.length||0)+1}`,status:"planned",at:new Date().toISOString()}); state.caseFile=result.caseFile; recordCaseActivity("milestone.added","Milestone added",result.milestone.title); renderCaseMilestones(); renderCaseWorkspace(false); scheduleViewAutosave(); if(state.settings.autosave!==false) scheduleDatasetAutosave();
-  }
-  function onCaseMilestoneEdit(event){ const row=event.target.closest("[data-case-milestone-id]"); const field=event.target.dataset.caseMilestoneField; if(!row||!field||!window.SignalDockCaseWorkspace)return; let value=event.target.value; if(field==="at"&&value)value=new Date(value).toISOString(); state.caseFile=window.SignalDockCaseWorkspace.updateMilestone(state.caseFile,row.dataset.caseMilestoneId,{[field]:value}); if(event.type==="change")recordCaseActivity("milestone.updated","Milestone updated",`${field} changed`); scheduleViewAutosave(); if(state.settings.autosave!==false)scheduleDatasetAutosave(); }
-  function onCaseMilestoneClick(event){ const button=event.target.closest("[data-case-milestone-action]"); const row=event.target.closest("[data-case-milestone-id]"); if(!button||!row||!window.SignalDockCaseWorkspace)return; const item=state.caseFile.milestones.find((v)=>v.id===row.dataset.caseMilestoneId); state.caseFile=window.SignalDockCaseWorkspace.removeMilestone(state.caseFile,row.dataset.caseMilestoneId); recordCaseActivity("milestone.removed","Milestone removed",item?.title||row.dataset.caseMilestoneId); renderCaseMilestones(); renderCaseWorkspace(false); scheduleViewAutosave(); if(state.settings.autosave!==false)scheduleDatasetAutosave(); }
-
-  function renderCaseAttachments(){ if(!el.caseAttachments||!window.SignalDockCaseWorkspace)return; state.caseFile=window.SignalDockCaseWorkspace.normalize(state.caseFile); el.caseAttachments.replaceChildren(); if(!state.caseFile.attachments.length){const empty=document.createElement("div");empty.className="case-findings__empty";empty.textContent="No local file references yet.";el.caseAttachments.appendChild(empty);return;} state.caseFile.attachments.forEach((item)=>{const row=document.createElement("article");row.className="case-attachment";row.dataset.caseAttachmentId=item.id;const meta=document.createElement("div");const strong=document.createElement("strong");strong.textContent=item.name;const small=document.createElement("small");small.textContent=`${item.type||"unknown"} · ${utils().formatBytes(Number(item.size)||0)} · metadata only`;meta.append(strong,small);const note=document.createElement("input");note.value=item.note||"";note.maxLength=2000;note.placeholder="Why this local file matters";note.dataset.caseAttachmentField="note";const remove=document.createElement("button");remove.type="button";remove.className="button button--ghost button--small";remove.dataset.caseAttachmentAction="remove";remove.textContent="Remove";row.append(meta,note,remove);el.caseAttachments.appendChild(row);}); }
-  async function addCaseAttachmentMetadata(event){const files=Array.from(event.target.files||[]);if(!files.length||!window.SignalDockCaseWorkspace)return;let added=0;for(const file of files){const result=window.SignalDockCaseWorkspace.addAttachmentMetadata(state.caseFile,file);state.caseFile=result.caseFile;if(result.added){added+=1;recordCaseActivity("attachment.added","Local file reference added",`${file.name} · ${utils().formatBytes(file.size)}`);}}renderCaseAttachments();renderCaseWorkspace(false);scheduleViewAutosave();if(state.settings.autosave!==false)scheduleDatasetAutosave();toast(`${added} local attachment reference${added===1?"":"s"} added. File contents were not stored.`);event.target.value="";}
-  function onCaseAttachmentEdit(event){const row=event.target.closest("[data-case-attachment-id]");if(!row||!event.target.dataset.caseAttachmentField||!window.SignalDockCaseWorkspace)return;state.caseFile=window.SignalDockCaseWorkspace.updateAttachment(state.caseFile,row.dataset.caseAttachmentId,{note:event.target.value});scheduleViewAutosave();if(state.settings.autosave!==false)scheduleDatasetAutosave();}
-  function onCaseAttachmentClick(event){const button=event.target.closest("[data-case-attachment-action]");const row=event.target.closest("[data-case-attachment-id]");if(!button||!row||!window.SignalDockCaseWorkspace)return;const item=state.caseFile.attachments.find((v)=>v.id===row.dataset.caseAttachmentId);state.caseFile=window.SignalDockCaseWorkspace.removeAttachment(state.caseFile,row.dataset.caseAttachmentId);recordCaseActivity("attachment.removed","Local file reference removed",item?.name||row.dataset.caseAttachmentId);renderCaseAttachments();renderCaseWorkspace(false);scheduleViewAutosave();if(state.settings.autosave!==false)scheduleDatasetAutosave();}
 
   async function exportCaseJson() {
     if (!window.SignalDockCaseWorkspace) return;

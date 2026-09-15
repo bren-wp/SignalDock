@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.4 — 2026-09-16
+
+### Case Workspace application controller
+- Extracted findings, milestones and metadata-only attachment rendering/actions from the root `app.js` into `src/app/case-workspace-controller.js`.
+- Preserved Case Workspace normalization, limits, merge/export rules and attachment metadata-only guarantees in `src/investigation/case-workspace.js`.
+- Added idempotent event binding/teardown and a single persistence helper for view/dataset autosave scheduling.
+- Milestone changes now refresh the unified Case Timeline and related Case surfaces after committed edits instead of leaving the visible timeline stale until another render.
+- Invalid milestone dates and Case Workspace collection limits now surface controlled user feedback instead of allowing unhandled UI exceptions; duplicate attachment selections report that no new references were added.
+
+### Regression coverage
+- Added a dedicated Case Workspace controller smoke test covering ownership boundaries, local-only constraints and controller load order.
+- Extended permanent source-layout and HTTP smoke gates to require all five application controllers.
+
 ## 2.8.3 — 2026-09-16
 
 ### Case Checkpoint application controller

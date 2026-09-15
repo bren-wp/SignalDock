@@ -17,3 +17,5 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 `app/project-controller.js` owns Project Manager UI and explicit reopen/link orchestration.
 
 `app/case-checkpoint-controller.js` owns Case Checkpoint UI rendering and create/remove/restore event coordination.
+
+`app/case-workspace-controller.js` owns findings, milestones and metadata-only attachment UI coordination.

@@ -17,6 +17,7 @@ const applicationControllers = [
   "src/app/query-library-controller.js",
   "src/app/baseline-controller.js",
   "src/app/project-controller.js",
+  "src/app/case-workspace-controller.js",
   "src/app/case-checkpoint-controller.js"
 ];
 for (const ref of applicationControllers) {
