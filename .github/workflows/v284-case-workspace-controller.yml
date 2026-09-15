@@ -131,13 +131,13 @@ jobs:
           curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
           grep -q 'SignalDockCaseWorkspaceController' /tmp/case-workspace-controller.js
 
-      - name: Commit verified v2.8.4
+      - name: Commit verified v2.8.4 runtime
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add VERSION app.js index.html src/app/case-workspace-controller.js src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/*.mjs .github/workflows/ci.yml
+          git add VERSION app.js index.html src/app/case-workspace-controller.js src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/*.mjs
           git diff --cached --check
           git commit -m "refactor: extract Case Workspace application controller"
           git push origin HEAD:main
