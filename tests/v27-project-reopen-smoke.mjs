@@ -9,6 +9,7 @@ const app = read("app.js");
 const html = read("index.html");
 const css = read("styles.css");
 const bridge = read("src/platform/desktop-bridge.js");
+const projectController = read("src/app/project-controller.js");
 const version = read("VERSION").trim();
 const readme = read("README.md");
 const changelog = read("CHANGELOG.md");
@@ -16,8 +17,11 @@ const changelog = read("CHANGELOG.md");
 const featureVersionParts = version.split(".").map(Number);
 assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
 assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
-for (const token of ["projectLinkFilesButton", "linkAndLoadProjectFiles", "reopenProjectHistoryItem", "markHistoryReopened", "SignalDockDesktopBridge.saveParts"]) {
+for (const token of ["projectLinkFilesButton", "SignalDockDesktopBridge.saveParts"]) {
   assert.ok(app.includes(token), `missing app token ${token}`);
+}
+for (const token of ["linkAndLoadFiles", "reopenHistoryItem", "markHistoryReopened", "requestPermission: true", "forgetProjectHandles"]) {
+  assert.ok(projectController.includes(token), `missing Project controller token ${token}`);
 }
 for (const token of ["src/platform/desktop-bridge.js", "projectLinkFilesButton", "projectCapabilityMeta"]) {
   assert.ok(html.includes(token), `missing html token ${token}`);

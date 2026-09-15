@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.2 — 2026-09-16
+
+### Project application controller
+- Extracted Project Manager rendering, CRUD actions, import/export and explicit link/relink/reopen/forget orchestration from the root `app.js` into `src/app/project-controller.js`.
+- Preserved the narrow `SignalDockDesktopBridge` capability surface; the controller receives file parsing and workspace restore as explicit callbacks instead of gaining arbitrary filesystem or shell access.
+- Kept project normalization, persistence, portable export and capability stripping in `src/investigation/project-manager.js`.
+- Added idempotent controller event binding/teardown and defensive rendering for invalid historical timestamps.
+
+### Capability safety and maintainability
+- Project deletion still attempts project-handle cleanup before metadata removal while never deleting user files; metadata removal remains possible if capability cleanup is unavailable.
+- Duplicate/export behavior continues to strip local handle references through the Project Manager domain model.
+- Added a Project controller architecture smoke test and extended permanent source-layout/HTTP coverage to all three application controllers.
+
 ## 2.8.1 — 2026-09-16
 
 ### Baseline application controller

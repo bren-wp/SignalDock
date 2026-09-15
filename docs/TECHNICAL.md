@@ -8,12 +8,14 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `baseline-controller.js` owns Baseline Compare and Baseline History UI coordination, while aggregate snapshot normalization/comparison remains in `src/investigation/baseline-manager.js`. Project naming/attachment, filter application and autosave are injected callbacks so the controller does not reach into Project Manager implementation details.
 
+`project-controller.js` owns Project Manager rendering, CRUD actions and explicit link/relink/reopen/forget orchestration. File parsing and workspace restore remain injected application callbacks, while filesystem access is limited to the existing `src/platform/desktop-bridge.js` capability facade. Portable project export/duplication rules remain in `src/investigation/project-manager.js`.
+
 
 **Private observability on your machine.**
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.1**.
+Current version: **2.8.2**.
 
 ## Highlights
 

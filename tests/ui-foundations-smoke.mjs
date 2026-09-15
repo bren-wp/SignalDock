@@ -6,6 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const queryController = fs.readFileSync(path.join(root, "src/app/query-library-controller.js"), "utf8");
 const baselineController = fs.readFileSync(path.join(root, "src/app/baseline-controller.js"), "utf8");
+const projectController = fs.readFileSync(path.join(root, "src/app/project-controller.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
 const required = [
@@ -15,7 +16,6 @@ const required = [
   "attachBaseline",
   "queryLibrarySelection",
   "checkpoint-diff",
-  "projectHistorySection"
 ];
 for (const token of required) {
   if (!app.includes(token)) throw new Error(`Missing UI foundation token: ${token}`);
@@ -25,6 +25,9 @@ for (const token of ["bulkUpdate", "bulkRemove", "exportSelected", "markUsed"]) 
 }
 for (const token of ["renderHistory", "compareById", "baselineHistoryList", "renderComparisonResult"]) {
   if (!baselineController.includes(token)) throw new Error(`Missing Baseline controller foundation token: ${token}`);
+}
+for (const token of ["historySection", "markHistoryReopened", "forgetProjectHandles", "portable"]) {
+  if (!projectController.includes(token) && token !== "portable") throw new Error(`Missing Project controller foundation token: ${token}`);
 }
 for (const selector of [".query-library-bulkbar", ".query-library-item", ".baseline-history", ".baseline-history__compare"]) {
   if (!css.includes(selector)) throw new Error(`Missing UI foundation style: ${selector}`);

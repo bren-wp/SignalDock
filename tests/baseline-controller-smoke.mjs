@@ -11,7 +11,8 @@ const html = read("index.html");
 const app = read("app.js");
 const controller = read("src/app/baseline-controller.js");
 
-assert.equal(version, "2.8.1");
+const featureVersion = version.split(".").map(Number);
+assert.ok(featureVersion.length === 3 && featureVersion.every(Number.isFinite) && (featureVersion[0] > 2 || (featureVersion[0] === 2 && featureVersion[1] >= 8)), `expected SignalDock >= 2.8.x, got ${version}`);
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
 const controllerIndex = scripts.indexOf("src/app/baseline-controller.js");
 const appIndex = scripts.indexOf("app.js");
