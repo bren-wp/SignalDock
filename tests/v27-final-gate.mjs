@@ -17,7 +17,7 @@ const workflows = fs.readdirSync(path.join(root, '.github', 'workflows'));
 
 const featureVersionParts = version.split(".").map(Number);
 assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
-assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
+assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\"']`).test(app));
 for (const token of ['projectLinkFilesButton', 'linkAndLoadProjectFiles', 'reopenProjectHistoryItem', 'SignalDockDesktopBridge.saveParts', 'createWorkerSessionToken', 'workerToken: ""']) assert.ok(app.includes(token), `missing app token: ${token}`);
 for (const token of ['src/platform/desktop-bridge.js', 'projectLinkFilesButton', 'projectCapabilityMeta']) assert.ok(html.includes(token), `missing HTML token: ${token}`);
 for (const token of ['WORKER_PROTOCOL_VERSION = 1', 'SESSION_TOKEN_PATTERN', 'ALLOWED_MESSAGE_TYPES', 'validEnvelope', 'MAX_RELATED_LIMIT', 'self.addEventListener("message"']) assert.ok(worker.includes(token), `missing worker token: ${token}`);
