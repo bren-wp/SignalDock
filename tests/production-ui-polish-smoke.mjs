@@ -11,7 +11,8 @@ const css = read("styles.css");
 const app = read("app.js");
 const technical = read("docs/TECHNICAL.md");
 
-assert.match(version, /^2\.7\.\d+$/);
+const featureVersionParts = version.split(".").map(Number);
+assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
 assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
 assert.ok(!html.includes("BETA"), "production UI must not expose beta labels");
 assert.ok(!html.includes("LOCAL PROJECT METADATA"), "project UI still exposes implementation terminology");

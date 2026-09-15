@@ -10,6 +10,7 @@ The repository root intentionally keeps only the files that a static server reso
 
 | Directory | Responsibility |
 |---|---|
+| `src/app/` | feature-level application controllers that coordinate state, UI and domain modules |
 | `src/core/` | parsers, queries, indexes, workspace state, persistence and local utility primitives |
 | `src/analysis/` | traces, services, spans, exceptions and dependency analysis |
 | `src/investigation/` | projects, baselines, cases, checkpoints and evidence workflows |
@@ -20,5 +21,7 @@ The repository root intentionally keeps only the files that a static server reso
 ## Quality rules
 
 CI syntax-checks JavaScript recursively instead of only checking root entrypoints. Static auditing also scans all production JavaScript under `src/` for forbidden runtime network primitives. The source-layout smoke test rejects new root JavaScript modules so future additions stay organized.
+
+Feature controllers under `src/app/` must receive their state, element registry and cross-feature actions through an explicit factory boundary; they should not create hidden global application state.
 
 No bundler or package-install step is introduced by this layout.

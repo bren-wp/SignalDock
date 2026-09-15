@@ -7,12 +7,13 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const rootJs = fs.readdirSync(root).filter((name) => name.endsWith(".js")).sort();
 assert.deepEqual(rootJs, ["app.js", "filter-worker.js"], "root should contain only public JavaScript entrypoints");
 
-const expectedDirs = ["src/core", "src/analysis", "src/investigation", "src/platform", "src/ui", "src/vendor"];
+const expectedDirs = ["src/app", "src/core", "src/analysis", "src/investigation", "src/platform", "src/ui", "src/vendor"];
 for (const dir of expectedDirs) assert.ok(fs.statSync(path.join(root, dir)).isDirectory(), `missing source directory ${dir}`);
 
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const scripts = [...html.matchAll(/<script\s+src="([^"]+)"/g)].map((match) => match[1]);
 assert.ok(scripts.includes("app.js"), "app.js entrypoint missing from index.html");
+assert.ok(scripts.some((ref) => ref.startsWith("src/app/")), "application controllers are not loaded from src/app");
 assert.ok(scripts.some((ref) => ref.startsWith("src/core/")), "core scripts are not loaded from src/core");
 assert.ok(scripts.some((ref) => ref.startsWith("src/analysis/")), "analysis scripts are not loaded from src/analysis");
 assert.ok(scripts.some((ref) => ref.startsWith("src/platform/")), "platform scripts are not loaded from src/platform");

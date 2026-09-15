@@ -1,10 +1,17 @@
 # SignalDock
 
+## Application controller boundary
+
+The root `app.js` remains the public workspace entrypoint, but feature-owned UI behavior is progressively moving into zero-build controllers under `src/app/`. Controllers receive the shared state object, element registry and the narrow cross-feature actions they need through a factory call; they do not own a second application state or introduce a framework/bundler dependency.
+
+`query-library-controller.js` owns Query Library rendering, event listeners, local import/export actions, folder management and bulk selection. Its event binding is idempotent and exposes teardown for deterministic lifecycle management. Domain persistence and normalization remain in `src/core/query-library.js`, so UI coordination and Query Library data rules stay separate.
+
+
 **Private observability on your machine.**
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.7.4**.
+Current version: **2.8.0**.
 
 ## Highlights
 

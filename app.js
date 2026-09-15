@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.7.4";
+  const APP_VERSION = "2.8.0";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -81,6 +81,7 @@
   let scheduleDatasetAutosave = () => {};
   let scheduleViewAutosave = () => {};
   let virtualSpacerRules = null;
+  let queryLibraryController = null;
 
   const el = {};
   const $ = (id) => document.getElementById(id);
@@ -117,7 +118,7 @@
       projects: openProjects,
       settings: openSettings,
       live: startLiveTail,
-      saved: openQueryLibrary
+      saved: () => queryLibraryController?.open()
     }[target];
     action?.();
   }
@@ -166,6 +167,21 @@
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
+    if (!window.SignalDockQueryLibraryController?.create) throw new Error("SignalDock Query Library controller is unavailable.");
+    queryLibraryController = window.SignalDockQueryLibraryController.create({
+      state,
+      el,
+      getUtils: utils,
+      toast,
+      buildViewName,
+      syncLevelChips,
+      applyFilters,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    queryLibraryController.bind();
+    queryLibraryController.render();
     state.baselineHistory = window.SignalDockBaselineManager?.loadHistory?.() || [];
     state.projects = window.SignalDockProjectManager?.load?.() || [];
     state.activeProjectId = String(utils().loadJson("signaldock-active-project-v1", "") || "");
@@ -362,24 +378,6 @@
     el.closeTraceOutlierButton?.addEventListener("click", closeTraceOutliers);
     el.traceOutlierResetButton?.addEventListener("click", () => { state.traceOutlierScopeFiltered = false; renderTraceOutliers(false); });
     el.traceOutlierBody?.addEventListener("click", onTraceOutlierClick);
-    el.closeQueryLibraryButton?.addEventListener("click", closeQueryLibrary);
-    el.queryLibrarySaveButton?.addEventListener("click", saveCurrentQueryToLibrary);
-    el.queryLibraryExportButton?.addEventListener("click", exportQueryLibrary);
-    el.queryLibraryImportButton?.addEventListener("click", () => el.queryLibraryFileInput?.click());
-    el.queryLibraryFileInput?.addEventListener("change", importQueryLibrary);
-    el.queryLibraryList?.addEventListener("click", onQueryLibraryClick);
-    el.queryLibraryList?.addEventListener("change", onQueryLibraryChange);
-    el.queryLibrarySearch?.addEventListener("input", () => { state.queryLibrarySearch = el.queryLibrarySearch.value || ""; renderQueryLibrary(); });
-    el.queryLibraryFolderFilter?.addEventListener("change", () => { state.queryLibraryFolderFilter = el.queryLibraryFolderFilter.value || "*"; renderQueryLibrary(); });
-    el.queryLibraryRenameFolderButton?.addEventListener("click", renameQueryLibraryFolder);
-    el.queryLibraryDeleteFolderButton?.addEventListener("click", moveQueryLibraryFolderToGeneral);
-    el.queryLibraryBulkSelectVisible?.addEventListener("click", selectVisibleQueries);
-    el.queryLibraryBulkFavorite?.addEventListener("click", () => bulkUpdateQueries({ favorite: true }, "Selected queries favorited."));
-    el.queryLibraryBulkUnfavorite?.addEventListener("click", () => bulkUpdateQueries({ favorite: false }, "Selected queries unfavorited."));
-    el.queryLibraryBulkMove?.addEventListener("click", moveSelectedQueries);
-    el.queryLibraryBulkExport?.addEventListener("click", exportSelectedQueries);
-    el.queryLibraryBulkDelete?.addEventListener("click", deleteSelectedQueries);
-    el.queryLibraryBulkClear?.addEventListener("click", () => { state.queryLibrarySelection = []; renderQueryLibrary(); });
     el.caseTimelineFilter?.addEventListener("change", () => { state.caseTimelineFilter = el.caseTimelineFilter.value || "all"; renderCaseUnifiedTimeline(); });
     el.caseTimelineList?.addEventListener("click", onCaseTimelineClick);
 
@@ -2183,72 +2181,6 @@
   function makeUiButton(id, label, className = "button button--ghost button--small") {
     const button = document.createElement("button"); button.type = "button"; button.id = id; button.className = className; button.textContent = label; return button;
   }
-
-  function openQueryLibrary() {
-    if (!window.SignalDockQueryLibrary || !el.queryLibraryDialog) return;
-    state.queryLibrary = window.SignalDockQueryLibrary.load(); renderQueryLibrary(); closeCompetingDialogs("queryLibraryDialog"); showDialogSafely(el.queryLibraryDialog);
-  }
-
-  function closeQueryLibrary() {
-    if (!el.queryLibraryDialog) return;
-    if (typeof el.queryLibraryDialog.close === "function" && el.queryLibraryDialog.open) el.queryLibraryDialog.close(); else el.queryLibraryDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderQueryLibraryBulk(folderNames, visible) {
-    const ids = new Set(state.queryLibrary.map((item) => item.id)); state.queryLibrarySelection = state.queryLibrarySelection.filter((id) => ids.has(id));
-    if (el.queryLibraryBulkCount) el.queryLibraryBulkCount.textContent = `${state.queryLibrarySelection.length.toLocaleString()} selected`;
-    if (el.queryLibraryBulkFolder) { const current = el.queryLibraryBulkFolder.value || "General"; const names = folderNames.length ? folderNames : ["General"]; el.queryLibraryBulkFolder.replaceChildren(...names.map((name) => new Option(name, name))); el.queryLibraryBulkFolder.value = names.includes(current) ? current : (names.includes("General") ? "General" : names[0]); }
-    const hasSelection = state.queryLibrarySelection.length > 0;
-    [el.queryLibraryBulkFavorite, el.queryLibraryBulkUnfavorite, el.queryLibraryBulkMove, el.queryLibraryBulkExport, el.queryLibraryBulkDelete, el.queryLibraryBulkClear].forEach((button) => { if (button) button.disabled = !hasSelection; });
-    if (el.queryLibraryBulkSelectVisible) el.queryLibraryBulkSelectVisible.disabled = !visible.length;
-  }
-
-  function renderQueryLibrary() {
-    if (!el.queryLibraryList || !window.SignalDockQueryLibrary) return;
-    state.queryLibrary = window.SignalDockQueryLibrary.normalize(state.queryLibrary); if (el.savedCount) el.savedCount.textContent = state.queryLibrary.length.toLocaleString();
-    const folderRows = window.SignalDockQueryLibrary.folders(state.queryLibrary); const folderNames = folderRows.map((item) => item.name); if (!folderNames.includes("General")) folderNames.unshift("General");
-    if (el.queryLibraryFolderFilter) { const current = state.queryLibraryFolderFilter || "*"; el.queryLibraryFolderFilter.replaceChildren(new Option("All folders", "*"), ...folderRows.map((item) => new Option(`${item.name} (${item.count})`, item.name))); el.queryLibraryFolderFilter.value = folderRows.some((item) => item.name === current) || current === "*" ? current : "*"; state.queryLibraryFolderFilter = el.queryLibraryFolderFilter.value; }
-    if (el.queryLibraryManageFolder) { const current = el.queryLibraryManageFolder.value || folderNames[0]; el.queryLibraryManageFolder.replaceChildren(...folderNames.map((name) => new Option(name, name))); el.queryLibraryManageFolder.value = folderNames.includes(current) ? current : folderNames[0]; }
-    if (el.queryLibrarySearch && el.queryLibrarySearch.value !== state.queryLibrarySearch) el.queryLibrarySearch.value = state.queryLibrarySearch || "";
-    const visible = window.SignalDockQueryLibrary.search(state.queryLibrary, state.queryLibrarySearch, state.queryLibraryFolderFilter); renderQueryLibraryBulk(folderNames, visible); el.queryLibraryList.replaceChildren();
-    if (!visible.length) { const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = state.queryLibrary.length ? "No reusable queries match the current library search/filter." : "No reusable queries saved yet."; el.queryLibraryList.appendChild(empty); return; }
-    let activeFolder = "";
-    visible.forEach((item) => {
-      if (item.folder !== activeFolder) { activeFolder = item.folder; const heading = document.createElement("div"); heading.className = "query-library-folder"; const strong = document.createElement("strong"); strong.textContent = activeFolder; const count = document.createElement("span"); count.textContent = `${visible.filter((candidate) => candidate.folder === activeFolder).length} visible`; heading.append(strong, count); el.queryLibraryList.appendChild(heading); }
-      const card = document.createElement("article"); card.className = "query-library-item"; card.classList.toggle("is-favorite", item.favorite); card.classList.toggle("is-selected", state.queryLibrarySelection.includes(item.id));
-      const select = document.createElement("input"); select.type = "checkbox"; select.className = "query-library-select"; select.dataset.queryLibrarySelect = item.id; select.checked = state.queryLibrarySelection.includes(item.id); select.setAttribute("aria-label", `Select ${item.name}`);
-      const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = `${item.favorite ? "★ " : ""}${item.name}`; const code = document.createElement("code"); code.textContent = item.query || "(no text query)"; const small = document.createElement("small"); const usage = item.useCount ? `used ${item.useCount}${item.lastUsedAt ? ` · last ${new Date(item.lastUsedAt).toLocaleString()}` : ""}` : "never applied"; small.textContent = [item.folder, item.description, item.tags.length ? item.tags.join(" · ") : "", item.level || "", item.timeRange || "", usage].filter(Boolean).join(" · "); copy.append(strong, code, small);
-      const actions = document.createElement("div"); const favorite = makeUiButton("", item.favorite ? "Unfavorite" : "Favorite"); favorite.dataset.queryLibraryAction = "favorite"; favorite.dataset.queryLibraryId = item.id; const duplicate = makeUiButton("", "Duplicate"); duplicate.dataset.queryLibraryAction = "duplicate"; duplicate.dataset.queryLibraryId = item.id; const move = document.createElement("select"); move.className = "query-library-move"; move.dataset.queryLibraryMove = item.id; move.title = "Move query to folder"; move.replaceChildren(...folderNames.map((name) => new Option(name, name))); move.value = item.folder; const apply = makeUiButton("", "Apply", "button button--primary button--small"); apply.dataset.queryLibraryAction = "apply"; apply.dataset.queryLibraryId = item.id; const remove = makeUiButton("", "Remove"); remove.dataset.queryLibraryAction = "remove"; remove.dataset.queryLibraryId = item.id; actions.append(favorite, duplicate, move, apply, remove); card.append(select, copy, actions); el.queryLibraryList.appendChild(card);
-    });
-  }
-
-  function saveCurrentQueryToLibrary() {
-    if (!window.SignalDockQueryLibrary) return; const name = el.queryLibraryName?.value.trim() || buildViewName() || "Reusable query";
-    try { state.queryLibrary = window.SignalDockQueryLibrary.upsert(state.queryLibrary, { name, folder: el.queryLibraryFolder?.value || "General", favorite: Boolean(el.queryLibraryFavorite?.checked), description: el.queryLibraryDescription?.value || "", tags: el.queryLibraryTags?.value || "", query: el.queryInput.value.trim(), level: el.levelFilter.value, source: el.sourceFilter.value, timeRange: el.timeFilter.value, sortMode: el.sortFilter.value }); if (el.queryLibraryName) el.queryLibraryName.value = ""; if (el.queryLibraryFolder) el.queryLibraryFolder.value = ""; if (el.queryLibraryFavorite) el.queryLibraryFavorite.checked = false; if (el.queryLibraryDescription) el.queryLibraryDescription.value = ""; if (el.queryLibraryTags) el.queryLibraryTags.value = ""; renderQueryLibrary(); toast(`Saved query “${name}”.`); } catch (error) { toast(error.message || String(error), "error", 6500); }
-  }
-
-  function onQueryLibraryClick(event) {
-    const button = event.target.closest("[data-query-library-action]"); if (!button) return; const item = state.queryLibrary.find((candidate) => candidate.id === button.dataset.queryLibraryId); if (!item) return;
-    if (button.dataset.queryLibraryAction === "remove") { state.queryLibrary = window.SignalDockQueryLibrary.remove(state.queryLibrary, item.id); state.queryLibrarySelection = state.queryLibrarySelection.filter((id) => id !== item.id); renderQueryLibrary(); return; }
-    if (button.dataset.queryLibraryAction === "favorite") { state.queryLibrary = window.SignalDockQueryLibrary.toggleFavorite(state.queryLibrary, item.id); renderQueryLibrary(); return; }
-    if (button.dataset.queryLibraryAction === "duplicate") { try { state.queryLibrary = window.SignalDockQueryLibrary.duplicate(state.queryLibrary, item.id); renderQueryLibrary(); toast(`Duplicated query “${item.name}”.`); } catch (error) { toast(error.message || String(error), "error"); } return; }
-    state.queryLibrary = window.SignalDockQueryLibrary.markUsed(state.queryLibrary, item.id); el.queryInput.value = item.query || ""; el.levelFilter.value = Array.from(el.levelFilter.options).some((option) => option.value === item.level) ? item.level : ""; el.sourceFilter.value = Array.from(el.sourceFilter.options).some((option) => option.value === item.source) ? item.source : ""; el.timeFilter.value = Array.from(el.timeFilter.options).some((option) => option.value === item.timeRange) ? item.timeRange : ""; el.sortFilter.value = Array.from(el.sortFilter.options).some((option) => option.value === item.sortMode) ? item.sortMode : "original"; syncLevelChips(el.levelFilter.value); closeQueryLibrary(); applyFilters(true); toast(`Applied query “${item.name}”.`);
-  }
-
-  function onQueryLibraryChange(event) {
-    const checkbox = event.target.closest("[data-query-library-select]"); if (checkbox) { const id = checkbox.dataset.queryLibrarySelect; state.queryLibrarySelection = checkbox.checked ? [...new Set([...state.queryLibrarySelection, id])] : state.queryLibrarySelection.filter((value) => value !== id); renderQueryLibrary(); return; }
-    const select = event.target.closest("[data-query-library-move]"); if (!select || !window.SignalDockQueryLibrary) return; state.queryLibrary = window.SignalDockQueryLibrary.moveToFolder(state.queryLibrary, select.dataset.queryLibraryMove, select.value || "General"); renderQueryLibrary();
-  }
-  function selectVisibleQueries() { const visible = window.SignalDockQueryLibrary.search(state.queryLibrary, state.queryLibrarySearch, state.queryLibraryFolderFilter); state.queryLibrarySelection = [...new Set([...state.queryLibrarySelection, ...visible.map((item) => item.id)])]; renderQueryLibrary(); }
-  function bulkUpdateQueries(patch, message) { if (!state.queryLibrarySelection.length) return; state.queryLibrary = window.SignalDockQueryLibrary.bulkUpdate(state.queryLibrary, state.queryLibrarySelection, patch); renderQueryLibrary(); if (message) toast(message); }
-  function moveSelectedQueries() { if (!el.queryLibraryBulkFolder?.value) return; bulkUpdateQueries({ folder: el.queryLibraryBulkFolder.value }, `Moved ${state.queryLibrarySelection.length} selected queries.`); }
-  function deleteSelectedQueries() { if (!state.queryLibrarySelection.length || !window.confirm(`Delete ${state.queryLibrarySelection.length} selected reusable queries?`)) return; state.queryLibrary = window.SignalDockQueryLibrary.bulkRemove(state.queryLibrary, state.queryLibrarySelection); state.queryLibrarySelection = []; renderQueryLibrary(); toast("Selected queries deleted."); }
-  async function exportSelectedQueries() { if (!state.queryLibrarySelection.length) return; const text = window.SignalDockQueryLibrary.exportSelected(state.queryLibrary, state.queryLibrarySelection); const name = `signaldock-query-selection-${new Date().toISOString().slice(0,10)}.json`; if (window.SignalDockStorageAdapter?.saveText) await window.SignalDockStorageAdapter.saveText({ name, text, mime: "application/json;charset=utf-8" }); else utils().downloadParts(name, [text], "application/json;charset=utf-8"); toast(`Exported ${state.queryLibrarySelection.length} selected queries.`); }
-  function renameQueryLibraryFolder() { if (!window.SignalDockQueryLibrary || !el.queryLibraryManageFolder || !el.queryLibraryRenameFolder) return; const from = el.queryLibraryManageFolder.value || "General"; const to = el.queryLibraryRenameFolder.value.trim(); if (!to) { toast("Enter a new folder name.", "error"); return; } state.queryLibrary = window.SignalDockQueryLibrary.renameFolder(state.queryLibrary, from, to); state.queryLibraryFolderFilter = to; el.queryLibraryRenameFolder.value = ""; renderQueryLibrary(); toast(`Renamed query folder “${from}” to “${to}”.`); }
-  function moveQueryLibraryFolderToGeneral() { if (!window.SignalDockQueryLibrary || !el.queryLibraryManageFolder) return; const folder = el.queryLibraryManageFolder.value || "General"; if (folder === "General") { toast("General is the fallback folder."); return; } state.queryLibrary = window.SignalDockQueryLibrary.deleteFolder(state.queryLibrary, folder, "General"); state.queryLibraryFolderFilter = "*"; renderQueryLibrary(); toast(`Moved queries from “${folder}” to General.`); }
-  async function exportQueryLibrary() { if (!window.SignalDockQueryLibrary) return; const name = `signaldock-query-library-${new Date().toISOString().slice(0,10)}.json`; const text = window.SignalDockQueryLibrary.exportJson(state.queryLibrary); if (window.SignalDockStorageAdapter?.saveText) await window.SignalDockStorageAdapter.saveText({ name, text, mime: "application/json;charset=utf-8" }); else utils().downloadParts(name, [text], "application/json;charset=utf-8"); toast("Query library exported."); }
-  async function importQueryLibrary(event) { const file = event.target.files?.[0]; if (!file || !window.SignalDockQueryLibrary) return; try { state.queryLibrary = window.SignalDockQueryLibrary.importJson(await file.text(), state.queryLibrary); renderQueryLibrary(); toast(`Imported ${state.queryLibrary.length.toLocaleString()} query library item${state.queryLibrary.length === 1 ? "" : "s"}.`); } catch (error) { toast(`Could not import query library: ${error.message || error}`, "error", 6500); } finally { event.target.value = ""; } }
 
   function formatDelta(value, suffix = "") { if (value === null || value === undefined || !Number.isFinite(Number(value))) return "—"; const number = Number(value); const sign = number > 0 ? "+" : ""; return `${sign}${Math.abs(number) < 1 && suffix === "%" ? (number * 100).toFixed(1) : number.toFixed(Math.abs(number) >= 100 ? 0 : 1)}${suffix}`; }
   function currentBaselineSnapshot(scopeFiltered = false) { if (!window.SignalDockBaselineManager || !state.entries.length) return null; return window.SignalDockBaselineManager.snapshot(state.entries, scopeFiltered ? state.filteredIndexes : null, { appVersion: APP_VERSION, name: el.baselineName?.value?.trim() || "Current dataset", scope: scopeFiltered ? "filtered" : "all" }); }

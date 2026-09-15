@@ -15,7 +15,8 @@ const storage = read('src/platform/storage-adapter.js');
 const changelog = read('CHANGELOG.md');
 const workflows = fs.readdirSync(path.join(root, '.github', 'workflows'));
 
-assert.match(version, /^2\.7\.\d+$/);
+const featureVersionParts = version.split(".").map(Number);
+assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
 assert.ok(new RegExp(`APP_VERSION\\s*=\\s*[\"']${version.replace(/\./g, '\\.') }[\"']`).test(app));
 for (const token of ['projectLinkFilesButton', 'linkAndLoadProjectFiles', 'reopenProjectHistoryItem', 'SignalDockDesktopBridge.saveParts', 'createWorkerSessionToken', 'workerToken: ""']) assert.ok(app.includes(token), `missing app token: ${token}`);
 for (const token of ['src/platform/desktop-bridge.js', 'projectLinkFilesButton', 'projectCapabilityMeta']) assert.ok(html.includes(token), `missing HTML token: ${token}`);

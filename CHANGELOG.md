@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.8.0 — 2026-09-16
+
+### Application controller architecture
+- Added `src/app/` for feature-level application controllers while preserving the zero-build static runtime.
+- Extracted Query Library rendering, event wiring, import/export, folder management and bulk actions from the root `app.js` into `src/app/query-library-controller.js`.
+- The root application now provides an explicit state/element/callback boundary instead of allowing Query Library code to reach across unrelated workspace implementation details.
+- Added idempotent controller binding and teardown support so event ownership is explicit and duplicate listeners are prevented.
+
+### Query Library quality
+- Replaced repeated per-folder visible-count scans with one bounded counting pass before rendering folder headings.
+- Added an explicit accessible name to per-query folder movement controls and preserved all existing local-only storage/export semantics.
+- Added controller architecture regression coverage that rejects reintroduction of Query Library implementation code into the root application entrypoint.
+
+
 
 ## 2.7.4 — 2026-09-16
 

@@ -12,7 +12,8 @@ const hardening = read("src/ui/ui-hardening.js");
 const query = read("src/core/query-library.js");
 const readme = read("README.md");
 
-assert.match(version, /^2\.7\.\d+$/);
+const featureVersionParts = version.split(".").map(Number);
+assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
 assert.ok(html.includes('id="clearAllButton" type="button" title="Clear all logs" aria-label="Clear all logs"'));
 assert.ok(html.includes('id="resetButton" type="button" title="Reset filters" aria-label="Reset filters"'));
 for (const tag of html.match(/<svg class="icon[^"]*"[^>]*>/g) || []) assert.ok(tag.includes('aria-hidden="true"'), `decorative icon is exposed to accessibility tree: ${tag}`);
