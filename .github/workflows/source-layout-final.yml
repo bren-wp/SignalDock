@@ -1,0 +1,86 @@
+name: SignalDock source layout final
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  reorganize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Apply and verify source layout migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '/^          python3 <<'\''PY'\''$/{flag=1;next} flag && /^          PY$/{flag=0;exit} flag{sub(/^          /,""); print}' .github/workflows/source-layout-pass.yml > /tmp/signaldock-source-layout.py
+          test -s /tmp/signaldock-source-layout.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/signaldock-source-layout.py')
+          text = path.read_text()
+          old = '        updated = updated.replace(old, new)'
+          new = "        updated = re.sub(r'(?<![A-Za-z0-9_-])' + re.escape(old) + r'(?![A-Za-z0-9_.-])', new, updated)"
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected one unsafe replacement line, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          python3 /tmp/signaldock-source-layout.py
+
+          python3 - <<'PY'
+          from pathlib import Path
+          gate = Path('tests/v27-final-gate.mjs')
+          text = gate.read_text()
+          text = text.replace("assert.equal(version, '2.7.0');", "assert.equal(version, '2.7.1');")
+          text = text.replace('2\\.7\\.0["\']/', '2\\.7\\.1["\']/')
+          if "assert.equal(version, '2.7.1');" not in text or '2\\.7\\.1' not in text:
+              raise SystemExit('v2.7 final gate did not update to 2.7.1')
+          gate.write_text(text)
+          PY
+
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            TERM=xterm node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-layout-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-layout-index.html; then ready=1; break; fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          curl --fail --silent http://127.0.0.1:8080/src/core/parser.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/analysis/trace-explorer.js -o /dev/null
+          curl --fail --silent http://127.0.0.1:8080/src/platform/desktop-bridge.js -o /dev/null
+
+      - name: Commit organized source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/source-layout-pass.yml .github/workflows/source-layout-retry.yml .github/workflows/source-layout-final.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "refactor: organize runtime modules under src"
+          git push origin HEAD:main
