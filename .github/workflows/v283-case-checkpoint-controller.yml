@@ -24,6 +24,30 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
+      - name: Normalize source-layout migration anchor
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/source-layout-smoke.mjs')
+          text = path.read_text()
+          old = '''for (const ref of [
+            "src/app/query-library-controller.js",
+            "src/app/baseline-controller.js",
+            "src/app/project-controller.js"
+          ]) {
+            assert.ok(scripts.includes(ref), `application controller missing from index.html: ${ref}`);
+          }
+          '''
+          new = '''for (const ref of ["src/app/query-library-controller.js", "src/app/baseline-controller.js", "src/app/project-controller.js"]) {
+            assert.ok(scripts.includes(ref), `application controller missing from index.html: ${ref}`);
+          }
+          '''
+          if text.count(old) != 1:
+              raise SystemExit('source-layout HTML controller anchor mismatch')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Apply v2.8.3 Case Checkpoint controller migration
         run: python3 .github/scripts/v283-case-checkpoint-controller.py
 
