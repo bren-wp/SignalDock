@@ -89,6 +89,37 @@ jobs:
           PY
           grep -R -nE 'assert\.(equal|match)\(version.*2\.7' tests/*.mjs || true
 
+      - name: Align static foundation test with controller ownership
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/static-foundation-ui-smoke.mjs')
+          text = path.read_text()
+          old_import = 'const app = read("app.js");\n'
+          new_import = 'const app = read("app.js");\nconst queryController = read("src/app/query-library-controller.js");\n'
+          if text.count(old_import) != 1:
+              raise SystemExit('static foundation app import marker mismatch')
+          text = text.replace(old_import, new_import, 1)
+          old_block = '''for (const token of [
+            'queryLibraryBulkCount: $("queryLibraryBulkCount")',
+            'baselineHistoryList: $("baselineHistoryList")',
+            'el.queryLibraryBulkSelectVisible?.addEventListener',
+            'el.baselineHistoryExportButton?.addEventListener'
+          ]) assert.ok(app.includes(token), `static control binding missing: ${token}`);
+          '''
+          new_block = '''for (const token of [
+            'queryLibraryBulkCount: $("queryLibraryBulkCount")',
+            'baselineHistoryList: $("baselineHistoryList")',
+            'el.baselineHistoryExportButton?.addEventListener'
+          ]) assert.ok(app.includes(token), `static app binding missing: ${token}`);
+          assert.ok(queryController.includes('listen(el.queryLibraryBulkSelectVisible, "click", selectVisible)'), "Query Library bulk selection listener must be owned by the feature controller");
+          '''
+          if text.count(old_block) != 1:
+              raise SystemExit('static foundation binding assertion block mismatch')
+          path.write_text(text.replace(old_block, new_block, 1))
+          PY
+
       - name: Verify JavaScript and regressions
         shell: bash
         run: |
