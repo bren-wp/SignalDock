@@ -67,7 +67,8 @@ projects = projectsApi.unlinkHistoryHandle(projects, created.project.id, 'recent
 assert.equal(projects[0].recentDatasets[0].reopenable, false);
 projects = projectsApi.linkHistoryHandle(projects, created.project.id, 'recentDatasets', 'd1', 'local:file:d1', 'file');
 const exported = JSON.parse(projectsApi.exportJson(projects, created.project.id));
-assert.equal(exported.version, 3);
+assert.ok(projectsApi.VERSION >= 3, 'Project schema must retain the v3 local-handle foundation or a compatible successor.');
+assert.equal(exported.version, projectsApi.VERSION);
 assert.equal('handleRef' in exported.projects[0].recentDatasets[0], false);
 assert.equal('reopenable' in exported.projects[0].recentDatasets[0], false);
 
