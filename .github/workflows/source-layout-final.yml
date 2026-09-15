@@ -43,13 +43,19 @@ jobs:
 
           python3 - <<'PY'
           from pathlib import Path
-          gate = Path('tests/v27-final-gate.mjs')
-          text = gate.read_text()
-          text = text.replace("assert.equal(version, '2.7.0');", "assert.equal(version, '2.7.1');")
-          text = text.replace('2\\.7\\.0["\']/', '2\\.7\\.1["\']/')
-          if "assert.equal(version, '2.7.1');" not in text or '2\\.7\\.1' not in text:
-              raise SystemExit('v2.7 final gate did not update to 2.7.1')
-          gate.write_text(text)
+          for gate in Path('tests').glob('v27-*.mjs'):
+              text = gate.read_text()
+              text = text.replace("assert.equal(version, '2.7.0');", "assert.equal(version, '2.7.1');")
+              text = text.replace("assert.equal(version,'2.7.0');", "assert.equal(version,'2.7.1');")
+              text = text.replace('2\\.7\\.0["\']/', '2\\.7\\.1["\']/')
+              gate.write_text(text)
+          remaining = []
+          for gate in Path('tests').glob('v27-*.mjs'):
+              text = gate.read_text()
+              if "assert.equal(version, '2.7.0')" in text or "assert.equal(version,'2.7.0')" in text or 'APP_VERSION\\s*=\\s*["\']2\\.7\\.0' in text:
+                  remaining.append(str(gate))
+          if remaining:
+              raise SystemExit(f'Stale v2.7.0 release assertions remain: {remaining}')
           PY
 
           find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
