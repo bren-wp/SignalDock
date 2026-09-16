@@ -20,6 +20,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.
 
+`app/trace-explorer-controller.js` owns Trace Explorer inventory rendering, A/B comparison selection/dialog UI and representative trace-sample navigation.
+
 `app/case-checkpoint-controller.js` owns Case Checkpoint UI rendering and create/remove/restore event coordination.
 
 `app/case-workspace-controller.js` owns findings, milestones and metadata-only attachment UI coordination.

@@ -14,6 +14,8 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `exception-controller.js` owns Exception Explorer rendering, deterministic fingerprint query coordination and representative-sample actions. Grouping and trend classification remain in `src/analysis/exception-groups.js` and `src/analysis/exception-trends.js`; log filtering, evidence pinning and selected-log navigation are injected callbacks. Sample resolution prefers stable entry IDs before index and fingerprint fallbacks so restored workspaces do not depend on stale array positions.
 
+`trace-explorer-controller.js` owns distributed Trace Explorer rendering, two-trace comparison selection/dialog coordination and representative trace-sample navigation. Trace inventory and A/B comparison calculations remain in `src/analysis/trace-explorer.js` and `src/analysis/trace-compare.js`; filtering, inspector rendering and dialog coordination are injected callbacks. Sample navigation prefers a stable entry ID before index and explicit trace-ID fallbacks.
+
 `case-checkpoint-controller.js` owns Case Checkpoint rendering and create/remove/restore UI actions. Checkpoint snapshots/diffs remain in `src/investigation/case-checkpoints.js`, while the controller receives Case Workspace refresh and autosave as narrow callbacks. Case Workspace rendering also refreshes checkpoint diffs so restored sessions and later edits remain visually synchronized.
 
 `case-workspace-controller.js` owns findings, milestones and metadata-only attachment rendering plus their delegated UI events. The Case Workspace domain module remains authoritative for normalization, bounds and metadata-only attachment records. Cross-feature effects such as selected-entry lookup, activity recording, workspace refresh and autosave are injected callbacks rather than hidden global dependencies.
@@ -23,7 +25,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.6**.
+Current version: **2.8.7**.
 
 ## Highlights
 

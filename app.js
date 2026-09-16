@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.6";
+  const APP_VERSION = "2.8.7";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -86,6 +86,7 @@
   let projectController = null;
   let investigationController = null;
   let exceptionController = null;
+  let traceExplorerController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -116,7 +117,7 @@
       heatmap: openServiceHeatmap,
       trends: openServiceTrends,
       baseline: () => baselineController?.open(),
-      traces: openTraceExplorer,
+      traces: () => traceExplorerController?.open(),
       outliers: openTraceOutliers,
       health: openHealth,
       investigation: () => investigationController?.open(),
@@ -266,6 +267,21 @@
       setActiveNav
     });
     exceptionController.bind();
+    if (!window.SignalDockTraceExplorerController?.create) throw new Error("SignalDock Trace Explorer controller is unavailable.");
+    traceExplorerController = window.SignalDockTraceExplorerController.create({
+      state,
+      el,
+      formatDuration,
+      toast,
+      selectEntry,
+      renderInspector,
+      entryRowIntoView,
+      filterByCorrelation,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    traceExplorerController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -444,11 +460,6 @@
     el.serviceTrendsResetButton?.addEventListener("click", () => { state.serviceTrendsScopeFiltered = false; renderServiceTrends(false); });
     el.serviceTrendsSplit?.addEventListener("change", () => { state.serviceTrendsSplit = Number(el.serviceTrendsSplit.value) || 0.5; renderServiceTrends(); });
     el.serviceTrendsBody?.addEventListener("click", onServiceTrendsClick);
-    el.closeTraceExplorerButton?.addEventListener("click", closeTraceExplorer);
-    el.traceExplorerResetButton?.addEventListener("click", () => { state.traceExplorerScopeFiltered = false; renderTraceExplorer(false); });
-    el.traceExplorerBody?.addEventListener("click", onTraceExplorerClick);
-    el.traceCompareButton?.addEventListener("click", openTraceComparison);
-    el.closeTraceCompareButton?.addEventListener("click", closeTraceComparison);
     el.closeTraceOutlierButton?.addEventListener("click", closeTraceOutliers);
     el.traceOutlierResetButton?.addEventListener("click", () => { state.traceOutlierScopeFiltered = false; renderTraceOutliers(false); });
     el.traceOutlierBody?.addEventListener("click", onTraceOutlierClick);
@@ -871,9 +882,7 @@
     state.serviceTrendsData = window.SignalDockServiceTrends?.compare?.(state.entries) || null;
     state.traceExplorerData = window.SignalDockTraceExplorer?.buildWindow?.(state.entries, null, { limit: 1000 }) || window.SignalDockTraceExplorer?.build?.(state.entries) || null;
     state.traceOutlierData = window.SignalDockTraceOutliers?.rank?.(state.entries, { limit: 250 }) || null;
-    const traceIds = new Set((state.traceExplorerData?.rows || []).map((row) => row.traceId));
-    state.traceCompareSelection = state.traceCompareSelection.filter((id) => traceIds.has(id)).slice(-2);
-    if (el.traceCompareButton) { el.traceCompareButton.disabled = state.traceCompareSelection.length !== 2; el.traceCompareButton.textContent = `Compare selected (${state.traceCompareSelection.length}/2)`; }
+    traceExplorerController?.reconcileSelection(state.traceExplorerData);
   }
 
   function currentFilterRequest() {
@@ -2116,85 +2125,6 @@
   }
 
   function onServiceTrendsClick(event) { const button=event.target.closest("[data-trend-service]"); if(!button)return; closeServiceTrends(); filterByServiceValue(button.dataset.trendService||""); }
-
-  function openTraceExplorer() {
-    if (!window.SignalDockTraceExplorer || !el.traceExplorerDialog) return;
-    if (!state.entries.length) { toast("Load trace/span data before opening Trace Explorer."); return; }
-    state.traceExplorerScopeFiltered = true; renderTraceExplorer(true); closeCompetingDialogs("traceExplorerDialog"); showDialogSafely(el.traceExplorerDialog);
-  }
-
-  function closeTraceExplorer() {
-    if (!el.traceExplorerDialog) return;
-    if (typeof el.traceExplorerDialog.close === "function" && el.traceExplorerDialog.open) el.traceExplorerDialog.close(); else el.traceExplorerDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderTraceExplorer(useFiltered = state.traceExplorerScopeFiltered) {
-    if (!window.SignalDockTraceExplorer || !el.traceExplorerBody) return;
-    state.traceExplorerScopeFiltered = Boolean(useFiltered);
-    const scopedIndexes = state.traceExplorerScopeFiltered && state.filteredIndexes.length && state.filteredIndexes.length < state.entries.length ? state.filteredIndexes : null;
-    const data = scopedIndexes ? window.SignalDockTraceExplorer.buildWindow(state.entries, scopedIndexes, { limit: 1000 }) : (state.traceExplorerData || window.SignalDockTraceExplorer.buildWindow(state.entries, null, { limit: 1000 }));
-    if (el.traceExplorerMeta) el.traceExplorerMeta.textContent = `${state.traceExplorerScopeFiltered && scopedIndexes ? "Current filtered result" : "All loaded logs"} · explicit trace IDs only${data.summary.truncated ? ` · showing ${data.summary.returned.toLocaleString()} of ${data.summary.traces.toLocaleString()} ranked traces` : ""}.`;
-    if (el.traceExplorerSummary) {
-      el.traceExplorerSummary.replaceChildren();
-      [["Traces", data.summary.traces], ["With errors", data.summary.errors], ["Incomplete", data.summary.incomplete], ["Services", data.summary.services]].forEach(([label, value]) => { const item = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString(); const span = document.createElement("span"); span.textContent = label; item.append(strong, span); el.traceExplorerSummary.appendChild(item); });
-    }
-    el.traceExplorerBody.replaceChildren();
-    if (!data.rows.length) { const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = 8; td.className = "investigation-empty"; td.textContent = "No explicit trace IDs were found in this scope."; tr.appendChild(td); el.traceExplorerBody.appendChild(tr); return; }
-    data.rows.slice(0, 1000).forEach((row) => {
-      const tr = document.createElement("tr");
-      const id = document.createElement("td"); const code = document.createElement("code"); code.textContent = row.traceId; code.title = row.traceId; id.appendChild(code);
-      const services = document.createElement("td"); services.textContent = row.services.slice(0, 4).join(", ") + (row.services.length > 4 ? ` +${row.services.length - 4}` : "");
-      const spans = document.createElement("td"); spans.textContent = row.spans.toLocaleString();
-      const errors = document.createElement("td"); errors.textContent = row.errors.toLocaleString(); if (row.errors) errors.className = "matrix-error";
-      const events = document.createElement("td"); events.textContent = row.events.toLocaleString();
-      const duration = document.createElement("td"); duration.textContent = row.durationMs === null ? "—" : formatDuration(row.durationMs);
-      const coverage = document.createElement("td"); coverage.textContent = `${Math.round(row.parentCoverage * 100)}%`; coverage.className = row.parentCoverage < 1 ? "trace-coverage-partial" : "";
-      const action = document.createElement("td");
-      const button = document.createElement("button"); button.type = "button"; button.className = "button button--ghost button--small"; button.dataset.traceExplorerId = row.traceId; button.dataset.traceSampleIndex = String(row.sampleIndex); button.textContent = "Open";
-      const compare = document.createElement("button"); compare.type = "button"; compare.className = "button button--ghost button--small trace-compare-select"; compare.dataset.traceCompareId = row.traceId; compare.textContent = state.traceCompareSelection.includes(row.traceId) ? "Selected" : "Compare"; compare.classList.toggle("is-selected", state.traceCompareSelection.includes(row.traceId));
-      action.append(button, compare);
-      tr.append(id, services, spans, errors, events, duration, coverage, action); el.traceExplorerBody.appendChild(tr);
-    });
-  }
-
-  function onTraceExplorerClick(event) {
-    const compareButton = event.target.closest("[data-trace-compare-id]");
-    if (compareButton) {
-      const traceId = compareButton.dataset.traceCompareId || ""; if (!traceId) return;
-      const existing = state.traceCompareSelection.indexOf(traceId);
-      if (existing >= 0) state.traceCompareSelection.splice(existing, 1); else { if (state.traceCompareSelection.length >= 2) state.traceCompareSelection.shift(); state.traceCompareSelection.push(traceId); }
-      if (el.traceCompareButton) { el.traceCompareButton.disabled = state.traceCompareSelection.length !== 2; el.traceCompareButton.textContent = `Compare selected (${state.traceCompareSelection.length}/2)`; }
-      renderTraceExplorer(state.traceExplorerScopeFiltered); return;
-    }
-    const button = event.target.closest("[data-trace-explorer-id]"); if (!button) return;
-    const traceId = button.dataset.traceExplorerId || ""; const index = Number(button.dataset.traceSampleIndex);
-    closeTraceExplorer();
-    if (Number.isInteger(index) && state.entries[index]) { selectEntry(state.entries[index].id); state.inspectorTab = "trace"; renderInspector(); entryRowIntoView(index); }
-    else if (traceId) filterByCorrelation("trace", traceId);
-  }
-
-  function openTraceComparison() {
-    if (!window.SignalDockTraceCompare || !el.traceCompareDialog || state.traceCompareSelection.length !== 2) return;
-    try {
-      const result = window.SignalDockTraceCompare.compare(state.entries, state.traceCompareSelection[0], state.traceCompareSelection[1]);
-      renderTraceComparison(result); closeCompetingDialogs("traceCompareDialog"); showDialogSafely(el.traceCompareDialog);
-    } catch (error) { toast(error.message || String(error), "error", 6500); }
-  }
-
-  function closeTraceComparison() { if (!el.traceCompareDialog) return; if (typeof el.traceCompareDialog.close === "function" && el.traceCompareDialog.open) el.traceCompareDialog.close(); else el.traceCompareDialog.removeAttribute("open"); }
-
-  function renderTraceComparison(result) {
-    if (!el.traceCompareBody) return; el.traceCompareBody.replaceChildren();
-    const metrics = [["Entries","entries"],["Spans","spans"],["Services","serviceCount"],["Errors","errors"],["Warnings","warnings"],["Span events","events"],["Trace duration","durationMs"],["Avg span","avgSpanMs"],["Parent coverage","parentCoverage"]];
-    const header = document.createElement("div"); header.className = "trace-compare-summary";
-    [result.left, result.right].forEach((side, index) => { const card = document.createElement("article"); const title = document.createElement("strong"); title.textContent = index ? "Trace B" : "Trace A"; const code = document.createElement("code"); code.textContent = side.traceId; const small = document.createElement("small"); small.textContent = side.services.join(", ") || "No service labels"; card.append(title, code, small); header.appendChild(card); });
-    el.traceCompareBody.appendChild(header);
-    const table = document.createElement("div"); table.className = "trace-compare-metrics";
-    metrics.forEach(([label,key]) => { const row = document.createElement("div"); const l=document.createElement("strong"); l.textContent=label; const a=document.createElement("span"); const b=document.createElement("span"); const d=document.createElement("span"); const format=(v)=> key.includes("duration")||key==="avgSpanMs" ? (v===null?"—":formatDuration(v)) : key==="parentCoverage" ? `${Math.round((v||0)*100)}%` : Number(v||0).toLocaleString(); a.textContent=format(result.left[key]); b.textContent=format(result.right[key]); const delta=result.delta[key]; d.textContent=delta===null?"—": key==="parentCoverage" ? `${delta>=0?"+":""}${Math.round(delta*100)}pp` : key.includes("duration")||key==="avgSpanMs" ? `${delta>=0?"+":""}${formatDuration(Math.abs(delta))}${delta<0?" faster":""}` : `${delta>=0?"+":""}${Number(delta).toLocaleString()}`; d.className = delta > 0 ? "delta-positive" : delta < 0 ? "delta-negative" : ""; row.append(l,a,b,d); table.appendChild(row); });
-    el.traceCompareBody.appendChild(table);
-    const services = document.createElement("section"); services.className="trace-compare-services"; services.innerHTML = `<strong>Service set difference</strong><p></p>`; services.querySelector("p").textContent = `Shared: ${result.services.shared.join(", ") || "—"} · Only A: ${result.services.leftOnly.join(", ") || "—"} · Only B: ${result.services.rightOnly.join(", ") || "—"}`; el.traceCompareBody.appendChild(services);
-  }
 
   function openTraceOutliers() {
     if (!window.SignalDockTraceOutliers || !el.traceOutlierDialog) return;

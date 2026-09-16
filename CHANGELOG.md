@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.7 — 2026-09-16
+
+### Trace Explorer application boundary
+- Extracted distributed Trace Explorer inventory rendering, scope reset, row actions and two-trace comparison UI from the root application into `src/app/trace-explorer-controller.js`.
+- Kept trace inventory and A/B comparison calculations in `src/analysis/trace-explorer.js` and `src/analysis/trace-compare.js`; filtering, inspector navigation and dialog coordination are explicit injected callbacks.
+- Hardened representative trace navigation to prefer the stable entry ID captured at render time before sample-index and explicit trace-ID fallbacks.
+- Added explicit pressed-state semantics and trace-specific accessible names to comparison/open actions while preserving the two-selection FIFO behavior.
+
+### Maintainability and verification
+- Removed legacy Trace Explorer/Trace Compare functions and event listeners from `app.js`; dataset rebuilds now reconcile compare selection through the controller boundary.
+- Added an isolated Trace Explorer controller smoke test covering stable-ID resolution, selection reconciliation, local-only constraints, load order and application integration.
+- Extended source-layout, UI-foundation and permanent HTTP quality gates so the controller is a required production asset without introducing a bundler, backend or persistence change.
+
 ## 2.8.6 — 2026-09-16
 
 ### Exception Explorer application boundary
