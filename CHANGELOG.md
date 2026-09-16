@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.13 — 2026-09-16
+
+### Service Map application boundary
+- Extracted Service Map SVG/list rendering, grouping controls, scope reset and topology-node actions from the root application into `src/app/service-map-controller.js`.
+- Kept explicit parent-span topology aggregation, dimension grouping and deterministic layout in `src/analysis/service-map.js`; query mutation, dialog coordination and performance recording remain injected callbacks.
+- Preserved zero-result filtered scopes as explicit empty topology results and made all-log reset sticky across later grouping changes.
+- Added accessible names to generated SVG topology nodes and list actions while preserving keyboard activation.
+
+### Maintainability and verification
+- Removed legacy Service Map rendering and event listeners from `app.js`, leaving only the narrow topology-query mutation callback in the root application.
+- Added isolated controller coverage for zero-result/all-log scope behavior, local-only constraints, load order and application integration.
+- Extended source-layout, UI-foundation and permanent HTTP quality gates without changing parser, worker, storage, network policy or the zero-build deployment model.
+
 ## 2.8.12 — 2026-09-16
 
 ### Observed Health application boundary

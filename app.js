@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.12";
+  const APP_VERSION = "2.8.13";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -88,6 +88,7 @@
   let exceptionController = null;
   let traceExplorerController = null;
   let traceOutlierController = null;
+  let serviceMapController = null;
   let serviceMatrixController = null;
   let serviceHeatmapController = null;
   let serviceTrendsController = null;
@@ -117,7 +118,7 @@
     setActiveNav(target);
     const action = {
       search: () => el.queryInput?.focus(),
-      map: openServiceMap,
+      map: () => serviceMapController?.open(),
       matrix: () => serviceMatrixController?.open(),
       heatmap: () => serviceHeatmapController?.open(),
       trends: () => serviceTrendsController?.open(),
@@ -304,6 +305,19 @@
       setActiveNav
     });
     traceOutlierController.bind();
+    if (!window.SignalDockServiceMapController?.create) throw new Error("SignalDock Service Map controller is unavailable.");
+    serviceMapController = window.SignalDockServiceMapController.create({
+      state,
+      el,
+      formatDuration,
+      toast,
+      applyMapNodeFilter: applyTopologyFilter,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav,
+      recordPerformance: (...args) => profiler()?.record?.(...args)
+    });
+    serviceMapController.bind();
     if (!window.SignalDockServiceMatrixController?.create) throw new Error("SignalDock Service Matrix controller is unavailable.");
     serviceMatrixController = window.SignalDockServiceMatrixController.create({
       state,
@@ -536,7 +550,6 @@
     el.clearRecoveryButton.addEventListener("click", clearRecoverySnapshot);
     el.clearSearchCacheButton?.addEventListener("click", clearSearchCache);
     el.copyDiagnosticsButton?.addEventListener("click", copyDiagnostics);
-    el.closeServiceMapButton?.addEventListener("click", closeServiceMap);
     bindDialogNavReset(
       el.settingsDialog,
       el.serviceMapDialog,
@@ -553,29 +566,6 @@
       el.exceptionDialog
     );
     el.traceCompareDialog?.addEventListener("close", () => { if (el.traceExplorerDialog?.open) return; setActiveNav("logs"); });
-    el.serviceMapResetButton?.addEventListener("click", () => renderServiceMap(null));
-    el.serviceMapGroupBy?.addEventListener("change", () => { state.serviceMapGroupBy = el.serviceMapGroupBy.value || "service"; renderServiceMap(); });
-    el.serviceMapList?.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-map-service]");
-      if (!button) return;
-      closeServiceMap();
-      applyMapNodeFilter(button);
-    });
-    el.serviceMapCanvas?.addEventListener("click", (event) => {
-      const node = event.target.closest("[data-map-service]");
-      if (!node) return;
-      closeServiceMap();
-      applyMapNodeFilter(node);
-    });
-    el.serviceMapCanvas?.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      const node = event.target.closest("[data-map-service]");
-      if (!node) return;
-      event.preventDefault();
-      closeServiceMap();
-      applyMapNodeFilter(node);
-    });
-
     el.commandPaletteButton?.addEventListener("click", openCommandPalette);
     el.closeCommandPaletteButton?.addEventListener("click", closeCommandPalette);
     el.commandPaletteInput?.addEventListener("input", () => { state.commandPaletteIndex = 0; renderCommandPalette(); });
@@ -2134,11 +2124,11 @@
     toast(`Filtered to ${kind} ${value}.`);
   }
 
-  function applyMapNodeFilter(node) {
-    const kind = node?.dataset?.mapKind || "service";
-    const value = node?.dataset?.mapService || "";
-    const scopeKind = node?.dataset?.mapScopeKind || "";
-    const scopeValue = node?.dataset?.mapScopeValue || "";
+  function applyTopologyFilter({ kind = "service", value = "", scopeKind = "", scopeValue = "" } = {}) {
+    kind = String(kind || "service");
+    value = String(value || "").trim();
+    scopeKind = String(scopeKind || "");
+    scopeValue = String(scopeValue || "").trim();
     if (!value) return;
     const operator = kind === "environment" ? "env" : kind === "namespace" ? "namespace" : "service";
     const patterns = {
@@ -2768,100 +2758,6 @@
   }
 
 
-  function openServiceMap() {
-    if (!state.entries.length) {
-      toast("Load logs with service and trace/span metadata to build a service map.");
-      return;
-    }
-    if (el.serviceMapGroupBy) el.serviceMapGroupBy.value = state.serviceMapGroupBy;
-    closeCompetingDialogs("serviceMapDialog");
-    renderServiceMap();
-    showDialogSafely(el.serviceMapDialog);
-  }
-
-  function closeServiceMap() {
-    if (!el.serviceMapDialog) return;
-    if (typeof el.serviceMapDialog.close === "function" && el.serviceMapDialog.open) el.serviceMapDialog.close();
-    else el.serviceMapDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderServiceMap(indexes = state.filteredIndexes) {
-    if (!window.SignalDockServiceMap || !el.serviceMapCanvas) return;
-    const started = performance.now();
-    const graph = window.SignalDockServiceMap.build(state.entries, indexes, { groupBy: state.serviceMapGroupBy });
-    const layout = window.SignalDockServiceMap.layout(graph, 920, 500);
-    state.serviceGraph = graph;
-    el.serviceMapCanvas.replaceChildren();
-    el.serviceMapSummary.replaceChildren();
-    el.serviceMapList.replaceChildren();
-
-    const summaryItems = [
-      [state.serviceMapGroupBy === "service" ? "Services" : "Groups", state.serviceMapGroupBy === "service" ? graph.stats.services : graph.stats.groups],
-      ["Explicit edges", graph.stats.edges],
-      ["Traces", graph.stats.traces],
-      ["Result entries", graph.stats.entries]
-    ];
-    summaryItems.forEach(([label, value]) => {
-      const item = document.createElement("div");
-      const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString();
-      const span = document.createElement("span"); span.textContent = label;
-      item.append(strong, span); el.serviceMapSummary.appendChild(item);
-    });
-
-    const scopeLabel = indexes === null ? "All loaded logs" : "Current result set";
-    el.serviceMapMeta.textContent = graph.stats.edges
-      ? `${scopeLabel} · grouped by ${state.serviceMapGroupBy.replace(/-/g, " + ")} · ${graph.stats.visibleServices.toLocaleString()} visible group${graph.stats.visibleServices === 1 ? "" : "s"}${graph.stats.hiddenServices ? ` · ${graph.stats.hiddenServices} hidden by display cap` : ""}`
-      : `No explicit cross-group parent-span relationships were found in ${scopeLabel.toLowerCase()} for this grouping.`;
-
-    const svgNs = "http://www.w3.org/2000/svg";
-    const defs = document.createElementNS(svgNs, "defs");
-    const marker = document.createElementNS(svgNs, "marker");
-    marker.setAttribute("id", "serviceArrow"); marker.setAttribute("viewBox", "0 0 10 10"); marker.setAttribute("refX", "8"); marker.setAttribute("refY", "5"); marker.setAttribute("markerWidth", "6"); marker.setAttribute("markerHeight", "6"); marker.setAttribute("orient", "auto-start-reverse");
-    const arrow = document.createElementNS(svgNs, "path"); arrow.setAttribute("d", "M 0 0 L 10 5 L 0 10 z"); arrow.setAttribute("class", "service-map-arrow"); marker.appendChild(arrow); defs.appendChild(marker); el.serviceMapCanvas.appendChild(defs);
-
-    layout.edges.forEach((edge) => {
-      const line = document.createElementNS(svgNs, "line");
-      const dx = edge.target.x - edge.source.x;
-      const dy = edge.target.y - edge.source.y;
-      const distance = Math.max(1, Math.hypot(dx, dy));
-      const ux = dx / distance;
-      const uy = dy / distance;
-      const x1 = edge.source.x + ux * (edge.source.radius + 4);
-      const y1 = edge.source.y + uy * (edge.source.radius + 4);
-      const x2 = edge.target.x - ux * (edge.target.radius + 8);
-      const y2 = edge.target.y - uy * (edge.target.radius + 8);
-      line.setAttribute("x1", x1); line.setAttribute("y1", y1); line.setAttribute("x2", x2); line.setAttribute("y2", y2);
-      line.setAttribute("class", `service-map-edge${edge.errors ? " has-errors" : ""}`);
-      line.setAttribute("marker-end", "url(#serviceArrow)");
-      line.setAttribute("stroke-width", String(Math.min(5, 1.2 + Math.log2(edge.count + 1))));
-      const title = document.createElementNS(svgNs, "title"); title.textContent = `${edge.from} → ${edge.to} · ${edge.count} span${edge.count === 1 ? "" : "s"}${edge.errors ? ` · ${edge.errors} errors` : ""}`; line.appendChild(title);
-      el.serviceMapCanvas.appendChild(line);
-    });
-
-    layout.nodes.forEach((node) => {
-      const group = document.createElementNS(svgNs, "g");
-      group.setAttribute("class", `service-map-node${node.errors ? " has-errors" : ""}`);
-      group.dataset.mapService = node.value || node.id;
-      group.dataset.mapKind = node.kind || "service";
-      group.dataset.mapScopeKind = node.scopeKind || "";
-      group.dataset.mapScopeValue = node.scopeValue || "";
-      group.setAttribute("role", "button"); group.setAttribute("tabindex", "0");
-      const circle = document.createElementNS(svgNs, "circle"); circle.setAttribute("cx", node.x); circle.setAttribute("cy", node.y); circle.setAttribute("r", node.radius);
-      const text = document.createElementNS(svgNs, "text"); text.setAttribute("x", node.x); text.setAttribute("y", node.y + node.radius + 17); text.setAttribute("text-anchor", "middle"); text.textContent = node.label.length > 18 ? `${node.label.slice(0, 17)}…` : node.label;
-      const count = document.createElementNS(svgNs, "text"); count.setAttribute("x", node.x); count.setAttribute("y", node.y + 4); count.setAttribute("text-anchor", "middle"); count.setAttribute("class", "service-map-node-count"); count.textContent = node.entries.toLocaleString();
-      const title = document.createElementNS(svgNs, "title"); title.textContent = `${node.label} · ${node.entries} entries · ${node.traces} traces${node.errors ? ` · ${node.errors} errors` : ""}`;
-      group.append(circle, count, text, title); el.serviceMapCanvas.appendChild(group);
-    });
-
-    graph.nodes.forEach((node) => {
-      const button = document.createElement("button"); button.type = "button"; button.className = `service-map-item${node.errors ? " has-errors" : ""}`; button.dataset.mapService = node.value || node.id; button.dataset.mapKind = node.kind || "service"; button.dataset.mapScopeKind = node.scopeKind || ""; button.dataset.mapScopeValue = node.scopeValue || "";
-      const name = document.createElement("strong"); name.textContent = node.label; name.title = node.label;
-      const meta = document.createElement("span"); meta.textContent = `${node.entries.toLocaleString()} entries · ${node.traces.toLocaleString()} traces${node.errors ? ` · ${node.errors} errors` : ""}${node.durationMs ? ` · ${formatDuration(node.durationMs)}` : ""}`;
-      button.append(name, meta); el.serviceMapList.appendChild(button);
-    });
-    profiler()?.record?.("service-map", performance.now() - started, { services: graph.stats.services, groups: graph.stats.groups, groupBy: state.serviceMapGroupBy, edges: graph.stats.edges, entries: graph.stats.entries });
-  }
 
   function formatMetricMs(value) {
     const number = Number(value);

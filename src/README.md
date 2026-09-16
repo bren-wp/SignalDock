@@ -24,6 +24,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/trace-outlier-controller.js` owns Trace Outliers rendering, scope selection and trace-opening coordination while robust ranking stays in `analysis/trace-outliers.js`.
 
+`app/service-map-controller.js` owns Service Map rendering, grouping, scope reset and topology-filter event coordination while topology aggregation/layout stays in `analysis/service-map.js`.
+
 `app/service-matrix-controller.js` owns Service Matrix rendering, filtered-scope selection and service-filter coordination while dependency aggregation stays in `analysis/service-matrix.js`.
 
 `app/service-heatmap-controller.js` owns Dependency Heatmap rendering, filtered-scope selection and target-service filter coordination while time bucketing stays in `analysis/service-heatmap.js`.

@@ -18,6 +18,8 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `trace-outlier-controller.js` owns Trace Outliers rendering, filtered/all-log scope selection and trace-opening actions. Robust scoring remains in `src/analysis/trace-outliers.js`; query filtering, selected-log navigation, inspector rendering and dialog coordination are injected callbacks. A zero-result active filter remains an empty scope instead of silently falling back to all loaded logs, and rendered actions retain stable entry IDs with index/trace fallbacks.
 
+`service-map-controller.js` owns Service Map SVG/list rendering, grouping controls, filtered/all-log scope selection and topology-filter actions. Explicit parent-span topology aggregation and deterministic layout remain in `src/analysis/service-map.js`; query mutation, dialog coordination and performance recording are injected callbacks. Resetting to all logs remains sticky when grouping changes, and zero-result filtered scopes remain explicitly empty.
+
 `service-matrix-controller.js` owns Service Matrix rendering, filtered/all-log scope selection and service-filter actions. Dependency aggregation and bounded latency statistics remain in `src/analysis/service-matrix.js`; service filtering and dialog coordination are injected callbacks. Empty filtered results remain an explicit empty matrix instead of silently falling back to the all-log cache.
 
 `service-heatmap-controller.js` owns Dependency Heatmap rendering, filtered/all-log scope selection and target-service filter actions. Time bucketing and explicit parent-span dependency aggregation remain in `src/analysis/service-heatmap.js`; service filtering and dialog coordination are injected callbacks. Empty filtered results remain an explicit empty heatmap instead of silently falling back to all loaded logs.
@@ -33,7 +35,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.12**.
+Current version: **2.8.13**.
 
 ## Highlights
 
