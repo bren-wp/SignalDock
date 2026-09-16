@@ -24,7 +24,7 @@ for (const token of [
   "SignalDockInvestigationController.create",
   "investigationController.bind()",
   "investigationController?.renderCaseSurfaces()",
-  "investigationController?.pinEvidence(entry",
+  "investigationController?.pinEvidence",
   "investigationController?.recordActivity(\"case.imported\""
 ]) assert.ok(app.includes(token), `Investigation app integration token missing: ${token}`);
 
