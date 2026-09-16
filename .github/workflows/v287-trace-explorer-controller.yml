@@ -24,6 +24,21 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
+      - name: Align Trace Explorer test fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/v287-trace-explorer-controller.py')
+          text = path.read_text()
+          old = '  el: { traceExplorerBody: { ownerDocument: {} }, traceCompareButton: compareButton },'
+          new = '  el: { traceExplorerDialog: { ownerDocument: {} }, traceCompareButton: compareButton },'
+          if text.count(old) != 1:
+              raise SystemExit(f'Trace Explorer test fixture: expected 1 match, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Apply v2.8.7 Trace Explorer controller migration
         run: python3 .github/scripts/v287-trace-explorer-controller.py
 
