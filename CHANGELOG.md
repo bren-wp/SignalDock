@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.9 — 2026-09-16
+
+### Service Matrix application boundary
+- Extracted Service Matrix rendering, scope reset and service-filter actions from the root application into `src/app/service-matrix-controller.js`.
+- Kept explicit parent-span dependency aggregation, bounded duration sampling/histograms and latency percentiles in `src/analysis/service-matrix.js`; filtering and dialog coordination remain injected callbacks.
+- Fixed filtered-scope semantics so an active query with zero matching entries produces an empty matrix instead of silently displaying all-log dependency edges.
+- Added source/target-specific accessible names to generated matrix filter actions without changing the underlying dependency evidence model.
+
+### Maintainability and verification
+- Removed legacy Service Matrix functions and event listeners from `app.js`, with idempotent event ownership moved into the controller.
+- Added isolated controller coverage for zero-result scope behavior, local-only constraints, load order and application integration.
+- Extended source-layout, UI-foundation and permanent HTTP quality gates without changing persistence, network policy or the zero-build deployment model.
+
 ## 2.8.8 — 2026-09-16
 
 ### Trace Outliers application boundary

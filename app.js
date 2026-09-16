@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.8";
+  const APP_VERSION = "2.8.9";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -88,6 +88,7 @@
   let exceptionController = null;
   let traceExplorerController = null;
   let traceOutlierController = null;
+  let serviceMatrixController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -114,7 +115,7 @@
     const action = {
       search: () => el.queryInput?.focus(),
       map: openServiceMap,
-      matrix: openServiceMatrix,
+      matrix: () => serviceMatrixController?.open(),
       heatmap: openServiceHeatmap,
       trends: openServiceTrends,
       baseline: () => baselineController?.open(),
@@ -300,6 +301,18 @@
       setActiveNav
     });
     traceOutlierController.bind();
+    if (!window.SignalDockServiceMatrixController?.create) throw new Error("SignalDock Service Matrix controller is unavailable.");
+    serviceMatrixController = window.SignalDockServiceMatrixController.create({
+      state,
+      el,
+      formatDuration,
+      toast,
+      filterByServiceValue,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    serviceMatrixController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -468,9 +481,6 @@
     el.closeHealthButton?.addEventListener("click", closeHealth);
     el.healthResetButton?.addEventListener("click", () => { state.healthScopeFiltered = false; renderHealth(false); });
     el.healthTableBody?.addEventListener("click", onHealthClick);
-    el.closeServiceMatrixButton?.addEventListener("click", closeServiceMatrix);
-    el.serviceMatrixResetButton?.addEventListener("click", () => { state.serviceMatrixScopeFiltered = false; renderServiceMatrix(false); });
-    el.serviceMatrixBody?.addEventListener("click", onServiceMatrixClick);
     el.closeServiceHeatmapButton?.addEventListener("click", closeServiceHeatmap);
     el.serviceHeatmapResetButton?.addEventListener("click", () => { state.serviceHeatmapScopeFiltered = false; renderServiceHeatmap(false); });
     el.serviceHeatmapBody?.addEventListener("click", onServiceHeatmapClick);
@@ -1997,59 +2007,6 @@
     const entry = selectedEntry();
     if (!entry || !entry.service || entry.service === "—") return;
     filterByServiceValue(entry.service);
-  }
-
-  function openServiceMatrix() {
-    if (!window.SignalDockServiceMatrix || !el.serviceMatrixDialog) return;
-    if (!state.entries.length) { toast("Load logs before opening the service matrix."); return; }
-    state.serviceMatrixScopeFiltered = true;
-    renderServiceMatrix(true);
-    closeCompetingDialogs("serviceMatrixDialog");
-    showDialogSafely(el.serviceMatrixDialog);
-  }
-
-  function closeServiceMatrix() {
-    if (!el.serviceMatrixDialog) return;
-    if (typeof el.serviceMatrixDialog.close === "function" && el.serviceMatrixDialog.open) el.serviceMatrixDialog.close(); else el.serviceMatrixDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderServiceMatrix(useFiltered = state.serviceMatrixScopeFiltered) {
-    if (!window.SignalDockServiceMatrix || !el.serviceMatrixBody) return;
-    state.serviceMatrixScopeFiltered = Boolean(useFiltered);
-    const scopedIndexes = state.serviceMatrixScopeFiltered && state.filteredIndexes.length && state.filteredIndexes.length < state.entries.length ? state.filteredIndexes : null;
-    const matrix = scopedIndexes ? window.SignalDockServiceMatrix.build(state.entries, scopedIndexes) : (state.serviceMatrixData || window.SignalDockServiceMatrix.build(state.entries));
-    if (el.serviceMatrixMeta) el.serviceMatrixMeta.textContent = `${state.serviceMatrixScopeFiltered && scopedIndexes ? "Current filtered result" : "All loaded logs"} · explicit parent-span relationships only.`;
-    if (el.serviceMatrixSummary) {
-      el.serviceMatrixSummary.replaceChildren();
-      [["Services", matrix.summary.services], ["Edges", matrix.summary.edges], ["Calls", matrix.summary.calls], ["Errors", matrix.summary.errors], ["Timed spans", matrix.summary.timed]].forEach(([label, value]) => {
-        const item = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString(); const span = document.createElement("span"); span.textContent = label; item.append(strong, span); el.serviceMatrixSummary.appendChild(item);
-      });
-    }
-    el.serviceMatrixBody.replaceChildren();
-    if (!matrix.rows.length) {
-      const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = 9; td.className = "investigation-empty"; td.textContent = "No cross-service parent-span edges were found in this scope."; tr.appendChild(td); el.serviceMatrixBody.appendChild(tr); return;
-    }
-    matrix.rows.slice(0, 750).forEach((row) => {
-      const tr = document.createElement("tr");
-      const source = document.createElement("td"); source.textContent = row.source;
-      const target = document.createElement("td"); target.textContent = row.target;
-      const calls = document.createElement("td"); calls.textContent = row.calls.toLocaleString();
-      const rate = document.createElement("td"); rate.textContent = `${(row.errorRate * 100).toFixed(row.errorRate < .01 ? 2 : 1)}%`; if (row.errors) rate.className = "matrix-error";
-      const median = document.createElement("td"); median.textContent = row.medianMs === null ? "—" : formatDuration(row.medianMs);
-      const p95 = document.createElement("td"); p95.textContent = row.p95Ms === null ? "—" : formatDuration(row.p95Ms);
-      const max = document.createElement("td"); max.textContent = row.maxMs === null ? "—" : formatDuration(row.maxMs);
-      const traces = document.createElement("td"); traces.textContent = row.traces.toLocaleString();
-      const action = document.createElement("td");
-      const from = document.createElement("button"); from.type = "button"; from.className = "button button--ghost button--small"; from.dataset.matrixService = row.source; from.textContent = "From";
-      const to = document.createElement("button"); to.type = "button"; to.className = "button button--ghost button--small"; to.dataset.matrixService = row.target; to.textContent = "To";
-      action.append(from, to); tr.append(source, target, calls, rate, median, p95, max, traces, action); el.serviceMatrixBody.appendChild(tr);
-    });
-  }
-
-  function onServiceMatrixClick(event) {
-    const button = event.target.closest("[data-matrix-service]"); if (!button) return;
-    closeServiceMatrix(); filterByServiceValue(button.dataset.matrixService || "");
   }
 
   function openServiceHeatmap() {
