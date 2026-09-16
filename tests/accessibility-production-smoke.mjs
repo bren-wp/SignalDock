@@ -9,6 +9,7 @@ const version = read("VERSION").trim();
 const html = read("index.html");
 const app = read("app.js");
 const inspectorController = read("src/app/inspector-controller.js");
+const commandNavigationController = read("src/app/command-navigation-controller.js");
 const hardening = read("src/ui/ui-hardening.js");
 const query = read("src/core/query-library.js");
 const readme = read("README.md");
@@ -24,7 +25,8 @@ for (const [tab, pane] of [["Details","detailsPane"],["Context","contextPane"],[
   assert.ok(html.includes(`id="${pane}" aria-labelledby="inspectorTab${tab}"`));
 }
 assert.ok(html.includes('role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="commandPaletteList" aria-expanded="false"'));
-for (const token of ['function activateNavView(target)', 'function bindDialogNavReset(...dialogs)', 'el.settingsDialog,', 'aria-activedescendant']) assert.ok(app.includes(token), `missing interaction token: ${token}`);
+for (const token of ['function activateNavView(target)', 'navResetDialogs:', 'el.settingsDialog,']) assert.ok(app.includes(token), `missing interaction token: ${token}`);
+for (const token of ['aria-activedescendant', 'listen(dialog, "close", () => setActiveNav("logs"))']) assert.ok(commandNavigationController.includes(token), `missing command/navigation interaction token: ${token}`);
 for (const token of ['function onInspectorTabKeydown(event)', 'button.tabIndex = active ? 0 : -1']) assert.ok(inspectorController.includes(token), `missing Inspector interaction token: ${token}`);
 assert.ok(app.includes('remove.setAttribute("aria-label", `Delete saved view ${view.name}`)'));
 assert.ok(hardening.includes('doc.addEventListener("click", (event) =>'));

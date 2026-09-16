@@ -1,0 +1,20 @@
+import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+const html = read("index.html");
+const app = read("app.js");
+const controller = read("src/app/command-navigation-controller.js");
+assert.ok(html.includes("src/app/command-navigation-controller.js"));
+assert.ok(app.includes("SignalDockCommandNavigationController.create"));
+assert.ok(app.includes("commandNavigationController.bind()"));
+assert.ok(app.includes("function activateNavView(target) { commandNavigationController?.navigate(target); }"));
+assert.ok(app.includes("const navigationFeatureCallbacks = {"));
+assert.ok(!app.includes("function commandDefinitions()"));
+assert.ok(!app.includes('document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener'));
+for (const token of ["setActiveNav", "navigate", "definitions", "filteredCommands", "handleKeydown", "aria-activedescendant", "data-command-id", "bind", "destroy"]) assert.ok(controller.includes(token), `missing command-navigation token: ${token}`);
+for (const forbidden of ["fetch(", "XMLHttpRequest", "WebSocket", ".invoke(", "showOpenFilePicker", "SignalDockDesktopBridge"]) assert.ok(!controller.includes(forbidden), `forbidden command-navigation capability: ${forbidden}`);
+console.log("command-navigation-controller-smoke PASS");

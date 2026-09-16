@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.8.16 — 2026-09-16
+
+### Command Palette and navigation boundary
+- Extracted workspace navigation state, `[data-nav]` event ownership, Command Palette definitions/rendering and keyboard interaction into `src/app/command-navigation-controller.js`.
+- Centralized dialog-close navigation reset handling, including the Trace Compare/Trace Explorer exception, behind idempotent controller listeners.
+- Kept all feature execution behind an explicit root callback map; the controller has no parser, worker, storage, native bridge or filesystem capability.
+
+### Maintainability and verification
+- Removed Command Palette command definitions, rendering implementation and palette-specific key handling from the root application while preserving explicit feature dependency wiring.
+- Added isolated command/navigation controller coverage and permanent HTTP smoke coverage while preserving Ctrl/Cmd+K, Arrow, Enter and Escape behavior.
+
 ## 2.8.15 — 2026-09-16
 
 ### Settings application boundary

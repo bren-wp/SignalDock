@@ -14,6 +14,8 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `settings-controller.js` owns Settings form synchronization, preference persistence and saved custom-parser profile UI. Parser execution remains in the root application and `src/core/parser-profiles.js`; recovery, worker and filesystem capabilities are not exposed to the Settings controller.
 
+`command-navigation-controller.js` owns workspace navigation state, Command Palette definitions/rendering, keyboard interaction and dialog-to-navigation reset behavior. Feature execution stays behind injected root callbacks, so the controller receives no parser, worker, network, storage or filesystem capability.
+
 `investigation-controller.js` owns Investigation evidence rendering/actions, local import/export, Case Activity and Unified Case Timeline coordination. Investigation and Case domain modules remain authoritative for normalization and bounded evidence/case data; log selection, inspector refresh, Case Workspace refresh and autosave are injected callbacks.
 
 `exception-controller.js` owns Exception Explorer rendering, deterministic fingerprint query coordination and representative-sample actions. Grouping and trend classification remain in `src/analysis/exception-groups.js` and `src/analysis/exception-trends.js`; log filtering, evidence pinning and selected-log navigation are injected callbacks. Sample resolution prefers stable entry IDs before index and fingerprint fallbacks so restored workspaces do not depend on stale array positions.
@@ -39,7 +41,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.15**.
+Current version: **2.8.16**.
 
 ## Highlights
 

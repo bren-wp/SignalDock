@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.15";
+  const APP_VERSION = "2.8.16";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -95,6 +95,7 @@
   let healthController = null;
   let inspectorController = null;
   let settingsController = null;
+  let commandNavigationController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -107,40 +108,9 @@
   const parserProfiles = () => window.SignalDockParserProfiles;
   const paletteEngine = () => window.SignalDockCommandPalette;
 
-  function setActiveNav(target) {
-    document.querySelectorAll("[data-nav]").forEach((item) => {
-      const active = item.dataset.nav === target;
-      item.classList.toggle("is-active", active);
-      if (active) item.setAttribute("aria-current", "page");
-      else item.removeAttribute("aria-current");
-    });
-  }
+  function setActiveNav(target) { commandNavigationController?.setActiveNav(target); }
 
-  function activateNavView(target) {
-    setActiveNav(target);
-    const action = {
-      search: () => el.queryInput?.focus(),
-      map: () => serviceMapController?.open(),
-      matrix: () => serviceMatrixController?.open(),
-      heatmap: () => serviceHeatmapController?.open(),
-      trends: () => serviceTrendsController?.open(),
-      baseline: () => baselineController?.open(),
-      traces: () => traceExplorerController?.open(),
-      outliers: () => traceOutlierController?.open(),
-      health: () => healthController?.open(),
-      investigation: () => investigationController?.open(),
-      exceptions: () => exceptionController?.open(),
-      projects: () => projectController?.open(),
-      settings: openSettings,
-      live: startLiveTail,
-      saved: () => queryLibraryController?.open()
-    }[target];
-    action?.();
-  }
-
-  function bindDialogNavReset(...dialogs) {
-    dialogs.filter(Boolean).forEach((dialog) => dialog.addEventListener("close", () => setActiveNav("logs")));
-  }
+  function activateNavView(target) { commandNavigationController?.navigate(target); }
 
   document.addEventListener("DOMContentLoaded", init);
 
@@ -272,6 +242,73 @@
       scheduleViewAutosave: () => scheduleViewAutosave()
     });
     settingsController.bind();
+    const navigationFeatureCallbacks = {
+      search: () => el.queryInput?.focus(),
+      map: () => serviceMapController?.open(),
+      matrix: () => serviceMatrixController?.open(),
+      heatmap: () => serviceHeatmapController?.open(),
+      trends: () => serviceTrendsController?.open(),
+      baseline: () => baselineController?.open(),
+      traces: () => traceExplorerController?.open(),
+      outliers: () => traceOutlierController?.open(),
+      health: () => healthController?.open(),
+      investigation: () => investigationController?.open(),
+      exceptions: () => exceptionController?.open(),
+      projects: () => projectController?.open(),
+      settings: openSettings,
+      live: startLiveTail,
+      saved: () => queryLibraryController?.open()
+    };
+    if (!window.SignalDockCommandNavigationController?.create) throw new Error("SignalDock Command/navigation controller is unavailable.");
+    commandNavigationController = window.SignalDockCommandNavigationController.create({
+      state,
+      el,
+      getPaletteEngine: paletteEngine,
+      getSelectedEntry: selectedEntry,
+      closeCompetingDialogs,
+      showDialogSafely,
+      actions: {
+        importLogs: () => el.fileInput?.click(),
+        focusSearch: navigationFeatureCallbacks.search,
+        openServiceMap: navigationFeatureCallbacks.map,
+        openServiceMatrix: navigationFeatureCallbacks.matrix,
+        openServiceHeatmap: navigationFeatureCallbacks.heatmap,
+        openServiceTrends: navigationFeatureCallbacks.trends,
+        openBaseline: navigationFeatureCallbacks.baseline,
+        openProjects: navigationFeatureCallbacks.projects,
+        openTraceExplorer: navigationFeatureCallbacks.traces,
+        openTraceOutliers: navigationFeatureCallbacks.outliers,
+        openQueryLibrary: navigationFeatureCallbacks.saved,
+        openHealth: navigationFeatureCallbacks.health,
+        openInvestigation: navigationFeatureCallbacks.investigation,
+        exportCaseMarkdown,
+        openExceptions: navigationFeatureCallbacks.exceptions,
+        addSelectedEvidence,
+        saveWorkspace,
+        exportFiltered,
+        saveCurrentView,
+        resetFilters,
+        toggleRenderMode: () => {
+          state.renderMode = state.renderMode === "virtual" ? "paged" : "virtual";
+          if (el.renderMode) el.renderMode.value = state.renderMode;
+          if (el.logTable) el.logTable.scrollTop = 0;
+          renderTable();
+          scheduleViewAutosave();
+        },
+        toggleLiveTail: navigationFeatureCallbacks.live,
+        openSettings: navigationFeatureCallbacks.settings,
+        clearAll
+      },
+      navResetDialogs: [
+        el.settingsDialog, el.serviceMapDialog, el.healthDialog, el.serviceMatrixDialog,
+        el.serviceHeatmapDialog, el.serviceTrendsDialog, el.baselineDialog, el.projectDialog,
+        el.traceExplorerDialog, el.traceOutlierDialog, el.queryLibraryDialog,
+        el.investigationDialog, el.exceptionDialog
+      ],
+      traceCompareDialog: el.traceCompareDialog,
+      traceExplorerDialog: el.traceExplorerDialog
+    });
+    commandNavigationController.bind();
     if (!window.SignalDockInvestigationController?.create) throw new Error("SignalDock Investigation controller is unavailable.");
     investigationController = window.SignalDockInvestigationController.create({
       state,
@@ -539,58 +576,16 @@
     el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
     el.caseFileInput?.addEventListener("change", importCaseJson);
 
-    document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
-
     el.recoveryRestoreButton.addEventListener("click", restoreRecoverySnapshot);
     el.recoveryDismissButton.addEventListener("click", dismissRecoverySnapshot);
     el.clearRecoveryButton.addEventListener("click", clearRecoverySnapshot);
     el.clearSearchCacheButton?.addEventListener("click", clearSearchCache);
     el.copyDiagnosticsButton?.addEventListener("click", copyDiagnostics);
-    bindDialogNavReset(
-      el.settingsDialog,
-      el.serviceMapDialog,
-      el.healthDialog,
-      el.serviceMatrixDialog,
-      el.serviceHeatmapDialog,
-      el.serviceTrendsDialog,
-      el.baselineDialog,
-      el.projectDialog,
-      el.traceExplorerDialog,
-      el.traceOutlierDialog,
-      el.queryLibraryDialog,
-      el.investigationDialog,
-      el.exceptionDialog
-    );
-    el.traceCompareDialog?.addEventListener("close", () => { if (el.traceExplorerDialog?.open) return; setActiveNav("logs"); });
-    el.commandPaletteButton?.addEventListener("click", openCommandPalette);
-    el.closeCommandPaletteButton?.addEventListener("click", closeCommandPalette);
-    el.commandPaletteInput?.addEventListener("input", () => { state.commandPaletteIndex = 0; renderCommandPalette(); });
-    el.commandPaletteList?.addEventListener("click", (event) => { const button = event.target.closest("[data-command-id]"); if (button) runCommand(button.dataset.commandId); });
     window.addEventListener("resize", utils().debounce(() => { if (state.renderMode === "virtual") renderTable(); }, 120));
 
     document.addEventListener("keydown", (event) => {
       const tag = document.activeElement?.tagName;
       const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(tag);
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        if (el.commandPaletteDialog?.open) closeCommandPalette(); else openCommandPalette();
-        return;
-      }
-      if (el.commandPaletteDialog?.open) {
-        if (event.key === "Escape") { event.preventDefault(); closeCommandPalette(); return; }
-        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-          event.preventDefault();
-          const commands = filteredCommands();
-          if (commands.length) state.commandPaletteIndex = (state.commandPaletteIndex + (event.key === "ArrowDown" ? 1 : -1) + commands.length) % commands.length;
-          renderCommandPalette();
-          return;
-        }
-        if (event.key === "Enter") {
-          const commands = filteredCommands();
-          if (commands[state.commandPaletteIndex]) { event.preventDefault(); runCommand(commands[state.commandPaletteIndex].id); }
-          return;
-        }
-      }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
         event.preventDefault();
         el.fileInput.click();
@@ -1792,39 +1787,6 @@
 
   async function importParserProfiles(event) { await settingsController?.importParserProfiles?.(event); }
 
-  function commandDefinitions() {
-    return [
-      { id: "import", title: "Import logs", keywords: "open file json log zip", hint: "⌘O", run: () => el.fileInput.click() },
-      { id: "search", title: "Focus smart search", keywords: "query filter find", hint: "/", disabled: !state.entries.length, run: () => el.queryInput.focus() },
-      { id: "service-map", title: "Open service map", keywords: "topology trace dependencies", disabled: !state.entries.length, run: () => activateNavView("map") },
-      { id: "service-matrix", title: "Open service latency matrix", keywords: "latency p95 edge errors dependency calls", disabled: !state.entries.length, run: () => activateNavView("matrix") },
-      { id: "service-heatmap", title: "Open dependency heatmap", keywords: "time heatmap service dependency edge errors", disabled: !state.entries.length, run: () => activateNavView("heatmap") },
-      { id: "service-trends", title: "Compare dependency periods", keywords: "trend service edge period delta calls errors p95", disabled: !state.entries.length, run: () => activateNavView("trends") },
-      { id: "baseline", title: "Open cross-dataset baseline comparison", keywords: "baseline regression compare dataset service dependency", run: () => activateNavView("baseline") },
-      { id: "projects", title: "Open local project manager", keywords: "projects workspace metadata organize", run: () => activateNavView("projects") },
-      { id: "trace-explorer", title: "Open distributed trace explorer", keywords: "trace inventory spans coverage duration", disabled: !state.entries.length, run: () => activateNavView("traces") },
-      { id: "trace-outliers", title: "Rank trace outliers", keywords: "trace latency robust errors anomalies unusual", disabled: !state.entries.length, run: () => activateNavView("outliers") },
-      { id: "query-library", title: "Open query library", keywords: "saved reusable searches filters presets", run: () => activateNavView("saved") },
-      { id: "health", title: "Open observed health", keywords: "health service errors warnings p95 exceptions", disabled: !state.entries.length, run: () => activateNavView("health") },
-      { id: "investigation", title: "Open case & investigation workspace", keywords: "case evidence notes incident findings hypothesis bookmark", run: () => activateNavView("investigation") },
-      { id: "case-report", title: "Export case report (Markdown)", keywords: "case report markdown findings health exceptions", run: exportCaseMarkdown },
-      { id: "exceptions", title: "Open exception groups", keywords: "errors fingerprint recurring failure crash trends", disabled: !state.entries.length, run: () => activateNavView("exceptions") },
-      { id: "add-evidence", title: "Add selected log to investigation", keywords: "evidence pin bookmark", disabled: !selectedEntry(), run: addSelectedEvidence },
-      { id: "save-workspace", title: "Save workspace", keywords: "session sdsession bookmark", hint: "⇧⌘S", disabled: !state.entries.length, run: saveWorkspace },
-      { id: "export", title: "Export current results", keywords: "download json ndjson", disabled: !state.filteredIndexes.length, run: exportFiltered },
-      { id: "save-view", title: "Save current view", keywords: "filters preset", disabled: !state.entries.length, run: saveCurrentView },
-      { id: "reset", title: "Reset filters", keywords: "clear query search", disabled: !state.entries.length, run: resetFilters },
-      { id: "windowed", title: state.renderMode === "virtual" ? "Switch to paged table" : "Switch to windowed table", keywords: "virtual large performance viewport", disabled: !state.entries.length || state.settings.wrap || window.innerWidth < 780, run: () => { state.renderMode = state.renderMode === "virtual" ? "paged" : "virtual"; el.renderMode.value = state.renderMode; el.logTable.scrollTop = 0; renderTable(); scheduleViewAutosave(); } },
-      { id: "live", title: state.tail.active ? "Stop live tail" : "Start local live tail", keywords: "follow file stream", run: () => activateNavView("live") },
-      { id: "settings", title: "Open settings", keywords: "preferences parser performance recovery", run: () => activateNavView("settings") },
-      { id: "clear", title: "Clear loaded logs", keywords: "remove dataset", disabled: !state.entries.length, run: clearAll }
-    ];
-  }
-
-  function filteredCommands() {
-    return paletteEngine()?.filter?.(commandDefinitions(), el.commandPaletteInput?.value || "") || commandDefinitions();
-  }
-
   function closeCompetingDialogs(exceptId = "") {
     [el.settingsDialog, el.serviceMapDialog, el.serviceMatrixDialog, el.serviceHeatmapDialog, el.serviceTrendsDialog, el.baselineDialog, el.projectDialog, el.traceExplorerDialog, el.traceCompareDialog, el.traceOutlierDialog, el.queryLibraryDialog, el.healthDialog, el.commandPaletteDialog, el.investigationDialog, el.exceptionDialog].forEach((dialog) => {
       if (!dialog || dialog.id === exceptId || !dialog.open) return;
@@ -1846,49 +1808,13 @@
     }
   }
 
-  function openCommandPalette() {
-    if (!el.commandPaletteDialog) return;
-    closeCompetingDialogs("commandPaletteDialog");
-    state.commandPaletteIndex = 0;
-    el.commandPaletteInput.value = "";
-    el.commandPaletteInput.setAttribute("aria-expanded", "true");
-    renderCommandPalette();
-    showDialogSafely(el.commandPaletteDialog);
-    requestAnimationFrame(() => el.commandPaletteInput.focus());
-  }
+  function openCommandPalette() { commandNavigationController?.open(); }
 
-  function closeCommandPalette() {
-    if (!el.commandPaletteDialog) return;
-    el.commandPaletteInput?.setAttribute("aria-expanded", "false");
-    el.commandPaletteInput?.removeAttribute("aria-activedescendant");
-    if (typeof el.commandPaletteDialog.close === "function" && el.commandPaletteDialog.open) el.commandPaletteDialog.close();
-    else el.commandPaletteDialog.removeAttribute("open");
-  }
+  function closeCommandPalette() { commandNavigationController?.close(); }
 
-  function renderCommandPalette() {
-    if (!el.commandPaletteList) return;
-    const commands = filteredCommands();
-    state.commandPaletteIndex = Math.max(0, Math.min(state.commandPaletteIndex, Math.max(0, commands.length - 1)));
-    el.commandPaletteList.replaceChildren();
-    if (!commands.length) {
-      el.commandPaletteInput?.removeAttribute("aria-activedescendant"); const empty = document.createElement("p"); empty.className = "command-empty"; empty.textContent = "No matching commands."; el.commandPaletteList.appendChild(empty); return;
-    }
-    commands.forEach((command, index) => {
-      const button = document.createElement("button"); button.type = "button"; button.id = `commandPaletteOption-${index}`; button.className = `command-item${index === state.commandPaletteIndex ? " is-active" : ""}`; button.dataset.commandId = command.id; button.setAttribute("role", "option"); button.setAttribute("aria-selected", index === state.commandPaletteIndex ? "true" : "false"); button.disabled = Boolean(command.disabled);
-      const copy = document.createElement("span"); const strong = document.createElement("strong"); strong.textContent = command.title; const small = document.createElement("small"); small.textContent = command.keywords || "SignalDock action"; copy.append(strong, small); button.appendChild(copy);
-      if (command.hint) { const kbd = document.createElement("kbd"); kbd.textContent = command.hint; button.appendChild(kbd); }
-      el.commandPaletteList.appendChild(button);
-    });
-    const activeOption = el.commandPaletteList.querySelector(".is-active"); if (activeOption) el.commandPaletteInput?.setAttribute("aria-activedescendant", activeOption.id); else el.commandPaletteInput?.removeAttribute("aria-activedescendant");
-    activeOption?.scrollIntoView?.({ block: "nearest" });
-  }
+  function renderCommandPalette() { commandNavigationController?.render(); }
 
-  function runCommand(id) {
-    const command = commandDefinitions().find((item) => item.id === id);
-    if (!command || command.disabled) return;
-    closeCommandPalette();
-    command.run();
-  }
+  function runCommand(id) { commandNavigationController?.run(id); }
 
   function openSettings() { settingsController?.open(); }
 

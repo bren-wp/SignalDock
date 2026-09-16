@@ -9,6 +9,7 @@ const version = read("VERSION").trim();
 const html = read("index.html");
 const css = read("styles.css");
 const app = read("app.js");
+const commandNavigationController = read("src/app/command-navigation-controller.js");
 const technical = read("docs/TECHNICAL.md");
 
 const featureVersionParts = version.split(".").map(Number);
@@ -23,7 +24,7 @@ assert.ok(css.includes("--surface-soft: rgba(13,23,36,.72);"));
 assert.ok(css.includes(".query-library-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto}"));
 assert.ok(!css.includes(".nav-list { display: none; }"), "mobile navigation must remain reachable");
 assert.match(app, /function setActiveNav\(target\)/);
-assert.match(app, /setAttribute\("aria-current", "page"\)/);
+assert.match(commandNavigationController, /setAttribute\("aria-current", "page"\)/);
 assert.ok(!/\/\*\s*(?:SignalDock\s+)?v\d+\.\d+/.test(css), "release-number CSS comments should not ship in production styles");
 assert.ok(technical.includes(`Current version: **${version}**.`));
 
