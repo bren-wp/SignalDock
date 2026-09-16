@@ -10,6 +10,7 @@ const projectController = fs.readFileSync(path.join(root, "src/app/project-contr
 const investigationController = fs.readFileSync(path.join(root, "src/app/investigation-controller.js"), "utf8");
 const exceptionController = fs.readFileSync(path.join(root, "src/app/exception-controller.js"), "utf8");
 const traceExplorerController = fs.readFileSync(path.join(root, "src/app/trace-explorer-controller.js"), "utf8");
+const traceOutlierController = fs.readFileSync(path.join(root, "src/app/trace-outlier-controller.js"), "utf8");
 const caseCheckpointController = fs.readFileSync(path.join(root, "src/app/case-checkpoint-controller.js"), "utf8");
 const caseWorkspaceController = fs.readFileSync(path.join(root, "src/app/case-workspace-controller.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
@@ -41,6 +42,9 @@ for (const token of ["composeFingerprintQuery", "resolveSampleEntry", "sampleIds
 }
 for (const token of ["resolveSampleEntry", "traceSampleId", "aria-pressed", "renderComparison", "reconcileSelection"]) {
   if (!traceExplorerController.includes(token)) throw new Error(`Missing Trace Explorer controller foundation token: ${token}`);
+}
+for (const token of ["selectScope", "buildSampleLookup", "resolveSampleEntry", "outlierSampleId", "No trace entries match the current filters"]) {
+  if (!traceOutlierController.includes(token)) throw new Error(`Missing Trace Outliers controller foundation token: ${token}`);
 }
 for (const token of ["checkpoint-diff", "case.checkpoint.restored", "scheduleDatasetAutosave", "renderCaseWorkspace"]) {
   if (!caseCheckpointController.includes(token)) throw new Error(`Missing Case Checkpoint controller foundation token: ${token}`);

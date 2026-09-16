@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.8 — 2026-09-16
+
+### Trace Outliers application boundary
+- Extracted Trace Outliers rendering, scope reset and trace-opening actions from the root application into `src/app/trace-outlier-controller.js`.
+- Kept robust median/MAD-based duration scoring, explicit-error weighting and service-breadth scoring in `src/analysis/trace-outliers.js`; filtering, selected-log navigation and dialog coordination remain injected callbacks.
+- Fixed filtered-scope semantics so an active query with zero matching entries shows an empty Outliers result instead of silently falling back to all loaded logs.
+- Captured stable representative entry IDs for rendered trace actions and retained index/trace-ID fallbacks for restored or reordered workspaces.
+
+### Maintainability and verification
+- Removed legacy Trace Outliers functions and event listeners from `app.js`, with idempotent event ownership moved into the controller.
+- Added isolated controller coverage for zero-result scope behavior, sample resolution, local-only constraints, load order and application integration.
+- Extended source-layout, UI-foundation and permanent HTTP quality gates without changing persistence, scoring semantics, network policy or the zero-build deployment model.
+
 ## 2.8.7 — 2026-09-16
 
 ### Trace Explorer application boundary

@@ -24,6 +24,6 @@ CI syntax-checks JavaScript recursively instead of only checking root entrypoint
 
 Feature controllers under `src/app/` must receive their state, element registry and cross-feature actions through an explicit factory boundary; they should not create hidden global application state.
 
-Current feature controllers: `query-library-controller.js`, `baseline-controller.js`, `project-controller.js`, `investigation-controller.js`, `exception-controller.js`, `trace-explorer-controller.js`, `case-workspace-controller.js` and `case-checkpoint-controller.js`. Cross-feature work must be supplied as narrow callbacks rather than direct controller-to-controller calls.
+Current feature controllers: `query-library-controller.js`, `baseline-controller.js`, `project-controller.js`, `investigation-controller.js`, `exception-controller.js`, `trace-explorer-controller.js`, `trace-outlier-controller.js`, `case-workspace-controller.js` and `case-checkpoint-controller.js`. Cross-feature work must be supplied as narrow callbacks rather than direct controller-to-controller calls.
 
 No bundler or package-install step is introduced by this layout.

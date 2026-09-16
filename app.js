@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.7";
+  const APP_VERSION = "2.8.8";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -87,6 +87,7 @@
   let investigationController = null;
   let exceptionController = null;
   let traceExplorerController = null;
+  let traceOutlierController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -118,7 +119,7 @@
       trends: openServiceTrends,
       baseline: () => baselineController?.open(),
       traces: () => traceExplorerController?.open(),
-      outliers: openTraceOutliers,
+      outliers: () => traceOutlierController?.open(),
       health: openHealth,
       investigation: () => investigationController?.open(),
       exceptions: () => exceptionController?.open(),
@@ -282,6 +283,23 @@
       setActiveNav
     });
     traceExplorerController.bind();
+    if (!window.SignalDockTraceOutlierController?.create) throw new Error("SignalDock Trace Outliers controller is unavailable.");
+    traceOutlierController = window.SignalDockTraceOutlierController.create({
+      state,
+      el,
+      formatDuration,
+      toast,
+      applyTraceFilter: (traceId) => {
+        el.queryInput.value = `trace:${quoteIfNeeded(traceId)}`;
+        applyFilters(true);
+      },
+      selectEntry,
+      renderInspector,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    traceOutlierController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -460,9 +478,6 @@
     el.serviceTrendsResetButton?.addEventListener("click", () => { state.serviceTrendsScopeFiltered = false; renderServiceTrends(false); });
     el.serviceTrendsSplit?.addEventListener("change", () => { state.serviceTrendsSplit = Number(el.serviceTrendsSplit.value) || 0.5; renderServiceTrends(); });
     el.serviceTrendsBody?.addEventListener("click", onServiceTrendsClick);
-    el.closeTraceOutlierButton?.addEventListener("click", closeTraceOutliers);
-    el.traceOutlierResetButton?.addEventListener("click", () => { state.traceOutlierScopeFiltered = false; renderTraceOutliers(false); });
-    el.traceOutlierBody?.addEventListener("click", onTraceOutlierClick);
 
     document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
 
@@ -2125,35 +2140,6 @@
   }
 
   function onServiceTrendsClick(event) { const button=event.target.closest("[data-trend-service]"); if(!button)return; closeServiceTrends(); filterByServiceValue(button.dataset.trendService||""); }
-
-  function openTraceOutliers() {
-    if (!window.SignalDockTraceOutliers || !el.traceOutlierDialog) return;
-    if (!state.entries.length) { toast("Load trace/span data before ranking outliers."); return; }
-    state.traceOutlierScopeFiltered = true; renderTraceOutliers(true); closeCompetingDialogs("traceOutlierDialog"); showDialogSafely(el.traceOutlierDialog);
-  }
-
-  function closeTraceOutliers() {
-    if (!el.traceOutlierDialog) return;
-    if (typeof el.traceOutlierDialog.close === "function" && el.traceOutlierDialog.open) el.traceOutlierDialog.close(); else el.traceOutlierDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderTraceOutliers(useFiltered = state.traceOutlierScopeFiltered) {
-    if (!window.SignalDockTraceOutliers || !el.traceOutlierBody) return;
-    state.traceOutlierScopeFiltered = Boolean(useFiltered);
-    const scoped = state.traceOutlierScopeFiltered && state.filteredIndexes.length && state.filteredIndexes.length < state.entries.length ? state.filteredIndexes.map((index)=>state.entries[index]).filter(Boolean) : state.entries;
-    const data = scoped === state.entries ? (state.traceOutlierData || window.SignalDockTraceOutliers.rank(scoped,{limit:250})) : window.SignalDockTraceOutliers.rank(scoped,{limit:250});
-    if (el.traceOutlierMeta) el.traceOutlierMeta.textContent = `${state.traceOutlierScopeFiltered && scoped !== state.entries ? "Current filtered result" : "All loaded logs"} · robust duration baseline + explicit errors/service breadth.`;
-    if (el.traceOutlierSummary) {
-      el.traceOutlierSummary.replaceChildren();
-      [["Traces",data.totalTraces],["Ranked",data.rows.length],["Timed",data.baseline.timedTraces],["Median duration",data.baseline.medianDurationMs===null?"—":formatDuration(data.baseline.medianDurationMs)]].forEach(([label,value])=>{const item=document.createElement("div");const strong=document.createElement("strong");strong.textContent=typeof value==="number"?value.toLocaleString():String(value);const span=document.createElement("span");span.textContent=label;item.append(strong,span);el.traceOutlierSummary.appendChild(item);});
-    }
-    el.traceOutlierBody.replaceChildren();
-    if (!data.rows.length) { const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=7;td.className="investigation-empty";td.textContent="No trace has enough measured latency/error signal to rank as an outlier in this scope.";tr.appendChild(td);el.traceOutlierBody.appendChild(tr);return; }
-    data.rows.forEach((row)=>{const tr=document.createElement("tr");const id=document.createElement("td");const code=document.createElement("code");code.textContent=row.traceId;code.title=row.traceId;id.appendChild(code);const score=document.createElement("td");score.className="trace-outlier-score";score.textContent=row.score.toFixed(2);const duration=document.createElement("td");duration.textContent=row.durationMs===null?"—":formatDuration(row.durationMs);const errors=document.createElement("td");errors.textContent=row.errors.toLocaleString();if(row.errors)errors.className="matrix-error";const services=document.createElement("td");services.textContent=`${row.serviceCount} · ${row.services.slice(0,3).join(", ")}${row.services.length>3?` +${row.services.length-3}`:""}`;const reasons=document.createElement("td");reasons.className="trace-outlier-reasons";(row.reasons.length?row.reasons:["ranked by measured trace shape"]).forEach((reason)=>{const tag=document.createElement("span");tag.textContent=reason;reasons.appendChild(tag);});const action=document.createElement("td");const button=document.createElement("button");button.type="button";button.className="button button--primary button--small";button.dataset.outlierTrace=row.traceId;button.textContent="Open trace";action.appendChild(button);tr.append(id,score,duration,errors,services,reasons,action);el.traceOutlierBody.appendChild(tr);});
-  }
-
-  function onTraceOutlierClick(event) { const button=event.target.closest("[data-outlier-trace]"); if(!button)return; const traceId=button.dataset.outlierTrace||""; closeTraceOutliers(); if(!traceId)return; el.queryInput.value=`trace:${traceId}`; applyFilters(true); const first=state.entries.find((entry)=>entry.correlations?.trace===traceId); if(first){selectEntry(first.id); setTimeout(()=>{state.inspectorTab="trace";renderInspector();},0);} }
 
   function makeUiButton(id, label, className = "button button--ghost button--small") {
     const button = document.createElement("button"); button.type = "button"; button.id = id; button.className = className; button.textContent = label; return button;

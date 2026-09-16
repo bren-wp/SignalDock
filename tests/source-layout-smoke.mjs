@@ -20,6 +20,7 @@ const applicationControllers = [
   "src/app/investigation-controller.js",
   "src/app/exception-controller.js",
   "src/app/trace-explorer-controller.js",
+  "src/app/trace-outlier-controller.js",
   "src/app/case-workspace-controller.js",
   "src/app/case-checkpoint-controller.js"
 ];
