@@ -20,9 +20,7 @@ if 'const APP_VERSION = "2.8.15";' not in app: raise RuntimeError("APP_VERSION a
 
 nav_wrappers = '''  function setActiveNav(target) { commandNavigationController?.setActiveNav(target); }\n\n  function activateNavView(target) { commandNavigationController?.navigate(target); }\n\n'''
 app = replace_range(app, "  function setActiveNav(target) {", "  document.addEventListener(\"DOMContentLoaded\", init);", nav_wrappers, "navigation block")
-
 app = replace_once(app, "  let settingsController = null;\n", "  let settingsController = null;\n  let commandNavigationController = null;\n", "command navigation declaration")
-
 app = replace_range(app, "  function commandDefinitions() {", "  function closeCompetingDialogs(exceptId = \"\") {", "", "command definitions block")
 app = replace_range(app, "  function openCommandPalette() {", "  function openSettings() {", '''  function openCommandPalette() { commandNavigationController?.open(); }\n\n  function closeCommandPalette() { commandNavigationController?.close(); }\n\n  function renderCommandPalette() { commandNavigationController?.render(); }\n\n  function runCommand(id) { commandNavigationController?.run(id); }\n\n''', "command palette UI block")
 
@@ -40,7 +38,24 @@ keydown_start = '''      if ((event.ctrlKey || event.metaKey) && event.key.toLow
 app = replace_once(app, keydown_start, "", "palette keydown block")
 
 init_anchor = '    if (!window.SignalDockInvestigationController?.create) throw new Error("SignalDock Investigation controller is unavailable.");\n'
-init = '''    if (!window.SignalDockCommandNavigationController?.create) throw new Error("SignalDock Command/navigation controller is unavailable.");
+init = '''    const navigationFeatureCallbacks = {
+      search: () => el.queryInput?.focus(),
+      map: () => serviceMapController?.open(),
+      matrix: () => serviceMatrixController?.open(),
+      heatmap: () => serviceHeatmapController?.open(),
+      trends: () => serviceTrendsController?.open(),
+      baseline: () => baselineController?.open(),
+      traces: () => traceExplorerController?.open(),
+      outliers: () => traceOutlierController?.open(),
+      health: () => healthController?.open(),
+      investigation: () => investigationController?.open(),
+      exceptions: () => exceptionController?.open(),
+      projects: () => projectController?.open(),
+      settings: openSettings,
+      live: startLiveTail,
+      saved: () => queryLibraryController?.open()
+    };
+    if (!window.SignalDockCommandNavigationController?.create) throw new Error("SignalDock Command/navigation controller is unavailable.");
     commandNavigationController = window.SignalDockCommandNavigationController.create({
       state,
       el,
@@ -50,20 +65,20 @@ init = '''    if (!window.SignalDockCommandNavigationController?.create) throw n
       showDialogSafely,
       actions: {
         importLogs: () => el.fileInput?.click(),
-        focusSearch: () => el.queryInput?.focus(),
-        openServiceMap: () => serviceMapController?.open(),
-        openServiceMatrix: () => serviceMatrixController?.open(),
-        openServiceHeatmap: () => serviceHeatmapController?.open(),
-        openServiceTrends: () => serviceTrendsController?.open(),
-        openBaseline: () => baselineController?.open(),
-        openProjects: () => projectController?.open(),
-        openTraceExplorer: () => traceExplorerController?.open(),
-        openTraceOutliers: () => traceOutlierController?.open(),
-        openQueryLibrary: () => queryLibraryController?.open(),
-        openHealth: () => healthController?.open(),
-        openInvestigation: () => investigationController?.open(),
+        focusSearch: navigationFeatureCallbacks.search,
+        openServiceMap: navigationFeatureCallbacks.map,
+        openServiceMatrix: navigationFeatureCallbacks.matrix,
+        openServiceHeatmap: navigationFeatureCallbacks.heatmap,
+        openServiceTrends: navigationFeatureCallbacks.trends,
+        openBaseline: navigationFeatureCallbacks.baseline,
+        openProjects: navigationFeatureCallbacks.projects,
+        openTraceExplorer: navigationFeatureCallbacks.traces,
+        openTraceOutliers: navigationFeatureCallbacks.outliers,
+        openQueryLibrary: navigationFeatureCallbacks.saved,
+        openHealth: navigationFeatureCallbacks.health,
+        openInvestigation: navigationFeatureCallbacks.investigation,
         exportCaseMarkdown,
-        openExceptions: () => exceptionController?.open(),
+        openExceptions: navigationFeatureCallbacks.exceptions,
         addSelectedEvidence,
         saveWorkspace,
         exportFiltered,
@@ -76,8 +91,8 @@ init = '''    if (!window.SignalDockCommandNavigationController?.create) throw n
           renderTable();
           scheduleViewAutosave();
         },
-        toggleLiveTail: startLiveTail,
-        openSettings,
+        toggleLiveTail: navigationFeatureCallbacks.live,
+        openSettings: navigationFeatureCallbacks.settings,
         clearAll
       },
       navResetDialogs: [
@@ -109,7 +124,7 @@ accessibility = replace_once(accessibility, 'const inspectorController = read("s
 accessibility = replace_once(accessibility, "for (const token of ['function activateNavView(target)', 'function bindDialogNavReset(...dialogs)', 'el.settingsDialog,', 'aria-activedescendant']) assert.ok(app.includes(token), `missing interaction token: ${token}`);", "for (const token of ['function activateNavView(target)', 'navResetDialogs:', 'el.settingsDialog,']) assert.ok(app.includes(token), `missing interaction token: ${token}`);\nfor (const token of ['aria-activedescendant', 'listen(dialog, \"close\", () => setActiveNav(\"logs\"))']) assert.ok(commandNavigationController.includes(token), `missing command/navigation interaction token: ${token}`);", "accessibility navigation ownership")
 write("tests/accessibility-production-smoke.mjs", accessibility)
 
-smoke = '''import fs from "node:fs";\nimport path from "node:path";\nimport assert from "node:assert/strict";\nimport { fileURLToPath } from "node:url";\n\nconst root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");\nconst read = (name) => fs.readFileSync(path.join(root, name), "utf8");\nconst html = read("index.html");\nconst app = read("app.js");\nconst controller = read("src/app/command-navigation-controller.js");\nassert.ok(html.includes("src/app/command-navigation-controller.js"));\nassert.ok(app.includes("SignalDockCommandNavigationController.create"));\nassert.ok(app.includes("commandNavigationController.bind()"));\nassert.ok(app.includes("function activateNavView(target) { commandNavigationController?.navigate(target); }"));\nassert.ok(!app.includes("function commandDefinitions()"));\nassert.ok(!app.includes('document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener'));\nfor (const token of ["setActiveNav", "navigate", "definitions", "filteredCommands", "handleKeydown", "aria-activedescendant", "data-command-id", "bind", "destroy"]) assert.ok(controller.includes(token), `missing command-navigation token: ${token}`);\nfor (const forbidden of ["fetch(", "XMLHttpRequest", "WebSocket", ".invoke(", "showOpenFilePicker", "SignalDockDesktopBridge"]) assert.ok(!controller.includes(forbidden), `forbidden command-navigation capability: ${forbidden}`);\nconsole.log("command-navigation-controller-smoke PASS");\n'''
+smoke = '''import fs from "node:fs";\nimport path from "node:path";\nimport assert from "node:assert/strict";\nimport { fileURLToPath } from "node:url";\n\nconst root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");\nconst read = (name) => fs.readFileSync(path.join(root, name), "utf8");\nconst html = read("index.html");\nconst app = read("app.js");\nconst controller = read("src/app/command-navigation-controller.js");\nassert.ok(html.includes("src/app/command-navigation-controller.js"));\nassert.ok(app.includes("SignalDockCommandNavigationController.create"));\nassert.ok(app.includes("commandNavigationController.bind()"));\nassert.ok(app.includes("function activateNavView(target) { commandNavigationController?.navigate(target); }"));\nassert.ok(app.includes("const navigationFeatureCallbacks = {"));\nassert.ok(!app.includes("function commandDefinitions()"));\nassert.ok(!app.includes('document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener'));\nfor (const token of ["setActiveNav", "navigate", "definitions", "filteredCommands", "handleKeydown", "aria-activedescendant", "data-command-id", "bind", "destroy"]) assert.ok(controller.includes(token), `missing command-navigation token: ${token}`);\nfor (const forbidden of ["fetch(", "XMLHttpRequest", "WebSocket", ".invoke(", "showOpenFilePicker", "SignalDockDesktopBridge"]) assert.ok(!controller.includes(forbidden), `forbidden command-navigation capability: ${forbidden}`);\nconsole.log("command-navigation-controller-smoke PASS");\n'''
 write("tests/command-navigation-controller-smoke.mjs", smoke)
 
 readme = read("README.md").replace("2.8.15", "2.8.16")
@@ -126,7 +141,7 @@ src = replace_once(src, anchor2, anchor2 + "`app/command-navigation-controller.j
 write("src/README.md", src)
 
 changelog = read("CHANGELOG.md")
-entry = '''## 2.8.16 — 2026-09-16\n\n### Command Palette and navigation boundary\n- Extracted workspace navigation state, `[data-nav]` event ownership, Command Palette definitions/rendering and keyboard interaction into `src/app/command-navigation-controller.js`.\n- Centralized dialog-close navigation reset handling, including the Trace Compare/Trace Explorer exception, behind idempotent controller listeners.\n- Kept all feature execution behind injected root callbacks; the controller has no parser, worker, storage, native bridge or filesystem capability.\n\n### Maintainability and verification\n- Removed Command Palette command definitions, rendering implementation and palette-specific key handling from the root application.\n- Added isolated command/navigation controller coverage and permanent HTTP smoke coverage while preserving Ctrl/Cmd+K, Arrow, Enter and Escape behavior.\n\n'''
+entry = '''## 2.8.16 — 2026-09-16\n\n### Command Palette and navigation boundary\n- Extracted workspace navigation state, `[data-nav]` event ownership, Command Palette definitions/rendering and keyboard interaction into `src/app/command-navigation-controller.js`.\n- Centralized dialog-close navigation reset handling, including the Trace Compare/Trace Explorer exception, behind idempotent controller listeners.\n- Kept all feature execution behind an explicit root callback map; the controller has no parser, worker, storage, native bridge or filesystem capability.\n\n### Maintainability and verification\n- Removed Command Palette command definitions, rendering implementation and palette-specific key handling from the root application while preserving explicit feature dependency wiring.\n- Added isolated command/navigation controller coverage and permanent HTTP smoke coverage while preserving Ctrl/Cmd+K, Arrow, Enter and Escape behavior.\n\n'''
 changelog = replace_once(changelog, "# Changelog\n\n", "# Changelog\n\n" + entry, "changelog")
 write("CHANGELOG.md", changelog)
 print("v2.8.16 command/navigation controller migration staged")
