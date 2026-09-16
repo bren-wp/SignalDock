@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.5 — 2026-09-16
+
+### Investigation application controller
+- Extracted Investigation evidence rendering/actions, local import/export, Case Activity and Unified Case Timeline coordination from the root `app.js` into `src/app/investigation-controller.js`.
+- Consolidated Investigation and Case metadata event ownership behind an idempotent controller boundary while keeping evidence/case normalization in the existing investigation domain modules.
+- Routed exception-sample pinning through the same controller path so evidence limits now surface controlled feedback instead of uncaught UI exceptions.
+- Unified evidence-to-log navigation for the Investigation list and Case Timeline, including explicit feedback when referenced evidence is not present in the active workspace.
+- Corrected investigation import feedback to report items as “not added” instead of incorrectly assuming every skipped item was a duplicate.
+
+### Regression coverage
+- Added a dedicated Investigation controller smoke test covering controller ownership, load order, local-only constraints and application integration.
+- Extended permanent source-layout and HTTP smoke gates to require all six application controllers.
+
 ## 2.8.4 — 2026-09-16
 
 ### Case Workspace application controller

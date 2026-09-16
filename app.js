@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.4";
+  const APP_VERSION = "2.8.5";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -84,6 +84,7 @@
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
+  let investigationController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -117,7 +118,7 @@
       traces: openTraceExplorer,
       outliers: openTraceOutliers,
       health: openHealth,
-      investigation: openInvestigation,
+      investigation: () => investigationController?.open(),
       exceptions: openExceptions,
       projects: () => projectController?.open(),
       settings: openSettings,
@@ -228,6 +229,26 @@
       refreshBaselineHistory: () => baselineController?.renderHistory()
     });
     projectController.bind();
+    if (!window.SignalDockInvestigationController?.create) throw new Error("SignalDock Investigation controller is unavailable.");
+    investigationController = window.SignalDockInvestigationController.create({
+      state,
+      el,
+      appVersion: APP_VERSION,
+      getUtils: utils,
+      toast,
+      getSelectedEntry: selectedEntry,
+      selectEntry,
+      entryRowIntoView,
+      updateStats,
+      renderInspector,
+      refreshCaseWorkspace: (rebuild = true) => renderCaseWorkspace(rebuild),
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav,
+      scheduleViewAutosave: () => scheduleViewAutosave(),
+      scheduleDatasetAutosave: () => scheduleDatasetAutosave()
+    });
+    investigationController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -235,7 +256,7 @@
       getUtils: utils,
       toast,
       getSelectedEntry: selectedEntry,
-      recordCaseActivity,
+      recordCaseActivity: (...args) => investigationController?.recordActivity(...args),
       refreshCaseWorkspace: (rebuild = true) => renderCaseWorkspace(rebuild),
       scheduleViewAutosave: () => scheduleViewAutosave(),
       scheduleDatasetAutosave: () => scheduleDatasetAutosave()
@@ -389,20 +410,6 @@
     el.copyButton.addEventListener("click", copySelectedRaw);
     el.filterBySourceButton.addEventListener("click", filterBySelectedSource);
     el.filterByServiceButton.addEventListener("click", filterBySelectedService);
-    el.addEvidenceButton?.addEventListener("click", addSelectedEvidence);
-    el.closeInvestigationButton?.addEventListener("click", closeInvestigation);
-    el.exportInvestigationBundleButton?.addEventListener("click", exportInvestigationBundle);
-    el.exportInvestigationMarkdownButton?.addEventListener("click", exportInvestigationMarkdown);
-    el.exportInvestigationJsonButton?.addEventListener("click", exportInvestigationJson);
-    el.importInvestigationJsonButton?.addEventListener("click", () => el.investigationFileInput?.click());
-    el.investigationFileInput?.addEventListener("change", importInvestigationJson);
-    el.clearInvestigationButton?.addEventListener("click", clearInvestigation);
-    el.investigationTitle?.addEventListener("input", persistInvestigationMeta);
-    el.investigationSummary?.addEventListener("input", persistInvestigationMeta);
-    el.investigationList?.addEventListener("click", onInvestigationClick);
-    el.investigationList?.addEventListener("change", onInvestigationEdit);
-    [el.caseStatus, el.caseSeverity].forEach((control) => control?.addEventListener("change", persistCaseMeta));
-    [el.caseHypothesis, el.caseImpact, el.caseNextSteps].forEach((control) => control?.addEventListener("input", persistCaseMeta));
     el.exportCaseMarkdownButton?.addEventListener("click", exportCaseMarkdown);
     el.exportCaseJsonButton?.addEventListener("click", exportCaseJson);
     el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
@@ -431,8 +438,6 @@
     el.closeTraceOutlierButton?.addEventListener("click", closeTraceOutliers);
     el.traceOutlierResetButton?.addEventListener("click", () => { state.traceOutlierScopeFiltered = false; renderTraceOutliers(false); });
     el.traceOutlierBody?.addEventListener("click", onTraceOutlierClick);
-    el.caseTimelineFilter?.addEventListener("change", () => { state.caseTimelineFilter = el.caseTimelineFilter.value || "all"; renderCaseUnifiedTimeline(); });
-    el.caseTimelineList?.addEventListener("click", onCaseTimelineClick);
 
     document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
 
@@ -2351,144 +2356,17 @@
     const entry = Number.isInteger(sampleIndex) ? state.entries[sampleIndex] : null;
     if (!entry) { toast("No sample entry from this exception group is available.", "error"); return; }
     if (button.dataset.exceptionAction === "pin") {
-      const result = window.SignalDockInvestigation?.add?.(state.investigation, entry, `Representative sample from ${fingerprint}`, ["exception", fingerprint]);
-      if (result) { state.investigation = result.notebook; if (result.added) { const pinned = state.investigation.items.find((item) => item.entryId === entry.id); recordCaseActivity("evidence.pinned", "Exception evidence pinned", `${fingerprint} · ${(entry.message || "").slice(0, 160)}`, { evidenceId: pinned?.id || "" }); } updateStats(); scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave(); toast(result.added ? "Exception sample added to investigation." : "This sample is already pinned."); }
+      investigationController?.pinEvidence(entry, {
+        note: `Representative sample from ${fingerprint}`,
+        tags: ["exception", fingerprint],
+        activityLabel: "Exception evidence pinned",
+        activityDetail: `${fingerprint} · ${(entry.message || "").slice(0, 160)}`,
+        addedMessage: "Exception sample added to investigation.",
+        duplicateMessage: "This sample is already pinned."
+      });
       return;
     }
     closeExceptions(); selectEntry(entry.id); entryRowIntoView(entry.globalIndex);
-  }
-
-  function openInvestigation() {
-    if (!window.SignalDockInvestigation || !el.investigationDialog) return;
-    state.investigation = window.SignalDockInvestigation.normalize(state.investigation);
-    state.caseFile = window.SignalDockCaseWorkspace?.normalize?.(state.caseFile) || state.caseFile;
-    el.investigationTitle.value = state.investigation.title || "Investigation";
-    el.investigationSummary.value = state.investigation.summary || "";
-    if (el.caseStatus) el.caseStatus.value = state.caseFile?.status || "open";
-    if (el.caseSeverity) el.caseSeverity.value = state.caseFile?.severity || "none";
-    if (el.caseHypothesis) el.caseHypothesis.value = state.caseFile?.hypothesis || "";
-    if (el.caseImpact) el.caseImpact.value = state.caseFile?.impact || "";
-    if (el.caseNextSteps) el.caseNextSteps.value = state.caseFile?.nextSteps || "";
-    renderInvestigation();
-    closeCompetingDialogs("investigationDialog");
-    showDialogSafely(el.investigationDialog);
-  }
-
-  function closeInvestigation() {
-    if (!el.investigationDialog) return;
-    if (typeof el.investigationDialog.close === "function" && el.investigationDialog.open) el.investigationDialog.close();
-    else el.investigationDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function persistInvestigationMeta() {
-    if (!window.SignalDockInvestigation || !state.investigation) return;
-    state.investigation = window.SignalDockInvestigation.normalize(Object.assign({}, state.investigation, {
-      title: el.investigationTitle?.value || "Investigation",
-      summary: el.investigationSummary?.value || "",
-      updatedAt: new Date().toISOString()
-    }));
-    if (window.SignalDockCaseWorkspace) state.caseFile = window.SignalDockCaseWorkspace.updateMeta(state.caseFile, { title: state.investigation.title, summary: state.investigation.summary });
-    updateStats();
-    scheduleViewAutosave();
-    if (state.settings.autosave !== false) scheduleDatasetAutosave();
-  }
-
-  function addSelectedEvidence() {
-    const entry = selectedEntry();
-    if (!entry || !window.SignalDockInvestigation) return;
-    const result = window.SignalDockInvestigation.add(state.investigation, entry);
-    state.investigation = result.notebook;
-    if (result.added) { const pinned = state.investigation.items.find((item) => item.entryId === entry.id); recordCaseActivity("evidence.pinned", "Evidence pinned", `${entry.level} · ${entry.service || "—"} · ${(entry.message || "").slice(0, 160)}`, { evidenceId: pinned?.id || "" }); }
-    updateStats();
-    renderInspector();
-    if (el.investigationDialog?.open) renderInvestigation();
-    scheduleViewAutosave();
-    if (state.settings.autosave !== false) scheduleDatasetAutosave();
-    toast(result.added ? "Added log entry to investigation." : "This log entry is already pinned as evidence.");
-  }
-
-  function renderInvestigation() {
-    if (!el.investigationList || !window.SignalDockInvestigation) return;
-    state.investigation = window.SignalDockInvestigation.normalize(state.investigation);
-    const summary = window.SignalDockInvestigation.summarize(state.investigation);
-    el.investigationStats.textContent = `${summary.items.toLocaleString()} evidence item${summary.items === 1 ? "" : "s"} · ${summary.services.toLocaleString()} services · ${summary.tags.toLocaleString()} tags${summary.exceptionGroups ? ` · ${summary.exceptionGroups} exception groups` : ""}`;
-    renderCaseWorkspace();
-    renderInvestigationTimeline();
-    el.investigationList.replaceChildren();
-    if (!state.investigation.items.length) {
-      const empty = document.createElement("div"); empty.className = "investigation-empty"; empty.textContent = "No evidence pinned yet. Select a log entry and choose Add evidence."; el.investigationList.appendChild(empty); return;
-    }
-    state.investigation.items.forEach((item, index) => {
-      const card = document.createElement("article"); card.className = "investigation-item"; card.dataset.investigationId = item.id;
-      const head = document.createElement("div"); head.className = "investigation-item__head";
-      const identity = document.createElement("div");
-      const badge = document.createElement("span"); badge.className = `level-badge level-${String(item.level || "UNKNOWN").toUpperCase()}`; badge.textContent = item.level || "UNKNOWN";
-      const title = document.createElement("strong"); title.textContent = `${item.service || "—"} · ${item.source ? utils().shortSource(item.source) : "source"}`;
-      const time = document.createElement("small"); time.textContent = item.timestamp ? utils().formatTime(item.timestamp) : `Evidence ${index + 1}`;
-      identity.append(badge, title, time);
-      const actions = document.createElement("div");
-      const open = document.createElement("button"); open.type = "button"; open.className = "button button--ghost button--small"; open.dataset.investigationAction = "open"; open.dataset.investigationId = item.id; open.textContent = "Open";
-      const remove = document.createElement("button"); remove.type = "button"; remove.className = "button button--ghost button--small"; remove.dataset.investigationAction = "remove"; remove.dataset.investigationId = item.id; remove.textContent = "Remove";
-      actions.append(open, remove); head.append(identity, actions);
-      const message = document.createElement("p"); message.className = "investigation-item__message"; message.textContent = item.message || "(empty message)";
-      const fingerprint = item.fingerprint ? document.createElement("code") : null; if (fingerprint) { fingerprint.className = "investigation-item__fingerprint"; fingerprint.textContent = item.fingerprint; fingerprint.title = "Normalized exception fingerprint"; }
-      const fields = document.createElement("div"); fields.className = "investigation-item__fields";
-      const noteLabel = document.createElement("label"); const noteSpan = document.createElement("span"); noteSpan.textContent = "Note"; const note = document.createElement("textarea"); note.rows = 2; note.maxLength = 8000; note.value = item.note || ""; note.dataset.investigationNote = item.id; note.placeholder = "Why is this entry important?"; noteLabel.append(noteSpan, note);
-      const tagLabel = document.createElement("label"); const tagSpan = document.createElement("span"); tagSpan.textContent = "Tags"; const tags = document.createElement("input"); tags.type = "text"; tags.value = (item.tags || []).join(", "); tags.dataset.investigationTags = item.id; tags.placeholder = "auth, regression, incident-42"; tagLabel.append(tagSpan, tags);
-      fields.append(noteLabel, tagLabel); card.append(head, message); if (fingerprint) card.appendChild(fingerprint); card.append(fields); el.investigationList.appendChild(card);
-    });
-  }
-
-  function recordCaseActivity(type, label, detail = "", options = {}) {
-    if (!window.SignalDockCaseWorkspace?.appendActivity) return;
-    state.caseFile = window.SignalDockCaseWorkspace.appendActivity(state.caseFile, type, { label, detail, findingId: options.findingId || "", evidenceId: options.evidenceId || "" });
-  }
-
-  function renderCaseActivity() {
-    if (!el.caseActivityList) return;
-    const activity = Array.isArray(state.caseFile?.activity) ? [...state.caseFile.activity].sort((a, b) => String(b.at).localeCompare(String(a.at))) : [];
-    if (el.caseActivityMeta) el.caseActivityMeta.textContent = `${activity.length.toLocaleString()} event${activity.length === 1 ? "" : "s"}`;
-    el.caseActivityList.replaceChildren();
-    if (!activity.length) { const empty = document.createElement("div"); empty.className = "case-findings__empty"; empty.textContent = "Case changes will appear here."; el.caseActivityList.appendChild(empty); return; }
-    activity.slice(0, 120).forEach((item) => {
-      const row = document.createElement("article"); row.className = "case-activity__item";
-      const dot = document.createElement("i"); dot.setAttribute("aria-hidden", "true");
-      const copy = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = item.label || item.type || "Case activity"; const small = document.createElement("small"); const when = Date.parse(item.at); small.textContent = Number.isFinite(when) ? new Date(when).toLocaleString() : item.at || ""; copy.append(strong, small); if (item.detail) { const p = document.createElement("p"); p.textContent = item.detail; copy.appendChild(p); } row.append(dot, copy); el.caseActivityList.appendChild(row);
-    });
-  }
-
-  function renderCaseUnifiedTimeline() {
-    if (!el.caseTimelineList || !window.SignalDockCaseTimeline) return;
-    const timeline = window.SignalDockCaseTimeline.build(state.caseFile || {}, state.investigation || {}, { limit: 1000 });
-    const filter = state.caseTimelineFilter || "all"; if (el.caseTimelineFilter && el.caseTimelineFilter.value !== filter) el.caseTimelineFilter.value = filter;
-    const rows = filter === "all" ? timeline.items : timeline.items.filter((item)=>item.type===filter);
-    if (el.caseTimelineMeta) el.caseTimelineMeta.textContent = timeline.summary.total ? `${timeline.summary.total} timed events · ${timeline.summary.evidence} evidence · ${timeline.summary.milestones} milestones · ${timeline.summary.activity} activity` : "No timestamped case events.";
-    el.caseTimelineList.replaceChildren();
-    if (!rows.length) { const empty=document.createElement("div");empty.className="case-findings__empty";empty.textContent="No timeline items match this view.";el.caseTimelineList.appendChild(empty);return; }
-    [...rows].reverse().slice(0,300).forEach((item)=>{const row=document.createElement("article");row.className="case-timeline-item";row.dataset.type=item.type;if(item.evidenceId)row.dataset.evidenceId=item.evidenceId;const time=document.createElement("time");time.dateTime=item.at;time.textContent=new Date(item.timestampMs).toLocaleString();const dot=document.createElement("i");dot.setAttribute("aria-hidden","true");const copy=document.createElement("div");copy.className="case-timeline-item__copy";const strong=document.createElement("strong");strong.textContent=`${item.type[0].toUpperCase()+item.type.slice(1)} · ${item.title}`;const small=document.createElement("small");small.textContent=[item.state,item.detail].filter(Boolean).join(" · ");copy.append(strong,small);row.append(time,dot,copy);el.caseTimelineList.appendChild(row);});
-  }
-
-  function onCaseTimelineClick(event) { const row=event.target.closest("[data-evidence-id]"); if(!row)return; const item=state.investigation?.items?.find((candidate)=>candidate.id===row.dataset.evidenceId); if(!item)return; const entry=state.entries.find((candidate)=>candidate.id===item.entryId); if(!entry)return; closeInvestigation(); selectEntry(entry.id); entryRowIntoView(entry.globalIndex); }
-
-  function persistCaseMeta() {
-    if (!window.SignalDockCaseWorkspace) return;
-    const previousStatus = state.caseFile?.status || "open";
-    const previousSeverity = state.caseFile?.severity || "none";
-    state.caseFile = window.SignalDockCaseWorkspace.updateMeta(state.caseFile, {
-      title: el.investigationTitle?.value || state.investigation?.title || "Investigation",
-      summary: el.investigationSummary?.value || state.investigation?.summary || "",
-      status: el.caseStatus?.value || "open",
-      severity: el.caseSeverity?.value || "none",
-      hypothesis: el.caseHypothesis?.value || "",
-      impact: el.caseImpact?.value || "",
-      nextSteps: el.caseNextSteps?.value || ""
-    });
-    if (state.caseFile.status !== previousStatus) recordCaseActivity("case.status", "Case status changed", `${previousStatus} → ${state.caseFile.status}`);
-    if (state.caseFile.severity !== previousSeverity) recordCaseActivity("case.severity", "Case severity changed", `${previousSeverity} → ${state.caseFile.severity}`);
-    renderCaseWorkspace(false);
-    scheduleViewAutosave();
-    if (state.settings.autosave !== false) scheduleDatasetAutosave();
   }
 
   function renderCaseWorkspace(rebuild = true) {
@@ -2496,8 +2374,7 @@
     state.caseFile = window.SignalDockCaseWorkspace.pruneEvidenceLinks(state.caseFile, state.investigation?.items || []);
     const summary = window.SignalDockCaseWorkspace.summarize(state.caseFile, state.investigation?.items || []);
     if (el.caseWorkspaceStats) el.caseWorkspaceStats.textContent = `${summary.findings} findings · ${summary.confirmed} confirmed · ${summary.linkedEvidence} linked evidence`;
-    renderCaseActivity();
-    renderCaseUnifiedTimeline();
+    investigationController?.renderCaseSurfaces();
     caseWorkspaceController?.render({ rebuildFindings: rebuild });
     caseCheckpointController?.render();
   }
@@ -2531,7 +2408,7 @@
     try {
       state.caseFile = window.SignalDockCaseWorkspace.importJson(await file.text());
       state.caseFile = window.SignalDockCaseWorkspace.pruneEvidenceLinks(state.caseFile, state.investigation?.items || []);
-      recordCaseActivity("case.imported", "Case file imported", file.name || "Imported case");
+      investigationController?.recordActivity("case.imported", "Case file imported", file.name || "Imported case");
       if (window.SignalDockInvestigation) state.investigation = window.SignalDockInvestigation.normalize(Object.assign({}, state.investigation, { title: state.caseFile.title || state.investigation?.title || "Investigation", summary: state.caseFile.summary || state.investigation?.summary || "" }));
       if (el.investigationTitle) el.investigationTitle.value = state.investigation.title;
       if (el.investigationSummary) el.investigationSummary.value = state.investigation.summary;
@@ -2546,52 +2423,6 @@
     finally { event.target.value = ""; }
   }
 
-  function renderInvestigationTimeline() {
-    if (!el.investigationTimeline || !window.SignalDockInvestigation) return;
-    const timeline = window.SignalDockInvestigation.timeline(state.investigation, { maxBuckets: 16 });
-    el.investigationTimeline.replaceChildren();
-    if (!timeline.buckets.length) {
-      if (el.investigationTimelineMeta) el.investigationTimelineMeta.textContent = "No timed evidence";
-      const empty = document.createElement("span"); empty.className = "investigation-timeline__empty"; empty.textContent = "Pin timestamped log entries to build the local evidence timeline."; el.investigationTimeline.appendChild(empty); return;
-    }
-    const max = Math.max(...timeline.buckets.map((bucket) => bucket.count), 1);
-    if (el.investigationTimelineMeta) el.investigationTimelineMeta.textContent = `${new Date(timeline.start).toLocaleString()} → ${new Date(timeline.end).toLocaleString()}`;
-    timeline.buckets.forEach((bucket) => {
-      const bar = document.createElement("span"); bar.className = `investigation-timeline__bar${bucket.fatal ? " has-fatal" : bucket.errors ? " has-errors" : ""}`; bar.title = `${bucket.count} evidence item${bucket.count === 1 ? "" : "s"} · ${bucket.errors} errors · ${bucket.fatal} fatal`;
-      bar.style.setProperty("--evidence-height", `${Math.max(8, Math.round((bucket.count / max) * 100))}%`); el.investigationTimeline.appendChild(bar);
-    });
-  }
-
-  function onInvestigationClick(event) {
-    const button = event.target.closest("[data-investigation-action]");
-    if (!button || !window.SignalDockInvestigation) return;
-    const id = button.dataset.investigationId;
-    const item = state.investigation?.items?.find((candidate) => candidate.id === id);
-    if (!item) return;
-    if (button.dataset.investigationAction === "remove") {
-      state.investigation = window.SignalDockInvestigation.remove(state.investigation, id);
-      if (window.SignalDockCaseWorkspace) state.caseFile = window.SignalDockCaseWorkspace.pruneEvidenceLinks(state.caseFile, state.investigation.items);
-      recordCaseActivity("evidence.removed", "Evidence removed", item.message || item.id, { evidenceId: id });
-      renderInvestigation(); updateStats(); renderInspector(); scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave(); return;
-    }
-    if (button.dataset.investigationAction === "open") {
-      let entry = Number.isInteger(item.globalIndex) ? state.entries[item.globalIndex] : null;
-      if (!entry || (item.entryId && entry.id !== item.entryId)) entry = state.entries.find((candidate) => candidate.id === item.entryId || (candidate.source === item.source && candidate.index === item.globalIndex));
-      if (!entry) { toast("The referenced evidence log is not present in this workspace.", "error"); return; }
-      closeInvestigation(); selectEntry(entry.id); entryRowIntoView(entry.globalIndex);
-    }
-  }
-
-  function onInvestigationEdit(event) {
-    if (!window.SignalDockInvestigation) return;
-    const noteId = event.target.dataset.investigationNote;
-    const tagId = event.target.dataset.investigationTags;
-    const id = noteId || tagId;
-    if (!id) return;
-    state.investigation = window.SignalDockInvestigation.update(state.investigation, id, noteId ? { note: event.target.value } : { tags: event.target.value });
-    renderInvestigation(); updateStats(); scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave();
-  }
-
   function entryRowIntoView(globalIndex) {
     const position = state.filteredIndexes.indexOf(globalIndex);
     if (position < 0) return;
@@ -2603,68 +2434,6 @@
       state.page = Math.floor(position / state.pageSize) + 1;
       renderTable();
     }
-  }
-
-  function exportInvestigationBundle() {
-    if (!window.SignalDockInvestigation) return;
-    const text = window.SignalDockInvestigation.exportBundle(state.investigation, { appVersion: APP_VERSION, sourceLabel: el.loadedMeta?.textContent || "local-workspace", caseFile: window.SignalDockCaseWorkspace?.normalize?.(state.caseFile) || state.caseFile });
-    utils().downloadParts(`signaldock-evidence-${new Date().toISOString().slice(0, 10)}.sdbundle`, [text], "application/json;charset=utf-8");
-    toast("Self-contained evidence bundle exported.");
-  }
-
-  function exportInvestigationJson() {
-    if (!window.SignalDockInvestigation) return;
-    const text = window.SignalDockInvestigation.exportJson(state.investigation);
-    utils().downloadParts(`signaldock-investigation-${new Date().toISOString().slice(0, 10)}.json`, [text], "application/json;charset=utf-8");
-    toast("Investigation exported as JSON.");
-  }
-
-  function exportInvestigationMarkdown() {
-    if (!window.SignalDockInvestigation) return;
-    const text = window.SignalDockInvestigation.exportMarkdown(state.investigation);
-    utils().downloadParts(`signaldock-investigation-${new Date().toISOString().slice(0, 10)}.md`, [text], "text/markdown;charset=utf-8");
-    toast("Investigation exported as Markdown.");
-  }
-
-  async function importInvestigationJson(event) {
-    const file = event.target.files?.[0];
-    if (!file || !window.SignalDockInvestigation) return;
-    try {
-      const text = await file.text();
-      let imported; let importedCase = null;
-      try {
-        const probe = JSON.parse(text);
-        if (probe?.schema === window.SignalDockInvestigation.BUNDLE_SCHEMA) { const bundle = window.SignalDockInvestigation.importBundle(text); imported = bundle.investigation; importedCase = bundle.caseFile || null; }
-        else imported = window.SignalDockInvestigation.importJson(text);
-      } catch (error) { throw error; }
-      const mergeResult = window.SignalDockInvestigation.merge ? window.SignalDockInvestigation.merge(state.investigation, imported) : { notebook: imported, added: imported.items.length, skipped: 0, idMap: {} };
-      state.investigation = mergeResult.notebook;
-      if (importedCase && window.SignalDockCaseWorkspace) {
-        const remappedCase = window.SignalDockCaseWorkspace.normalize(importedCase);
-        const idMap = mergeResult.idMap || {};
-        remappedCase.findings.forEach((finding) => { finding.evidenceIds = finding.evidenceIds.map((id) => idMap[id] || id); });
-        remappedCase.activity.forEach((activity) => { if (activity.evidenceId) activity.evidenceId = idMap[activity.evidenceId] || activity.evidenceId; });
-        state.caseFile = window.SignalDockCaseWorkspace.merge ? window.SignalDockCaseWorkspace.merge(state.caseFile, remappedCase) : remappedCase;
-      }
-      if (window.SignalDockCaseWorkspace) state.caseFile = window.SignalDockCaseWorkspace.pruneEvidenceLinks(state.caseFile, state.investigation.items);
-      recordCaseActivity("evidence.imported", "Investigation evidence merged", `${mergeResult.added} added · ${mergeResult.skipped} duplicate${mergeResult.skipped === 1 ? "" : "s"} skipped`);
-      if (el.investigationTitle) el.investigationTitle.value = state.investigation.title || "Investigation";
-      if (el.investigationSummary) el.investigationSummary.value = state.investigation.summary || "";
-      renderInvestigation(); updateStats(); renderInspector(); scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave();
-      toast(`Merged investigation evidence. ${mergeResult.added.toLocaleString()} added, ${mergeResult.skipped.toLocaleString()} duplicate${mergeResult.skipped === 1 ? "" : "s"} skipped.`);
-    } catch (error) { toast(`Could not import investigation: ${error.message || error}`, "error", 6500); }
-    finally { event.target.value = ""; }
-  }
-
-  function clearInvestigation() {
-    if (!state.investigation?.items?.length || !window.SignalDockInvestigation) return;
-    if (!window.confirm("Clear all pinned evidence and notes from this investigation?")) return;
-    const title = state.investigation.title; const summary = state.investigation.summary;
-    state.investigation = window.SignalDockInvestigation.empty(); state.investigation.title = title || "Investigation"; state.investigation.summary = summary || "";
-    if (window.SignalDockCaseWorkspace) state.caseFile = window.SignalDockCaseWorkspace.pruneEvidenceLinks(state.caseFile, []);
-    recordCaseActivity("evidence.cleared", "Investigation evidence cleared", "All pinned evidence was removed from the local investigation.");
-    renderInvestigation(); updateStats(); renderInspector(); scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave();
-    toast("Investigation evidence cleared.");
   }
 
   function filterByServiceValue(service) {

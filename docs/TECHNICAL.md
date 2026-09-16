@@ -10,6 +10,8 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `project-controller.js` owns Project Manager rendering, CRUD actions and explicit link/relink/reopen/forget orchestration. File parsing and workspace restore remain injected application callbacks, while filesystem access is limited to the existing `src/platform/desktop-bridge.js` capability facade. Portable project export/duplication rules remain in `src/investigation/project-manager.js`.
 
+`investigation-controller.js` owns Investigation evidence rendering/actions, local import/export, Case Activity and Unified Case Timeline coordination. Investigation and Case domain modules remain authoritative for normalization and bounded evidence/case data; log selection, inspector refresh, Case Workspace refresh and autosave are injected callbacks.
+
 `case-checkpoint-controller.js` owns Case Checkpoint rendering and create/remove/restore UI actions. Checkpoint snapshots/diffs remain in `src/investigation/case-checkpoints.js`, while the controller receives Case Workspace refresh and autosave as narrow callbacks. Case Workspace rendering also refreshes checkpoint diffs so restored sessions and later edits remain visually synchronized.
 
 `case-workspace-controller.js` owns findings, milestones and metadata-only attachment rendering plus their delegated UI events. The Case Workspace domain module remains authoritative for normalization, bounds and metadata-only attachment records. Cross-feature effects such as selected-entry lookup, activity recording, workspace refresh and autosave are injected callbacks rather than hidden global dependencies.
@@ -19,7 +21,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.4**.
+Current version: **2.8.5**.
 
 ## Highlights
 
