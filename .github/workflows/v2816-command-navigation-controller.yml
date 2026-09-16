@@ -1,0 +1,103 @@
+name: SignalDock v2.8.16 Command navigation controller
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  modularize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Apply v2.8.16 command navigation migration
+        run: python3 .github/scripts/v2816-command-navigation-controller.py
+
+      - name: Verify release surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "2.8.16"
+          grep -Fq 'const APP_VERSION = "2.8.16"' app.js
+          grep -Fq 'version-2.8.16-' README.md
+          grep -Fq 'SignalDock v2.8.16' README.md
+          grep -Fq 'Current version: **2.8.16**.' docs/TECHNICAL.md
+          grep -Fq '## 2.8.16 — 2026-09-16' CHANGELOG.md
+
+      - name: Verify JavaScript and regressions
+        shell: bash
+        env:
+          TERM: xterm
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+      - name: Verify command navigation architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/app/command-navigation-controller.js
+          grep -Fq 'src/app/command-navigation-controller.js' index.html
+          grep -Fq 'SignalDockCommandNavigationController.create' app.js
+          grep -Fq 'commandNavigationController.bind()' app.js
+          grep -Fq 'function activateNavView(target) { commandNavigationController?.navigate(target); }' app.js
+          ! grep -Fq 'function commandDefinitions()' app.js
+          ! grep -Fq 'bindDialogNavReset(' app.js
+          grep -Fq 'handleKeydown' src/app/command-navigation-controller.js
+          grep -Fq 'aria-activedescendant' src/app/command-navigation-controller.js
+          ! grep -Fq 'fetch(' src/app/command-navigation-controller.js
+          ! grep -Fq '.invoke(' src/app/command-navigation-controller.js
+          ! grep -Fq 'showOpenFilePicker' src/app/command-navigation-controller.js
+          before_size=$(git show HEAD:app.js | wc -c)
+          after_size=$(wc -c < app.js)
+          echo "app.js size: ${before_size} -> ${after_size} bytes"
+          test "$after_size" -lt "$before_size"
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-v2816-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-v2816-index.html; then ready=1; break; fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          grep -Fq 'src/app/command-navigation-controller.js' /tmp/signaldock-v2816-index.html
+          curl --fail --silent http://127.0.0.1:8080/src/app/command-navigation-controller.js -o /tmp/command-navigation-controller.js
+          curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
+          grep -Fq 'SignalDockCommandNavigationController' /tmp/command-navigation-controller.js
+
+      - name: Commit verified v2.8.16 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION app.js index.html src/app/command-navigation-controller.js src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/*.mjs
+          git diff --cached --check
+          git commit -m "refactor: extract command navigation controller"
+          git push origin HEAD:main
