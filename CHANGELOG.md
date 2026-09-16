@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.6 — 2026-09-16
+
+### Exception Explorer application boundary
+- Extracted Exception Explorer rendering, fingerprint view state and delegated UI events from the root application into `src/app/exception-controller.js`.
+- Routed Exception navigation, filtering, sample opening and evidence pinning through explicit callbacks while keeping grouping and trend analysis in `src/analysis/`.
+- Hardened representative-sample resolution to prefer stable entry IDs before array-index and deterministic fingerprint fallbacks, reducing restore/reopen sensitivity to stale positions.
+- Normalized `exception:` / `fingerprint:` query replacement through tested pure helpers and added descriptive accessible names to generated action buttons.
+
+### Maintainability and verification
+- Removed legacy Exception dialog functions/listeners from `app.js` and added an isolated controller smoke test.
+- Extended source-layout and permanent HTTP quality gates so the Exception controller is a required production asset.
+- Preserved the local-first boundary: no network primitive, native escape hatch or new persistence surface was introduced.
+
 ## 2.8.5 — 2026-09-16
 
 ### Investigation application controller

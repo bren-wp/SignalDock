@@ -18,6 +18,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
+`app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.
+
 `app/case-checkpoint-controller.js` owns Case Checkpoint UI rendering and create/remove/restore event coordination.
 
 `app/case-workspace-controller.js` owns findings, milestones and metadata-only attachment UI coordination.

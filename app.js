@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.5";
+  const APP_VERSION = "2.8.6";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -85,6 +85,7 @@
   let baselineController = null;
   let projectController = null;
   let investigationController = null;
+  let exceptionController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -119,7 +120,7 @@
       outliers: openTraceOutliers,
       health: openHealth,
       investigation: () => investigationController?.open(),
-      exceptions: openExceptions,
+      exceptions: () => exceptionController?.open(),
       projects: () => projectController?.open(),
       settings: openSettings,
       live: startLiveTail,
@@ -249,6 +250,22 @@
       scheduleDatasetAutosave: () => scheduleDatasetAutosave()
     });
     investigationController.bind();
+    if (!window.SignalDockExceptionController?.create) throw new Error("SignalDock Exception controller is unavailable.");
+    exceptionController = window.SignalDockExceptionController.create({
+      state,
+      el,
+      getUtils: utils,
+      formatDuration,
+      toast,
+      applyFilters,
+      selectEntry,
+      entryRowIntoView,
+      pinEvidence: (...args) => investigationController?.pinEvidence(...args),
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    exceptionController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -414,9 +431,6 @@
     el.exportCaseJsonButton?.addEventListener("click", exportCaseJson);
     el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
     el.caseFileInput?.addEventListener("change", importCaseJson);
-    el.closeExceptionButton?.addEventListener("click", closeExceptions);
-    el.exceptionResetButton?.addEventListener("click", () => { state.exceptionViewFingerprint = ""; renderExceptions(); });
-    el.exceptionList?.addEventListener("click", onExceptionClick);
     el.closeHealthButton?.addEventListener("click", closeHealth);
     el.healthResetButton?.addEventListener("click", () => { state.healthScopeFiltered = false; renderHealth(false); });
     el.healthTableBody?.addEventListener("click", onHealthClick);
@@ -2273,100 +2287,6 @@
     if (!service) return;
     closeHealth();
     filterByServiceValue(service);
-  }
-
-  function openExceptions() {
-    if (!window.SignalDockExceptionGroups || !el.exceptionDialog) return;
-    const queryMatch = String(el.queryInput?.value || "").match(/(?:^|\s)(?:exception|fingerprint):([^\s]+)/i);
-    state.exceptionViewFingerprint = queryMatch?.[1]?.toLowerCase() || "";
-    renderExceptions();
-    closeCompetingDialogs("exceptionDialog");
-    showDialogSafely(el.exceptionDialog);
-  }
-
-  function closeExceptions() {
-    if (!el.exceptionDialog) return;
-    if (typeof el.exceptionDialog.close === "function" && el.exceptionDialog.open) el.exceptionDialog.close();
-    else el.exceptionDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderExceptions() {
-    if (!el.exceptionList || !window.SignalDockExceptionGroups) return;
-    const groups = Array.isArray(state.exceptionGroups) ? state.exceptionGroups : [];
-    const visible = state.exceptionViewFingerprint ? groups.filter((group) => group.fingerprint === state.exceptionViewFingerprint) : groups;
-    const summary = window.SignalDockExceptionGroups.summary(groups);
-    if (el.exceptionSummary) {
-      el.exceptionSummary.replaceChildren();
-      [["Groups", summary.groups], ["Occurrences", summary.occurrences], ["Errors", summary.errors], ["Fatal", summary.fatal]].forEach(([label, value]) => {
-        const item = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString(); const span = document.createElement("span"); span.textContent = label; item.append(strong, span); el.exceptionSummary.appendChild(item);
-      });
-    }
-    renderExceptionTrend();
-    el.exceptionList.replaceChildren();
-    if (!visible.length) {
-      const empty = document.createElement("div"); empty.className = "investigation-empty"; empty.textContent = groups.length ? "No exception group matches this view." : "No recurring exceptions detected in the loaded logs."; el.exceptionList.appendChild(empty); return;
-    }
-    visible.slice(0, 500).forEach((group) => {
-      const card = document.createElement("article"); card.className = "exception-item"; card.dataset.exceptionFingerprint = group.fingerprint;
-      const head = document.createElement("div"); head.className = "exception-item__head";
-      const identity = document.createElement("div"); const title = document.createElement("strong"); title.textContent = group.type || "Exception-like failure"; const code = document.createElement("code"); code.textContent = group.fingerprint; identity.append(title, code);
-      const count = document.createElement("em"); count.textContent = `${group.count.toLocaleString()} occurrence${group.count === 1 ? "" : "s"}`;
-      const trend = state.exceptionTrends?.groups?.get?.(group.fingerprint);
-      if (trend) { const badge = document.createElement("span"); badge.className = `exception-trend-badge exception-trend-badge--${trend.trend}`; badge.textContent = trend.trend; badge.title = `${trend.recent} recent vs ${trend.previous} previous window`; identity.appendChild(badge); }
-      head.append(identity, count);
-      const signature = document.createElement("p"); signature.className = "exception-item__signature"; signature.textContent = group.signature || "Normalized exception signature";
-      const meta = document.createElement("div"); meta.className = "exception-item__meta";
-      const topService = group.services?.[0]?.[0] || "—"; const topSource = group.sources?.[0]?.[0] || "—";
-      const range = group.firstTimestampMs !== null && group.lastTimestampMs !== null ? `${new Date(group.firstTimestampMs).toLocaleString()} → ${new Date(group.lastTimestampMs).toLocaleString()}` : "No timestamp range";
-      [["Service", topService], ["Source", utils().shortSource(topSource)], ["Severity", `${group.fatal ? `${group.fatal} fatal · ` : ""}${group.errors} errors`], ["Observed", range]].forEach(([label, value]) => { const row = document.createElement("span"); row.textContent = `${label}: ${value}`; meta.appendChild(row); });
-      if (trend) { const row = document.createElement("span"); row.textContent = `Trend: ${trend.recent} recent · ${trend.previous} previous`; meta.appendChild(row); }
-      const actions = document.createElement("div"); actions.className = "exception-item__actions";
-      [["filter", "Filter logs"], ["open", "Open sample"], ["pin", "Pin sample"]].forEach(([action, label]) => { const button = document.createElement("button"); button.type = "button"; button.className = "button button--ghost button--small"; button.dataset.exceptionAction = action; button.dataset.exceptionFingerprint = group.fingerprint; button.textContent = label; actions.appendChild(button); });
-      card.append(head, signature, meta, actions); el.exceptionList.appendChild(card);
-    });
-    if (groups.length > 500 && !state.exceptionViewFingerprint) { const note = document.createElement("p"); note.className = "exception-list-note"; note.textContent = `Showing 500 of ${groups.length.toLocaleString()} groups. Filter a fingerprint from the query bar for focused analysis.`; el.exceptionList.appendChild(note); }
-  }
-
-  function renderExceptionTrend() {
-    if (!el.exceptionTrend) return;
-    const trend = state.exceptionTrends;
-    el.exceptionTrend.replaceChildren();
-    if (!trend?.groups?.size) {
-      const empty = document.createElement("div"); empty.className = "exception-trend__empty"; empty.textContent = "Timestamped recurring failures will show trend analysis here."; el.exceptionTrend.appendChild(empty); return;
-    }
-    const wrap = document.createElement("div"); wrap.className = "exception-trend__summary";
-    [["Spiking", trend.summary.spiking], ["Rising", trend.summary.rising], ["Stable", trend.summary.stable], ["Falling", trend.summary.falling]].forEach(([label, value]) => { const chip = document.createElement("span"); chip.className = "exception-trend__chip"; const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString(); chip.append(strong, document.createTextNode(` ${label}`)); wrap.appendChild(chip); });
-    const windowChip = document.createElement("span"); windowChip.className = "exception-trend__chip"; windowChip.textContent = `Comparison window: ${formatDuration(trend.windowMs)}`; wrap.appendChild(windowChip);
-    el.exceptionTrend.appendChild(wrap);
-  }
-
-  function onExceptionClick(event) {
-    const button = event.target.closest("[data-exception-action]");
-    if (!button) return;
-    const fingerprint = button.dataset.exceptionFingerprint || "";
-    const group = state.exceptionGroups.find((item) => item.fingerprint === fingerprint);
-    if (!group) return;
-    if (button.dataset.exceptionAction === "filter") {
-      const clean = el.queryInput.value.replace(/(?:^|\s)(?:exception|fingerprint):[^\s]+/gi, " ").trim();
-      el.queryInput.value = `${clean}${clean ? " " : ""}exception:${fingerprint}`;
-      closeExceptions(); applyFilters(true); toast(`Filtered to exception ${fingerprint}.`); return;
-    }
-    const sampleIndex = group.sampleIndexes?.find((index) => Number.isInteger(index) && state.entries[index]);
-    const entry = Number.isInteger(sampleIndex) ? state.entries[sampleIndex] : null;
-    if (!entry) { toast("No sample entry from this exception group is available.", "error"); return; }
-    if (button.dataset.exceptionAction === "pin") {
-      investigationController?.pinEvidence(entry, {
-        note: `Representative sample from ${fingerprint}`,
-        tags: ["exception", fingerprint],
-        activityLabel: "Exception evidence pinned",
-        activityDetail: `${fingerprint} · ${(entry.message || "").slice(0, 160)}`,
-        addedMessage: "Exception sample added to investigation.",
-        duplicateMessage: "This sample is already pinned."
-      });
-      return;
-    }
-    closeExceptions(); selectEntry(entry.id); entryRowIntoView(entry.globalIndex);
   }
 
   function renderCaseWorkspace(rebuild = true) {
