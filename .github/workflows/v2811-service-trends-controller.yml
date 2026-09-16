@@ -1,0 +1,111 @@
+name: SignalDock v2.8.11 Service Trends controller
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  modularize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Apply v2.8.11 Service Trends controller migration
+        run: python3 .github/scripts/v2811-service-trends-controller.py
+
+      - name: Verify release surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "2.8.11"
+          grep -Fq 'const APP_VERSION = "2.8.11"' app.js
+          grep -Fq 'version-2.8.11-' README.md
+          grep -Fq 'SignalDock v2.8.11' README.md
+          grep -Fq 'Current version: **2.8.11**.' docs/TECHNICAL.md
+          grep -Fq '## 2.8.11 — 2026-09-16' CHANGELOG.md
+
+      - name: Verify JavaScript and regressions
+        shell: bash
+        env:
+          TERM: xterm
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+          git diff --check
+
+      - name: Verify Service Trends controller architecture
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f src/app/service-trends-controller.js
+          grep -Fq 'src/app/service-trends-controller.js' index.html
+          grep -Fq 'SignalDockServiceTrendsController.create' app.js
+          grep -Fq 'serviceTrendsController.bind()' app.js
+          grep -Fq 'trends: () => serviceTrendsController?.open()' app.js
+          ! grep -Fq 'function serviceTrendSplitMs(' app.js
+          ! grep -Fq 'function openServiceTrends()' app.js
+          ! grep -Fq 'function renderServiceTrends(' app.js
+          ! grep -Fq 'function onServiceTrendsClick(' app.js
+          ! grep -Fq 'el.serviceTrendsBody?.addEventListener' app.js
+          grep -Fq 'normalizeSplit' src/app/service-trends-controller.js
+          grep -Fq 'No log entries match the current filters' src/app/service-trends-controller.js
+          grep -Fq 'Filter to target service' src/app/service-trends-controller.js
+          ! grep -Fq '.invoke(' src/app/service-trends-controller.js
+          ! grep -Fq 'fetch(' src/app/service-trends-controller.js
+          before_size=$(git show HEAD:app.js | wc -c)
+          after_size=$(wc -c < app.js)
+          echo "app.js size: ${before_size} -> ${after_size} bytes"
+          test "$after_size" -lt "$before_size"
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-v2811-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8080/index.html -o /tmp/signaldock-v2811-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          for asset in query-library-controller baseline-controller project-controller investigation-controller exception-controller trace-explorer-controller trace-outlier-controller service-matrix-controller service-heatmap-controller service-trends-controller case-workspace-controller case-checkpoint-controller; do
+            grep -Fq "src/app/${asset}.js" /tmp/signaldock-v2811-index.html
+            curl --fail --silent "http://127.0.0.1:8080/src/app/${asset}.js" -o "/tmp/${asset}.js"
+          done
+          curl --fail --silent http://127.0.0.1:8080/app.js -o /dev/null
+          grep -Fq 'SignalDockServiceTrendsController' /tmp/service-trends-controller.js
+
+      - name: Commit verified v2.8.11 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION app.js index.html src/README.md README.md CHANGELOG.md docs/SOURCE-LAYOUT.md docs/TECHNICAL.md tests/*.mjs
+          git diff --cached --check
+          git commit -m "refactor: extract Service Trends application controller"
+          git push origin HEAD:main
