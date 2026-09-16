@@ -148,7 +148,8 @@ const entries = [
 ];
 const emptyFiltered = api.selectScope(entries, [], true);
 assert.equal(emptyFiltered.filtered, true, "zero-result active filters must stay filtered");
-assert.deepEqual(emptyFiltered.indexes, [], "zero-result active filters must pass an explicit empty index set");
+assert.equal(Array.isArray(emptyFiltered.indexes), true, "zero-result active filters must keep an index array");
+assert.equal(emptyFiltered.indexes.length, 0, "zero-result active filters must pass an explicit empty index set");
 const fullFiltered = api.selectScope(entries, [0, 1], true);
 assert.equal(fullFiltered.filtered, false, "a full-result filter can reuse the all-log cache");
 assert.equal(fullFiltered.indexes, null);
