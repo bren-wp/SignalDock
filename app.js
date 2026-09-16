@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.10";
+  const APP_VERSION = "2.8.11";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -90,6 +90,7 @@
   let traceOutlierController = null;
   let serviceMatrixController = null;
   let serviceHeatmapController = null;
+  let serviceTrendsController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -118,7 +119,7 @@
       map: openServiceMap,
       matrix: () => serviceMatrixController?.open(),
       heatmap: () => serviceHeatmapController?.open(),
-      trends: openServiceTrends,
+      trends: () => serviceTrendsController?.open(),
       baseline: () => baselineController?.open(),
       traces: () => traceExplorerController?.open(),
       outliers: () => traceOutlierController?.open(),
@@ -326,6 +327,18 @@
       setActiveNav
     });
     serviceHeatmapController.bind();
+    if (!window.SignalDockServiceTrendsController?.create) throw new Error("SignalDock Service Trends controller is unavailable.");
+    serviceTrendsController = window.SignalDockServiceTrendsController.create({
+      state,
+      el,
+      formatDuration,
+      toast,
+      filterByServiceValue,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    serviceTrendsController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -494,10 +507,6 @@
     el.closeHealthButton?.addEventListener("click", closeHealth);
     el.healthResetButton?.addEventListener("click", () => { state.healthScopeFiltered = false; renderHealth(false); });
     el.healthTableBody?.addEventListener("click", onHealthClick);
-    el.closeServiceTrendsButton?.addEventListener("click", closeServiceTrends);
-    el.serviceTrendsResetButton?.addEventListener("click", () => { state.serviceTrendsScopeFiltered = false; renderServiceTrends(false); });
-    el.serviceTrendsSplit?.addEventListener("change", () => { state.serviceTrendsSplit = Number(el.serviceTrendsSplit.value) || 0.5; renderServiceTrends(); });
-    el.serviceTrendsBody?.addEventListener("click", onServiceTrendsClick);
 
     document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
 
@@ -2018,58 +2027,6 @@
     if (!entry || !entry.service || entry.service === "—") return;
     filterByServiceValue(entry.service);
   }
-
-  function serviceTrendSplitMs(indexes) {
-    const selected = Array.isArray(indexes) ? indexes : null; let min = Infinity; let max = -Infinity; let count = 0;
-    const scan = selected || state.entries.keys();
-    for (const index of scan) { const value = Number(state.entries[index]?.timestampMs); if (!Number.isFinite(value)) continue; count += 1; if (value < min) min = value; if (value > max) max = value; }
-    if (count < 2) return null;
-    const fraction = Math.max(0.1, Math.min(0.9, Number(state.serviceTrendsSplit) || 0.5));
-    return min + ((max - min) * fraction);
-  }
-
-  function openServiceTrends() {
-    if (!window.SignalDockServiceTrends || !el.serviceTrendsDialog) return;
-    if (!state.entries.length) { toast("Load timestamped trace/span data before comparing dependency periods."); return; }
-    state.serviceTrendsScopeFiltered = true; if (el.serviceTrendsSplit) el.serviceTrendsSplit.value = String(state.serviceTrendsSplit || 0.5); renderServiceTrends(true); closeCompetingDialogs("serviceTrendsDialog"); showDialogSafely(el.serviceTrendsDialog);
-  }
-
-  function closeServiceTrends() {
-    if (!el.serviceTrendsDialog) return;
-    if (typeof el.serviceTrendsDialog.close === "function" && el.serviceTrendsDialog.open) el.serviceTrendsDialog.close(); else el.serviceTrendsDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderServiceTrends(useFiltered = state.serviceTrendsScopeFiltered) {
-    if (!window.SignalDockServiceTrends || !el.serviceTrendsBody) return;
-    state.serviceTrendsScopeFiltered = Boolean(useFiltered);
-    const scopedIndexes = state.serviceTrendsScopeFiltered && state.filteredIndexes.length && state.filteredIndexes.length < state.entries.length ? state.filteredIndexes : null;
-    const splitMs = serviceTrendSplitMs(scopedIndexes);
-    const data = window.SignalDockServiceTrends.compare(state.entries, scopedIndexes, { splitMs });
-    if (!scopedIndexes && Number(state.serviceTrendsSplit) === 0.5) state.serviceTrendsData = data;
-    if (el.serviceTrendsMeta) el.serviceTrendsMeta.textContent = `${state.serviceTrendsScopeFiltered && scopedIndexes ? "Current filtered result" : "All loaded logs"} · explicit parent-span edges only.`;
-    if (el.serviceTrendsWindow) el.serviceTrendsWindow.textContent = data.windows ? `${new Date(data.windows.before.startMs).toLocaleString()} → ${new Date(data.windows.before.endMs).toLocaleString()}  vs  ${new Date(data.windows.after.startMs).toLocaleString()} → ${new Date(data.windows.after.endMs).toLocaleString()}` : "Not enough timestamped dependency data for two periods.";
-    if (el.serviceTrendsSummary) {
-      el.serviceTrendsSummary.replaceChildren();
-      [["Edges",data.summary.edges],["Changed",data.summary.changed],["New",data.summary.newEdges],["Disappeared",data.summary.disappearedEdges],["Degrading",data.summary.degrading]].forEach(([label,value])=>{const item=document.createElement("div");const strong=document.createElement("strong");strong.textContent=Number(value||0).toLocaleString();const span=document.createElement("span");span.textContent=label;item.append(strong,span);el.serviceTrendsSummary.appendChild(item);});
-    }
-    el.serviceTrendsBody.replaceChildren();
-    if (!data.rows.length) { const tr=document.createElement("tr");const td=document.createElement("td");td.colSpan=8;td.className="investigation-empty";td.textContent="No timestamped cross-service dependency edges were found across both comparison periods.";tr.appendChild(td);el.serviceTrendsBody.appendChild(tr);return; }
-    data.rows.slice(0,500).forEach((row)=>{
-      const tr=document.createElement("tr");
-      const dependency=document.createElement("td");dependency.textContent=`${row.source} → ${row.target}`;
-      const trend=document.createElement("td");const pill=document.createElement("span");pill.className=`trend-pill trend-pill--${row.trend}`;pill.textContent=row.trend;trend.appendChild(pill);
-      const before=document.createElement("td");before.textContent=`${row.before.calls} calls · ${row.before.errors} err`;
-      const after=document.createElement("td");after.textContent=`${row.after.calls} calls · ${row.after.errors} err`;
-      const calls=document.createElement("td");calls.textContent=`${row.deltaCalls>=0?"+":""}${row.deltaCalls}`;
-      const errors=document.createElement("td");errors.textContent=`${row.deltaErrors>=0?"+":""}${row.deltaErrors}`;
-      const p95=document.createElement("td");p95.textContent=row.deltaP95Ms===null?"—":`${row.deltaP95Ms>=0?"+":"-"}${formatDuration(Math.abs(row.deltaP95Ms))}`;
-      const action=document.createElement("td");const button=document.createElement("button");button.type="button";button.className="button button--ghost button--small";button.dataset.trendService=row.target;button.textContent="Filter target";action.appendChild(button);
-      tr.append(dependency,trend,before,after,calls,errors,p95,action);el.serviceTrendsBody.appendChild(tr);
-    });
-  }
-
-  function onServiceTrendsClick(event) { const button=event.target.closest("[data-trend-service]"); if(!button)return; closeServiceTrends(); filterByServiceValue(button.dataset.trendService||""); }
 
   function makeUiButton(id, label, className = "button button--ghost button--small") {
     const button = document.createElement("button"); button.type = "button"; button.id = id; button.className = className; button.textContent = label; return button;

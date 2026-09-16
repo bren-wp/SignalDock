@@ -22,6 +22,8 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `service-heatmap-controller.js` owns Dependency Heatmap rendering, filtered/all-log scope selection and target-service filter actions. Time bucketing and explicit parent-span dependency aggregation remain in `src/analysis/service-heatmap.js`; service filtering and dialog coordination are injected callbacks. Empty filtered results remain an explicit empty heatmap instead of silently falling back to all loaded logs.
 
+`service-trends-controller.js` owns Dependency Trends rendering, filtered/all-log scope selection, comparison split controls and target-service filter actions. Period edge aggregation, trend classification and before/after deltas remain in `src/analysis/service-trends.js`; service filtering and dialog coordination are injected callbacks. Empty filtered results remain explicit empty comparisons and split values are normalized to the supported 10–90% range.
+
 `case-checkpoint-controller.js` owns Case Checkpoint rendering and create/remove/restore UI actions. Checkpoint snapshots/diffs remain in `src/investigation/case-checkpoints.js`, while the controller receives Case Workspace refresh and autosave as narrow callbacks. Case Workspace rendering also refreshes checkpoint diffs so restored sessions and later edits remain visually synchronized.
 
 `case-workspace-controller.js` owns findings, milestones and metadata-only attachment rendering plus their delegated UI events. The Case Workspace domain module remains authoritative for normalization, bounds and metadata-only attachment records. Cross-feature effects such as selected-entry lookup, activity recording, workspace refresh and autosave are injected callbacks rather than hidden global dependencies.
@@ -31,7 +33,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.10**.
+Current version: **2.8.11**.
 
 ## Highlights
 

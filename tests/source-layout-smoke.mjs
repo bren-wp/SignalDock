@@ -23,6 +23,7 @@ const applicationControllers = [
   "src/app/trace-outlier-controller.js",
   "src/app/service-matrix-controller.js",
   "src/app/service-heatmap-controller.js",
+  "src/app/service-trends-controller.js",
   "src/app/case-workspace-controller.js",
   "src/app/case-checkpoint-controller.js"
 ];

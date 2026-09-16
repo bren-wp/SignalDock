@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.11 — 2026-09-16
+
+### Dependency Trends application boundary
+- Extracted Dependency Trends rendering, split/window controls, scope reset and target-service filter actions from the root application into `src/app/service-trends-controller.js`.
+- Kept explicit parent-span period aggregation, trend classification and before/after delta calculations in `src/analysis/service-trends.js`; service filtering and dialog coordination remain injected callbacks.
+- Fixed filtered-scope semantics so an active query with zero matching entries produces an empty comparison instead of silently using all loaded logs.
+- Normalized comparison split values to the supported 10–90% range and added target-specific accessible names to generated filter actions.
+
+### Maintainability and verification
+- Removed legacy Dependency Trends functions and event listeners from `app.js`, with idempotent event ownership moved into the controller.
+- Added isolated controller coverage for split normalization, zero-result scope behavior, local-only constraints, load order and application integration.
+- Extended source-layout, UI-foundation and permanent HTTP quality gates without changing dependency-analysis semantics, persistence, network policy or the zero-build deployment model.
+
 ## 2.8.10 — 2026-09-16
 
 ### Dependency Heatmap application boundary

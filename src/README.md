@@ -28,6 +28,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/service-heatmap-controller.js` owns Dependency Heatmap rendering, filtered-scope selection and target-service filter coordination while time bucketing stays in `analysis/service-heatmap.js`.
 
+`app/service-trends-controller.js` owns Dependency Trends rendering, split/window controls, filtered-scope selection and target-service filter coordination while period comparison stays in `analysis/service-trends.js`.
+
 `app/case-checkpoint-controller.js` owns Case Checkpoint UI rendering and create/remove/restore event coordination.
 
 `app/case-workspace-controller.js` owns findings, milestones and metadata-only attachment UI coordination.
