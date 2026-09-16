@@ -16,6 +16,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/project-controller.js` owns Project Manager UI and explicit reopen/link orchestration.
 
+`app/inspector-controller.js` owns selected-log Inspector rendering, tabs, context/correlation/trace surfaces and Inspector-local actions while worker orchestration remains in the root application.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.

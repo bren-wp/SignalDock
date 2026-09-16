@@ -7,6 +7,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const queryController = fs.readFileSync(path.join(root, "src/app/query-library-controller.js"), "utf8");
 const baselineController = fs.readFileSync(path.join(root, "src/app/baseline-controller.js"), "utf8");
 const projectController = fs.readFileSync(path.join(root, "src/app/project-controller.js"), "utf8");
+const inspectorController = fs.readFileSync(path.join(root, "src/app/inspector-controller.js"), "utf8");
 const investigationController = fs.readFileSync(path.join(root, "src/app/investigation-controller.js"), "utf8");
 const exceptionController = fs.readFileSync(path.join(root, "src/app/exception-controller.js"), "utf8");
 const traceExplorerController = fs.readFileSync(path.join(root, "src/app/trace-explorer-controller.js"), "utf8");
@@ -38,6 +39,9 @@ for (const token of ["renderHistory", "compareById", "baselineHistoryList", "ren
 }
 for (const token of ["historySection", "markHistoryReopened", "forgetProjectHandles"]) {
   if (!projectController.includes(token)) throw new Error(`Missing Project controller foundation token: ${token}`);
+}
+for (const token of ["TRACE QUALITY", "SPAN FLAME", "OTEL RESOURCE & SCOPE", "renderCorrelations", "renderTrace", "onInspectorTabKeydown"]) {
+  if (!inspectorController.includes(token)) throw new Error(`Missing Inspector controller foundation token: ${token}`);
 }
 for (const token of ["renderCaseSurfaces", "renderCaseTimeline", "pinEvidence", "evidence.imported"]) {
   if (!investigationController.includes(token)) throw new Error(`Missing Investigation controller foundation token: ${token}`);

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.14 — 2026-09-16
+
+### Inspector application boundary
+- Extracted selected-log Inspector rendering, Details/Context/Correlations/Trace/Raw/JSON tabs and Inspector-local actions from the root application into `src/app/inspector-controller.js`.
+- Kept Dedicated Worker correlation/trace request and response orchestration in `app.js`; the controller receives those request paths through narrow callbacks and owns only the Inspector-facing surfaces.
+- Centralized context-row, correlation-chip, trace waterfall, trace quality, OpenTelemetry context, critical-chain, span-flame and span-event rendering under one lifecycle-managed controller.
+- Preserved stable entry selection and existing trace/correlation analysis semantics while moving Inspector event ownership to idempotent `bind()` / `destroy()` lifecycle methods.
+
+### Maintainability and verification
+- Removed the large Inspector UI implementation and related delegated listeners from `app.js` while retaining thin compatibility wrappers for cross-feature callbacks.
+- Added isolated Inspector controller coverage plus accessibility/UI-foundation ownership checks without changing parser, persistence, filesystem, network or worker protocol boundaries.
+
 ## 2.8.13 — 2026-09-16
 
 ### Service Map application boundary
