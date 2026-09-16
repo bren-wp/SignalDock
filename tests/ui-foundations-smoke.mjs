@@ -12,6 +12,7 @@ const exceptionController = fs.readFileSync(path.join(root, "src/app/exception-c
 const traceExplorerController = fs.readFileSync(path.join(root, "src/app/trace-explorer-controller.js"), "utf8");
 const traceOutlierController = fs.readFileSync(path.join(root, "src/app/trace-outlier-controller.js"), "utf8");
 const serviceMatrixController = fs.readFileSync(path.join(root, "src/app/service-matrix-controller.js"), "utf8");
+const serviceHeatmapController = fs.readFileSync(path.join(root, "src/app/service-heatmap-controller.js"), "utf8");
 const caseCheckpointController = fs.readFileSync(path.join(root, "src/app/case-checkpoint-controller.js"), "utf8");
 const caseWorkspaceController = fs.readFileSync(path.join(root, "src/app/case-workspace-controller.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
@@ -49,6 +50,9 @@ for (const token of ["selectScope", "buildSampleLookup", "resolveSampleEntry", "
 }
 for (const token of ["selectScope", "No log entries match the current filters", "Filter to source service", "Filter to target service", "serviceMatrixScopeFiltered"]) {
   if (!serviceMatrixController.includes(token)) throw new Error(`Missing Service Matrix controller foundation token: ${token}`);
+}
+for (const token of ["selectScope", "No log entries match the current filters", "Filter to target service", "dependency-heatmap-cell", "serviceHeatmapScopeFiltered"]) {
+  if (!serviceHeatmapController.includes(token)) throw new Error(`Missing Service Heatmap controller foundation token: ${token}`);
 }
 for (const token of ["checkpoint-diff", "case.checkpoint.restored", "scheduleDatasetAutosave", "renderCaseWorkspace"]) {
   if (!caseCheckpointController.includes(token)) throw new Error(`Missing Case Checkpoint controller foundation token: ${token}`);

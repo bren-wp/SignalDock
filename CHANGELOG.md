@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.10 — 2026-09-16
+
+### Dependency Heatmap application boundary
+- Extracted Dependency Heatmap rendering, scope reset and target-service filter actions from the root application into `src/app/service-heatmap-controller.js`.
+- Kept timestamp bucketing, explicit parent-span dependency aggregation and bounded per-bucket latency samples in `src/analysis/service-heatmap.js`; filtering and dialog coordination remain injected callbacks.
+- Fixed filtered-scope semantics so an active query with zero matching entries produces an empty heatmap instead of silently displaying all-log dependency edges.
+- Added target-service/time/call/error/p95 accessible names to generated heatmap cells while preserving evidence-derived topology semantics.
+
+### Maintainability and verification
+- Removed legacy Dependency Heatmap functions and event listeners from `app.js`, with idempotent event ownership moved into the controller.
+- Added isolated controller coverage for zero-result scope behavior, local-only constraints, load order and application integration.
+- Extended source-layout, UI-foundation and permanent HTTP quality gates without changing persistence, network policy or the zero-build deployment model.
+
 ## 2.8.9 — 2026-09-16
 
 ### Service Matrix application boundary

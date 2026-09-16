@@ -26,6 +26,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/service-matrix-controller.js` owns Service Matrix rendering, filtered-scope selection and service-filter coordination while dependency aggregation stays in `analysis/service-matrix.js`.
 
+`app/service-heatmap-controller.js` owns Dependency Heatmap rendering, filtered-scope selection and target-service filter coordination while time bucketing stays in `analysis/service-heatmap.js`.
+
 `app/case-checkpoint-controller.js` owns Case Checkpoint UI rendering and create/remove/restore event coordination.
 
 `app/case-workspace-controller.js` owns findings, milestones and metadata-only attachment UI coordination.

@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.9";
+  const APP_VERSION = "2.8.10";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -89,6 +89,7 @@
   let traceExplorerController = null;
   let traceOutlierController = null;
   let serviceMatrixController = null;
+  let serviceHeatmapController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -116,7 +117,7 @@
       search: () => el.queryInput?.focus(),
       map: openServiceMap,
       matrix: () => serviceMatrixController?.open(),
-      heatmap: openServiceHeatmap,
+      heatmap: () => serviceHeatmapController?.open(),
       trends: openServiceTrends,
       baseline: () => baselineController?.open(),
       traces: () => traceExplorerController?.open(),
@@ -313,6 +314,18 @@
       setActiveNav
     });
     serviceMatrixController.bind();
+    if (!window.SignalDockServiceHeatmapController?.create) throw new Error("SignalDock Service Heatmap controller is unavailable.");
+    serviceHeatmapController = window.SignalDockServiceHeatmapController.create({
+      state,
+      el,
+      formatDuration,
+      toast,
+      filterByServiceValue,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    serviceHeatmapController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -481,9 +494,6 @@
     el.closeHealthButton?.addEventListener("click", closeHealth);
     el.healthResetButton?.addEventListener("click", () => { state.healthScopeFiltered = false; renderHealth(false); });
     el.healthTableBody?.addEventListener("click", onHealthClick);
-    el.closeServiceHeatmapButton?.addEventListener("click", closeServiceHeatmap);
-    el.serviceHeatmapResetButton?.addEventListener("click", () => { state.serviceHeatmapScopeFiltered = false; renderServiceHeatmap(false); });
-    el.serviceHeatmapBody?.addEventListener("click", onServiceHeatmapClick);
     el.closeServiceTrendsButton?.addEventListener("click", closeServiceTrends);
     el.serviceTrendsResetButton?.addEventListener("click", () => { state.serviceTrendsScopeFiltered = false; renderServiceTrends(false); });
     el.serviceTrendsSplit?.addEventListener("change", () => { state.serviceTrendsSplit = Number(el.serviceTrendsSplit.value) || 0.5; renderServiceTrends(); });
@@ -2008,43 +2018,6 @@
     if (!entry || !entry.service || entry.service === "—") return;
     filterByServiceValue(entry.service);
   }
-
-  function openServiceHeatmap() {
-    if (!window.SignalDockServiceHeatmap || !el.serviceHeatmapDialog) return;
-    if (!state.entries.length) { toast("Load trace/span data before opening the dependency heatmap."); return; }
-    state.serviceHeatmapScopeFiltered = true; renderServiceHeatmap(true); closeCompetingDialogs("serviceHeatmapDialog"); showDialogSafely(el.serviceHeatmapDialog);
-  }
-
-  function closeServiceHeatmap() {
-    if (!el.serviceHeatmapDialog) return;
-    if (typeof el.serviceHeatmapDialog.close === "function" && el.serviceHeatmapDialog.open) el.serviceHeatmapDialog.close(); else el.serviceHeatmapDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
-
-  function renderServiceHeatmap(useFiltered = state.serviceHeatmapScopeFiltered) {
-    if (!window.SignalDockServiceHeatmap || !el.serviceHeatmapBody) return;
-    state.serviceHeatmapScopeFiltered = Boolean(useFiltered);
-    const scopedIndexes = state.serviceHeatmapScopeFiltered && state.filteredIndexes.length && state.filteredIndexes.length < state.entries.length ? state.filteredIndexes : null;
-    const data = scopedIndexes ? window.SignalDockServiceHeatmap.build(state.entries, scopedIndexes, { bucketCount: 12 }) : (state.serviceHeatmapData || window.SignalDockServiceHeatmap.build(state.entries, null, { bucketCount: 12 }));
-    if (el.serviceHeatmapMeta) el.serviceHeatmapMeta.textContent = `${state.serviceHeatmapScopeFiltered && scopedIndexes ? "Current filtered result" : "All loaded logs"} · ${data.buckets.length} real-time buckets · explicit parent-span edges only.`;
-    if (el.serviceHeatmapSummary) {
-      el.serviceHeatmapSummary.replaceChildren();
-      [["Edges", data.summary.edges], ["Calls", data.summary.calls], ["Errors", data.summary.errors], ["Timed calls", data.summary.timedCalls], ["Buckets", data.buckets.length]].forEach(([label, value]) => { const item = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString(); const span = document.createElement("span"); span.textContent = label; item.append(strong, span); el.serviceHeatmapSummary.appendChild(item); });
-    }
-    el.serviceHeatmapBody.replaceChildren();
-    if (!data.rows.length) { const empty = document.createElement("div"); empty.className = "investigation-empty"; empty.textContent = "No timestamped cross-service parent-span edges were found in this scope."; el.serviceHeatmapBody.appendChild(empty); return; }
-    const scale = document.createElement("div"); scale.className = "dependency-heatmap-scale"; const scaleLabel=document.createElement("span"); scaleLabel.textContent="Time window"; const scaleRange=document.createElement("strong"); scaleRange.textContent=`${new Date(data.summary.startMs).toLocaleString()} → ${new Date(data.summary.endMs).toLocaleString()} · ${data.buckets.length} buckets`; scale.append(scaleLabel,scaleRange); el.serviceHeatmapBody.appendChild(scale);
-    const maxCalls = Math.max(1, ...data.rows.flatMap((row) => row.buckets.map((bucket) => bucket.calls)));
-    data.rows.slice(0, 250).forEach((row) => {
-      const line = document.createElement("div"); line.className = "dependency-heatmap-row";
-      const label = document.createElement("button"); label.type = "button"; label.className = "dependency-heatmap-label"; label.dataset.heatmapService = row.target; label.innerHTML = `<strong></strong><small></small>`; label.querySelector("strong").textContent = `${row.source} → ${row.target}`; label.querySelector("small").textContent = `${row.calls.toLocaleString()} calls · ${row.errors.toLocaleString()} errors`;
-      const cells = document.createElement("div"); cells.className = "dependency-heatmap-cells";
-      row.buckets.forEach((bucket, index) => { const cell = document.createElement("button"); cell.type = "button"; cell.className = "dependency-heatmap-cell"; const intensity = bucket.calls ? Math.max(.12, bucket.calls / maxCalls) : 0; const heatLevel = bucket.calls ? Math.max(1, Math.min(5, Math.ceil(intensity * 5))) : 0; if (heatLevel) cell.classList.add(`heat-${heatLevel}`); cell.classList.toggle("has-error", bucket.errors > 0); cell.title = `${new Date(data.buckets[index].startMs).toLocaleString()} · ${bucket.calls} calls · ${bucket.errors} errors${bucket.p95Ms === null ? "" : ` · p95 ${formatDuration(bucket.p95Ms)}`}`; cell.dataset.heatmapService = row.target; cells.appendChild(cell); });
-      line.append(label, cells); el.serviceHeatmapBody.appendChild(line);
-    });
-  }
-
-  function onServiceHeatmapClick(event) { const button = event.target.closest("[data-heatmap-service]"); if (!button) return; closeServiceHeatmap(); filterByServiceValue(button.dataset.heatmapService || ""); }
 
   function serviceTrendSplitMs(indexes) {
     const selected = Array.isArray(indexes) ? indexes : null; let min = Infinity; let max = -Infinity; let count = 0;
