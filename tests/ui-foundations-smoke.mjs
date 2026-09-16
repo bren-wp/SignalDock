@@ -14,6 +14,7 @@ const traceOutlierController = fs.readFileSync(path.join(root, "src/app/trace-ou
 const serviceMatrixController = fs.readFileSync(path.join(root, "src/app/service-matrix-controller.js"), "utf8");
 const serviceHeatmapController = fs.readFileSync(path.join(root, "src/app/service-heatmap-controller.js"), "utf8");
 const serviceTrendsController = fs.readFileSync(path.join(root, "src/app/service-trends-controller.js"), "utf8");
+const healthController = fs.readFileSync(path.join(root, "src/app/health-controller.js"), "utf8");
 const caseCheckpointController = fs.readFileSync(path.join(root, "src/app/case-checkpoint-controller.js"), "utf8");
 const caseWorkspaceController = fs.readFileSync(path.join(root, "src/app/case-workspace-controller.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
@@ -57,6 +58,9 @@ for (const token of ["selectScope", "No log entries match the current filters", 
 }
 for (const token of ["selectScope", "normalizeSplit", "No log entries match the current filters", "Filter to target service", "serviceTrendsScopeFiltered"]) {
   if (!serviceTrendsController.includes(token)) throw new Error(`Missing Service Trends controller foundation token: ${token}`);
+}
+for (const token of ["selectScope", "No log entries match the current filters", "Filter logs to observed service", "healthScopeFiltered", "health-status--"]) {
+  if (!healthController.includes(token)) throw new Error(`Missing Observed Health controller foundation token: ${token}`);
 }
 for (const token of ["checkpoint-diff", "case.checkpoint.restored", "scheduleDatasetAutosave", "renderCaseWorkspace"]) {
   if (!caseCheckpointController.includes(token)) throw new Error(`Missing Case Checkpoint controller foundation token: ${token}`);

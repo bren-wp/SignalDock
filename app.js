@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.11";
+  const APP_VERSION = "2.8.12";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -91,6 +91,7 @@
   let serviceMatrixController = null;
   let serviceHeatmapController = null;
   let serviceTrendsController = null;
+  let healthController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -123,7 +124,7 @@
       baseline: () => baselineController?.open(),
       traces: () => traceExplorerController?.open(),
       outliers: () => traceOutlierController?.open(),
-      health: openHealth,
+      health: () => healthController?.open(),
       investigation: () => investigationController?.open(),
       exceptions: () => exceptionController?.open(),
       projects: () => projectController?.open(),
@@ -339,6 +340,18 @@
       setActiveNav
     });
     serviceTrendsController.bind();
+    if (!window.SignalDockHealthController?.create) throw new Error("SignalDock Observed Health controller is unavailable.");
+    healthController = window.SignalDockHealthController.create({
+      state,
+      el,
+      formatDuration,
+      toast,
+      filterByServiceValue,
+      closeCompetingDialogs,
+      showDialogSafely,
+      setActiveNav
+    });
+    healthController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
       state,
@@ -504,9 +517,6 @@
     el.exportCaseJsonButton?.addEventListener("click", exportCaseJson);
     el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
     el.caseFileInput?.addEventListener("change", importCaseJson);
-    el.closeHealthButton?.addEventListener("click", closeHealth);
-    el.healthResetButton?.addEventListener("click", () => { state.healthScopeFiltered = false; renderHealth(false); });
-    el.healthTableBody?.addEventListener("click", onHealthClick);
 
     document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
 
@@ -2035,62 +2045,9 @@
 
 
 
-  function openHealth() {
-    if (!window.SignalDockServiceHealth || !el.healthDialog) return;
-    if (!state.entries.length) { toast("Load logs before opening observed health."); return; }
-    state.healthScopeFiltered = true;
-    renderHealth(true);
-    closeCompetingDialogs("healthDialog");
-    showDialogSafely(el.healthDialog);
-  }
 
-  function closeHealth() {
-    if (!el.healthDialog) return;
-    if (typeof el.healthDialog.close === "function" && el.healthDialog.open) el.healthDialog.close();
-    else el.healthDialog.removeAttribute("open");
-    setActiveNav("logs");
-  }
 
-  function renderHealth(useFiltered = state.healthScopeFiltered) {
-    if (!el.healthTableBody || !window.SignalDockServiceHealth) return;
-    state.healthScopeFiltered = Boolean(useFiltered);
-    const subset = state.healthScopeFiltered && state.filteredIndexes.length && state.filteredIndexes.length < state.entries.length
-      ? state.filteredIndexes.map((index) => state.entries[index]).filter(Boolean)
-      : state.entries;
-    const health = window.SignalDockServiceHealth.analyze(subset);
-    if (el.healthSummary) {
-      el.healthSummary.replaceChildren();
-      [["Critical", health.summary.critical], ["Degraded", health.summary.degraded], ["Watch", health.summary.watch], ["Quiet", health.summary.quiet]].forEach(([label, value]) => {
-        const item = document.createElement("div"); const strong = document.createElement("strong"); strong.textContent = Number(value).toLocaleString(); const span = document.createElement("span"); span.textContent = label; item.append(strong, span); el.healthSummary.appendChild(item);
-      });
-    }
-    el.healthTableBody.replaceChildren();
-    if (!health.rows.length) {
-      const tr = document.createElement("tr"); const td = document.createElement("td"); td.colSpan = 9; td.className = "investigation-empty"; td.textContent = "No named services were observed in this dataset."; tr.appendChild(td); el.healthTableBody.appendChild(tr); return;
-    }
-    health.rows.slice(0, 500).forEach((row) => {
-      const tr = document.createElement("tr");
-      const service = document.createElement("td"); const strong = document.createElement("strong"); strong.textContent = row.service; service.appendChild(strong);
-      const status = document.createElement("td"); const badge = document.createElement("span"); badge.className = `health-status health-status--${row.status}`; badge.textContent = row.status; status.appendChild(badge);
-      const entries = document.createElement("td"); entries.textContent = row.total.toLocaleString();
-      const errorRate = document.createElement("td"); errorRate.textContent = `${(row.errorRate * 100).toFixed(row.errorRate < .01 ? 2 : 1)}%`;
-      const warnings = document.createElement("td"); warnings.textContent = `${row.warnings.toLocaleString()} · ${(row.warningRate * 100).toFixed(1)}%`;
-      const exceptions = document.createElement("td"); exceptions.textContent = row.exceptionGroups.toLocaleString();
-      const p95 = document.createElement("td"); p95.textContent = row.p95DurationMs === null ? "—" : formatDuration(row.p95DurationMs);
-      const delta = document.createElement("td"); const diff = row.recentErrors - row.previousErrors; delta.textContent = diff > 0 ? `+${diff}` : String(diff); delta.title = `${row.recentErrors} recent errors vs ${row.previousErrors} previous-window errors`;
-      const action = document.createElement("td"); const button = document.createElement("button"); button.type = "button"; button.className = "button button--ghost button--small"; button.dataset.healthService = row.service; button.textContent = "Filter"; action.appendChild(button);
-      tr.append(service, status, entries, errorRate, warnings, exceptions, p95, delta, action); el.healthTableBody.appendChild(tr);
-    });
-  }
 
-  function onHealthClick(event) {
-    const button = event.target.closest("[data-health-service]");
-    if (!button) return;
-    const service = button.dataset.healthService || "";
-    if (!service) return;
-    closeHealth();
-    filterByServiceValue(service);
-  }
 
   function renderCaseWorkspace(rebuild = true) {
     if (!window.SignalDockCaseWorkspace || !el.caseFindings) return;

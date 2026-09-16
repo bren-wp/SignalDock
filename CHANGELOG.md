@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.12 — 2026-09-16
+
+### Observed Health application boundary
+- Extracted Observed Health rendering, dialog lifecycle, scope reset and service-filter actions from the root application into `src/app/health-controller.js`.
+- Kept service health scoring, error/warning rates, exception counts and recent-vs-previous error windows in `src/analysis/service-health.js`; filtering and dialog coordination remain injected callbacks.
+- Fixed filtered-scope semantics so an active query with zero matching entries produces an empty health result instead of silently displaying all-log service health.
+- Added service-specific accessible names to generated Health filter actions and bounded rendered service rows without changing health scoring semantics.
+
+### Maintainability and verification
+- Removed legacy Observed Health functions and event listeners from `app.js`, with idempotent event ownership moved into the controller.
+- Added isolated controller coverage for zero-result scope behavior, local-only constraints, load order and application integration.
+- Extended source-layout, UI-foundation and permanent HTTP quality gates without changing persistence, parser, worker, network policy or the zero-build deployment model.
+
 ## 2.8.11 — 2026-09-16
 
 ### Dependency Trends application boundary
