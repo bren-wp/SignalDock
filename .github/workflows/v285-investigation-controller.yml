@@ -27,6 +27,20 @@ jobs:
       - name: Apply v2.8.5 Investigation controller migration
         run: python3 .github/scripts/v285-investigation-controller.py
 
+      - name: Align generated UI foundation assertion
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/ui-foundations-smoke.mjs')
+          text = path.read_text()
+          old = '["renderCaseSurfaces", "pinEvidence", "evidence.imported", "Case Timeline"]'
+          new = '["renderCaseSurfaces", "renderCaseTimeline", "pinEvidence", "evidence.imported"]'
+          if text.count(old) != 1:
+              raise SystemExit(f'Investigation foundation assertion: expected 1 match, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Verify release surfaces
         shell: bash
         run: |
