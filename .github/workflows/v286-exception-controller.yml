@@ -24,6 +24,21 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
+      - name: Align Exception migration boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/v286-exception-controller.py')
+          text = path.read_text()
+          old = "block_end = app.find('  function openHealth() {', block_start)"
+          new = "block_end = app.find('  function renderCaseWorkspace(rebuild = true) {', block_start)"
+          if text.count(old) != 1:
+              raise SystemExit(f'Exception boundary marker: expected 1 match, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Apply v2.8.6 Exception controller migration
         run: python3 .github/scripts/v286-exception-controller.py
 
