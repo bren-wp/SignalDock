@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.14";
+  const APP_VERSION = "2.8.15";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -94,6 +94,7 @@
   let serviceTrendsController = null;
   let healthController = null;
   let inspectorController = null;
+  let settingsController = null;
   let caseWorkspaceController = null;
   let caseCheckpointController = null;
 
@@ -254,6 +255,23 @@
       scheduleViewAutosave: () => scheduleViewAutosave()
     });
     inspectorController.bind();
+    if (!window.SignalDockSettingsController?.create) throw new Error("SignalDock Settings controller is unavailable.");
+    settingsController = window.SignalDockSettingsController.create({
+      state,
+      el,
+      storageKey: STORAGE_SETTINGS,
+      getUtils: utils,
+      getParserProfiles: parserProfiles,
+      toast,
+      applyFilters,
+      markDatasetForAutosave,
+      updateAutosaveStatus,
+      updateDiagnostics,
+      closeCompetingDialogs,
+      showDialogSafely,
+      scheduleViewAutosave: () => scheduleViewAutosave()
+    });
+    settingsController.bind();
     if (!window.SignalDockInvestigationController?.create) throw new Error("SignalDock Investigation controller is unavailable.");
     investigationController = window.SignalDockInvestigationController.create({
       state,
@@ -523,17 +541,6 @@
 
     document.querySelectorAll("[data-nav]").forEach((button) => button.addEventListener("click", () => activateNavView(button.dataset.nav)));
 
-    [el.wrapToggle, el.compactToggle, el.unknownToggle, el.workerToggle, el.autosaveToggle, el.parserProfile, el.customParserPattern, el.customParserFlags].forEach((control) => {
-      const eventName = control === el.customParserPattern || control === el.customParserFlags ? "input" : "change";
-      control.addEventListener(eventName, persistSettingsFromForm);
-    });
-    el.parserProfile.addEventListener("change", updateCustomParserVisibility);
-    el.savedParserProfile?.addEventListener("change", applySavedParserProfile);
-    el.saveParserProfileButton?.addEventListener("click", saveParserProfileFromForm);
-    el.deleteParserProfileButton?.addEventListener("click", deleteSelectedParserProfile);
-    el.exportParserProfilesButton?.addEventListener("click", exportParserProfiles);
-    el.importParserProfilesButton?.addEventListener("click", () => el.parserProfilesFileInput?.click());
-    el.parserProfilesFileInput?.addEventListener("change", importParserProfiles);
     el.recoveryRestoreButton.addEventListener("click", restoreRecoverySnapshot);
     el.recoveryDismissButton.addEventListener("click", dismissRecoverySnapshot);
     el.clearRecoveryButton.addEventListener("click", clearRecoverySnapshot);
@@ -1773,66 +1780,17 @@
     document.querySelectorAll("[data-level]").forEach((button) => button.classList.toggle("is-active", button.dataset.level === level));
   }
 
-  function refreshSavedParserProfiles(selectedId = "") {
-    if (!el.savedParserProfile || !parserProfiles()) return;
-    const current = selectedId || el.savedParserProfile.value;
-    const profiles = parserProfiles().load();
-    el.savedParserProfile.replaceChildren(new Option("Choose saved profile…", ""), ...profiles.map((profile) => new Option(profile.name, profile.id)));
-    if (profiles.some((profile) => profile.id === current)) el.savedParserProfile.value = current;
-    el.deleteParserProfileButton.disabled = !el.savedParserProfile.value;
-  }
+  function refreshSavedParserProfiles(selectedId = "") { settingsController?.refreshSavedParserProfiles(selectedId); }
 
-  function applySavedParserProfile() {
-    const profile = parserProfiles()?.get?.(el.savedParserProfile.value);
-    el.deleteParserProfileButton.disabled = !profile;
-    if (!profile) return;
-    el.savedParserName.value = profile.name;
-    el.customParserPattern.value = profile.pattern;
-    el.customParserFlags.value = profile.flags || "i";
-    el.parserProfile.value = "custom";
-    updateCustomParserVisibility();
-    persistSettingsFromForm();
-    toast(`Parser profile “${profile.name}” loaded.`);
-  }
+  function applySavedParserProfile() { settingsController?.applySavedParserProfile?.(); }
 
-  function saveParserProfileFromForm() {
-    if (!parserProfiles()) return;
-    try {
-      const existingId = el.savedParserProfile.value || "";
-      const record = parserProfiles().upsert({ name: el.savedParserName.value, pattern: el.customParserPattern.value, flags: el.customParserFlags.value }, existingId);
-      refreshSavedParserProfiles(record.id);
-      el.savedParserName.value = record.name;
-      toast(`Parser profile “${record.name}” saved locally.`);
-    } catch (error) { toast(error.message || String(error), "error", 6500); }
-  }
+  function saveParserProfileFromForm() { settingsController?.saveParserProfileFromForm?.(); }
 
-  function deleteSelectedParserProfile() {
-    const id = el.savedParserProfile.value;
-    if (!id || !parserProfiles()) return;
-    const profile = parserProfiles().get(id);
-    parserProfiles().remove(id);
-    refreshSavedParserProfiles();
-    el.savedParserName.value = "";
-    toast(`Deleted parser profile “${profile?.name || "profile"}”.`);
-  }
+  function deleteSelectedParserProfile() { settingsController?.deleteSelectedParserProfile?.(); }
 
-  function exportParserProfiles() {
-    if (!parserProfiles()) return;
-    const text = parserProfiles().exportJson();
-    utils().downloadParts(`signaldock-parser-profiles-${new Date().toISOString().slice(0, 10)}.json`, [text], "application/json;charset=utf-8");
-    toast("Parser profiles exported.");
-  }
+  function exportParserProfiles() { settingsController?.exportParserProfiles?.(); }
 
-  async function importParserProfiles(event) {
-    const file = event.target.files?.[0];
-    if (!file || !parserProfiles()) return;
-    try {
-      const profiles = parserProfiles().importJson(await file.text());
-      refreshSavedParserProfiles();
-      toast(`Imported ${profiles.length} parser profile${profiles.length === 1 ? "" : "s"}.`);
-    } catch (error) { toast(`Could not import parser profiles: ${error.message || error}`, "error", 6500); }
-    finally { event.target.value = ""; }
-  }
+  async function importParserProfiles(event) { await settingsController?.importParserProfiles?.(event); }
 
   function commandDefinitions() {
     return [
@@ -1932,56 +1890,11 @@
     command.run();
   }
 
-  function openSettings() {
-    el.wrapToggle.checked = state.settings.wrap;
-    el.compactToggle.checked = state.settings.compact;
-    el.unknownToggle.checked = state.settings.showUnknown;
-    el.workerToggle.checked = state.settings.useWorker !== false;
-    el.autosaveToggle.checked = state.settings.autosave !== false;
-    el.parserProfile.value = state.settings.parserProfile || "auto";
-    el.customParserPattern.value = state.settings.customParserPattern || "";
-    el.customParserFlags.value = state.settings.customParserFlags || "i";
-    refreshSavedParserProfiles();
-    updateCustomParserVisibility();
-    updateAutosaveStatus();
-    updateDiagnostics();
-    closeCompetingDialogs("settingsDialog");
-    showDialogSafely(el.settingsDialog);
-  }
+  function openSettings() { settingsController?.open(); }
 
-  function persistSettingsFromForm() {
-    state.settings = {
-      wrap: el.wrapToggle.checked,
-      compact: el.compactToggle.checked,
-      showUnknown: el.unknownToggle.checked,
-      useWorker: el.workerToggle.checked,
-      autosave: el.autosaveToggle.checked,
-      parserProfile: el.parserProfile.value || "auto",
-      customParserPattern: el.customParserPattern.value.trim(),
-      customParserFlags: el.customParserFlags.value.replace(/[^imsu]/g, "") || "i"
-    };
-    utils().saveJson(STORAGE_SETTINGS, state.settings);
-    applySettings();
-    applyFilters(false);
-    scheduleViewAutosave();
-    if (state.settings.autosave !== false && state.entries.length) markDatasetForAutosave();
-  }
+  function persistSettingsFromForm() { settingsController?.persistFromForm(); }
 
-  function applySettings() {
-    document.body.classList.toggle("wrap-messages", Boolean(state.settings.wrap));
-    document.body.classList.toggle("compact-density", Boolean(state.settings.compact));
-    if (state.settings.wrap && state.renderMode === "virtual") { state.renderMode = "paged"; if (el.renderMode) el.renderMode.value = "paged"; }
-    if (el.wrapToggle) el.wrapToggle.checked = Boolean(state.settings.wrap);
-    if (el.compactToggle) el.compactToggle.checked = Boolean(state.settings.compact);
-    if (el.unknownToggle) el.unknownToggle.checked = state.settings.showUnknown !== false;
-    if (el.workerToggle) el.workerToggle.checked = state.settings.useWorker !== false;
-    if (el.autosaveToggle) el.autosaveToggle.checked = state.settings.autosave !== false;
-    if (el.parserProfile) el.parserProfile.value = state.settings.parserProfile || "auto";
-    if (el.customParserPattern) el.customParserPattern.value = state.settings.customParserPattern || "";
-    if (el.customParserFlags) el.customParserFlags.value = state.settings.customParserFlags || "i";
-    updateCustomParserVisibility();
-    updateAutosaveStatus();
-  }
+  function applySettings() { settingsController?.apply(); }
 
   function currentCustomParserProfile() {
     return {
@@ -1990,10 +1903,7 @@
     };
   }
 
-  function updateCustomParserVisibility() {
-    if (!el.customParserFields || !el.parserProfile) return;
-    el.customParserFields.hidden = el.parserProfile.value !== "custom";
-  }
+  function updateCustomParserVisibility() { settingsController?.updateCustomParserVisibility(); }
 
   function currentViewState() {
     const selected = selectedEntry();

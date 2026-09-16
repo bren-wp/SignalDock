@@ -18,6 +18,7 @@ const applicationControllers = [
   "src/app/baseline-controller.js",
   "src/app/project-controller.js",
   "src/app/inspector-controller.js",
+  "src/app/settings-controller.js",
   "src/app/investigation-controller.js",
   "src/app/exception-controller.js",
   "src/app/trace-explorer-controller.js",

@@ -1,0 +1,18 @@
+import fs from "node:fs";
+import path from "node:path";
+import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+const html = read("index.html");
+const app = read("app.js");
+const controller = read("src/app/settings-controller.js");
+assert.ok(html.includes("src/app/settings-controller.js"));
+assert.ok(app.includes("SignalDockSettingsController.create"));
+assert.ok(app.includes("settingsController.bind()"));
+assert.ok(app.includes("function currentCustomParserProfile()"), "parser execution profile must remain in root app");
+for (const token of ["persistFromForm", "refreshSavedParserProfiles", "applySavedParserProfile", "saveParserProfileFromForm", "deleteSelectedParserProfile", "exportParserProfiles", "importParserProfiles", "updateCustomParserVisibility", "bind", "destroy"]) assert.ok(controller.includes(token), `missing settings token: ${token}`);
+for (const forbidden of ["fetch(", "XMLHttpRequest", "WebSocket", ".invoke(", "showOpenFilePicker", "SignalDockDesktopBridge"]) assert.ok(!controller.includes(forbidden), `forbidden settings capability: ${forbidden}`);
+assert.ok(!app.includes("el.savedParserProfile?.addEventListener(\"change\", applySavedParserProfile)"));
+console.log("settings-controller-smoke PASS");

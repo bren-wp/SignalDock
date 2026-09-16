@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.15 — 2026-09-16
+
+### Settings application boundary
+- Extracted Settings form synchronization, local preference persistence and saved custom-parser profile CRUD/import/export into `src/app/settings-controller.js`.
+- Kept the active custom parser execution descriptor in `app.js` so parsing and worker execution boundaries remain unchanged.
+- Replaced implicit global `Option` construction with document-owned option elements for saved parser profiles.
+- Moved Settings and parser-profile event ownership to idempotent `bind()` / `destroy()` lifecycle methods.
+
+### Maintainability and verification
+- Reduced root application UI glue while preserving the existing local-only settings storage key and parser-profile domain module.
+- Added isolated Settings controller coverage and permanent HTTP smoke coverage without introducing network, native bridge or filesystem capabilities.
+
 ## 2.8.14 — 2026-09-16
 
 ### Inspector application boundary
