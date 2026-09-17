@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.16";
+  const APP_VERSION = "2.8.17";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -78,8 +78,7 @@
     searchIndex: { enabled: false, tokens: 0, postings: 0, truncated: false, elapsedMs: 0, mode: "linear", candidateCount: 0, cacheHit: false, cacheEligible: false, cacheSegments: 0 }
   };
 
-  let scheduleDatasetAutosave = () => {};
-  let scheduleViewAutosave = () => {};
+  let recoveryDiagnosticsController = null;
   let virtualSpacerRules = null;
   let queryLibraryController = null;
   let baselineController = null;
@@ -152,6 +151,39 @@
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
+    if (!window.SignalDockRecoveryDiagnosticsController?.create) throw new Error("SignalDock Recovery/diagnostics controller is unavailable.");
+    recoveryDiagnosticsController = window.SignalDockRecoveryDiagnosticsController.create({
+      state,
+      el,
+      appVersion: APP_VERSION,
+      getWorkspaceState: currentWorkspaceState,
+      getViewState: currentViewState,
+      getRecoveryAvailability: () => Boolean(window.SignalDockPersistence),
+      getAutosaveEligibility: (entries) => window.SignalDockPersistence?.autosaveEligibility?.(entries) || null,
+      saveRecoveryDataset: (entries, workspace, version) => window.SignalDockPersistence?.saveDataset?.(entries, workspace, version),
+      saveRecoveryView: (view, settings) => window.SignalDockPersistence?.saveView?.(view, settings),
+      getRecoveryInfo: () => window.SignalDockPersistence?.recoveryInfo?.() || Promise.resolve(null),
+      loadRecovery: () => window.SignalDockPersistence?.loadRecovery?.() || Promise.resolve(null),
+      clearRecovery: () => window.SignalDockPersistence?.clearRecovery?.() || Promise.resolve(),
+      clearSearchCache: async () => {
+        if (!window.SignalDockSearchCache) return { available: false };
+        await window.SignalDockSearchCache.clear();
+        return { available: true };
+      },
+      restoreWorkspacePayload,
+      setProcessing,
+      toast,
+      getPerformanceSnapshot: () => profiler()?.snapshot?.() || null,
+      copyText: (text) => utils().copyText(text),
+      formatBytes: (value) => utils().formatBytes(value),
+      canUseVirtualTable,
+      getCapabilitySnapshot: () => ({
+        indexedDB: Boolean(window.indexedDB),
+        fileSystemAccess: typeof window.showOpenFilePicker === "function",
+        performanceMemory: Boolean(performance.memory)
+      })
+    });
+    recoveryDiagnosticsController.bind();
     if (!window.SignalDockQueryLibraryController?.create) throw new Error("SignalDock Query Library controller is unavailable.");
     queryLibraryController = window.SignalDockQueryLibraryController.create({
       state,
@@ -465,13 +497,11 @@
     applySettings();
     refreshSavedParserProfiles();
     profiler()?.observeLongTasks?.();
-    scheduleDatasetAutosave = utils().debounce(() => autosaveDataset(), 1400);
-    scheduleViewAutosave = utils().debounce(() => autosaveView(), 450);
     bindEvents();
     setActiveNav("logs");
     initFilterWorker();
     renderEverything();
-    checkRecoverySnapshot();
+    void recoveryDiagnosticsController.checkRecoverySnapshot();
   }
 
   function bindEvents() {
@@ -576,11 +606,6 @@
     el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
     el.caseFileInput?.addEventListener("change", importCaseJson);
 
-    el.recoveryRestoreButton.addEventListener("click", restoreRecoverySnapshot);
-    el.recoveryDismissButton.addEventListener("click", dismissRecoverySnapshot);
-    el.clearRecoveryButton.addEventListener("click", clearRecoverySnapshot);
-    el.clearSearchCacheButton?.addEventListener("click", clearSearchCache);
-    el.copyDiagnosticsButton?.addEventListener("click", copyDiagnostics);
     window.addEventListener("resize", utils().debounce(() => { if (state.renderMode === "virtual") renderTable(); }, 120));
 
     document.addEventListener("keydown", (event) => {
@@ -1861,102 +1886,15 @@
     };
   }
 
-  function markDatasetForAutosave() {
-    state.recovery.datasetDirty = true;
-    if (state.settings.autosave !== false) scheduleDatasetAutosave();
-  }
+  function markDatasetForAutosave() { recoveryDiagnosticsController?.markDatasetForAutosave(); }
 
-  async function autosaveDataset() {
-    if (!state.entries.length || state.settings.autosave === false || !window.SignalDockPersistence || state.recovery.saving) return;
-    const eligibility = window.SignalDockPersistence.autosaveEligibility(state.entries);
-    if (!eligibility.allowed) {
-      state.recovery.datasetDirty = false;
-      return;
-    }
-    state.recovery.saving = true;
-    try {
-      const result = await window.SignalDockPersistence.saveDataset(state.entries, currentWorkspaceState(), APP_VERSION);
-      state.recovery.datasetDirty = !result.allowed;
-      if (result.allowed) await window.SignalDockPersistence.saveView(currentViewState(), state.settings);
-    } catch { /* recovery is best-effort and never blocks the workspace */ }
-    finally { state.recovery.saving = false; }
-  }
+  function scheduleDatasetAutosave() { recoveryDiagnosticsController?.scheduleDatasetAutosave(); }
 
-  async function autosaveView() {
-    if (!state.entries.length || state.settings.autosave === false || !window.SignalDockPersistence || state.recovery.datasetDirty) return;
-    try { await window.SignalDockPersistence.saveView(currentViewState(), state.settings); } catch { /* best effort */ }
-  }
+  function scheduleViewAutosave() { recoveryDiagnosticsController?.scheduleViewAutosave(); }
 
-  async function checkRecoverySnapshot() {
-    if (!window.SignalDockPersistence || state.entries.length || state.recovery.dismissed) return;
-    try {
-      const info = await window.SignalDockPersistence.recoveryInfo();
-      if (!info?.entryCount) return;
-      state.recovery.available = true;
-      const chunkMeta = info.chunkCount > 1 ? ` · ${info.chunkCount.toLocaleString()} chunks` : "";
-      el.recoveryMeta.textContent = `${info.entryCount.toLocaleString()} entries · ${utils().formatBytes(info.byteSize)}${chunkMeta} · saved ${new Date(info.savedAt).toLocaleString()}`;
-      el.recoveryBanner.hidden = false;
-    } catch { /* IndexedDB may be unavailable in private/restricted contexts */ }
-  }
+  function updateAutosaveStatus() { recoveryDiagnosticsController?.updateAutosaveStatus(); }
 
-  function hideRecoveryBanner() {
-    state.recovery.available = false;
-    if (el.recoveryBanner) el.recoveryBanner.hidden = true;
-  }
-
-  function dismissRecoverySnapshot() {
-    state.recovery.dismissed = true;
-    hideRecoveryBanner();
-  }
-
-  async function clearRecoverySnapshot() {
-    if (!window.SignalDockPersistence) return;
-    try {
-      await window.SignalDockPersistence.clearRecovery();
-      state.recovery.datasetDirty = false;
-      hideRecoveryBanner();
-      updateAutosaveStatus();
-      toast("Local recovery snapshot cleared.");
-    } catch (error) {
-      toast(`Could not clear recovery snapshot: ${error.message || error}`, "error", 6500);
-    }
-  }
-
-  async function clearSearchCache() {
-    try {
-      if (!window.SignalDockSearchCache) { toast("Search cache module is unavailable in this context.", "error"); return; }
-      await window.SignalDockSearchCache.clear();
-      state.searchIndex.cacheHit = false;
-      state.searchIndex.cacheSegments = 0;
-      updateDiagnostics();
-      toast("Local search index cache cleared.");
-    } catch (error) { toast(`Could not clear search cache: ${error.message || error}`, "error", 6500); }
-  }
-
-  function updateAutosaveStatus() {
-    if (!el.autosaveStatus) return;
-    if (state.settings.autosave === false) { el.autosaveStatus.textContent = "Autosave disabled."; return; }
-    if (!state.entries.length) { el.autosaveStatus.textContent = "Autosave ready · no logs loaded."; return; }
-    if (!window.SignalDockPersistence) { el.autosaveStatus.textContent = "IndexedDB recovery unavailable in this browser."; return; }
-    const eligibility = window.SignalDockPersistence.autosaveEligibility(state.entries);
-    el.autosaveStatus.textContent = eligibility.allowed
-      ? `Eligible · ~${utils().formatBytes(eligibility.estimatedBytes)} estimated snapshot`
-      : eligibility.reason;
-  }
-
-  async function restoreRecoverySnapshot() {
-    if (!window.SignalDockPersistence) return;
-    setProcessing(true, "Restoring local recovery…", "Reading IndexedDB snapshot");
-    try {
-      const recovery = await window.SignalDockPersistence.loadRecovery();
-      if (!recovery?.parsed) throw new Error("No recovery snapshot is available.");
-      await restoreWorkspacePayload(recovery.parsed, `Recovery · ${new Date(recovery.metadata.savedAt).toLocaleString()}`);
-      hideRecoveryBanner();
-      toast(`Recovered ${state.entries.length.toLocaleString()} local entries.`);
-    } catch (error) {
-      toast(`Could not restore recovery snapshot: ${error.message || error}`, "error", 7500);
-    } finally { setProcessing(false); }
-  }
+  function hideRecoveryBanner() { recoveryDiagnosticsController?.hideRecoveryBanner(); }
 
   async function restoreWorkspacePayload(payload, label = "workspace") {
     stopLiveTail();
@@ -2006,55 +1944,7 @@
 
 
 
-  function formatMetricMs(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return "—";
-    return number < 10 ? `${number.toFixed(1)} ms` : `${Math.round(number)} ms`;
-  }
-
-  function updateDiagnostics() {
-    if (!el.diagnosticsGrid || !window.SignalDockPerformance) return;
-    const snapshot = profiler().snapshot();
-    el.diagnosticsGrid.replaceChildren();
-    const rows = [
-      ["Dataset", `${state.entries.length.toLocaleString()} entries`],
-      ["Filtered", `${state.filteredIndexes.length.toLocaleString()} entries`],
-      ["Filter last / p95", `${formatMetricMs(snapshot.metrics.filter?.lastMs)} / ${formatMetricMs(snapshot.metrics.filter?.p95Ms)}`],
-      ["Table render last / p95", `${formatMetricMs(snapshot.metrics["table-render"]?.lastMs)} / ${formatMetricMs(snapshot.metrics["table-render"]?.p95Ms)}`],
-      ["Table mode", state.renderMode === "virtual" && canUseVirtualTable() ? `Windowed · ${state.virtual.end - state.virtual.start} DOM rows${state.virtual.compressed ? " · compressed scale" : ""}` : `Paged · ${state.pageSize} rows`],
-      ["Parser last / p95", `${formatMetricMs(snapshot.metrics.parse?.lastMs)} / ${formatMetricMs(snapshot.metrics.parse?.p95Ms)}`],
-      ["Long tasks", `${snapshot.longTasks.toLocaleString()} · max ${formatMetricMs(snapshot.longestTaskMs)}`],
-      ["Filter engine", state.lastEngine],
-      ["Search index", state.searchIndex.enabled ? `${state.searchIndex.tokens.toLocaleString()} tokens · ${state.searchIndex.mode}${["indexed","disk-indexed"].includes(state.searchIndex.mode) ? ` · ${state.searchIndex.candidateCount.toLocaleString()} candidates` : ""}` : (state.searchIndex.mode === "building" ? "Building…" : "Linear fallback")],
-      ["Search cache", state.searchIndex.cacheHit ? `Disk-backed restore · ${state.searchIndex.cacheSegments || 0} buckets` : state.searchIndex.cacheEligible ? `Eligible · ${state.searchIndex.cacheSegments || 0} local buckets` : "Not active"],
-      ["Exception groups", `${state.exceptionGroups?.length || 0} fingerprints`],
-      ["Case", `${state.caseFile?.status || "open"} · ${state.caseFile?.severity || "none"} · ${state.caseFile?.findings?.length || 0} findings`],
-      ["Investigation", `${state.investigation?.items?.length || 0} evidence items`],
-      ["Recovery", window.SignalDockPersistence ? "IndexedDB chunked-v1" : "Unavailable"]
-    ];
-    if (snapshot.memory?.usedJSHeapBytes) rows.splice(6, 0, ["JS heap", `${utils().formatBytes(snapshot.memory.usedJSHeapBytes)} / ${utils().formatBytes(snapshot.memory.jsHeapLimitBytes)}`]);
-    rows.forEach(([label, value]) => {
-      const row = document.createElement("div"); const dt = document.createElement("span"); dt.textContent = label; const dd = document.createElement("strong"); dd.textContent = value; row.append(dt, dd); el.diagnosticsGrid.appendChild(row);
-    });
-  }
-
-  async function copyDiagnostics() {
-    const recovery = await window.SignalDockPersistence?.recoveryInfo?.().catch(() => null);
-    const payload = {
-      app: "SignalDock",
-      version: APP_VERSION,
-      generatedAt: new Date().toISOString(),
-      dataset: { entries: state.entries.length, filtered: state.filteredIndexes.length, loadedBytes: state.loadedBytes, sources: state.summary.sources?.length || 0, services: state.summary.services?.length || 0 },
-      engines: { filter: state.lastEngine, workerAvailable: state.workerAvailable, workerReady: state.workerReady, searchIndex: state.searchIndex },
-      capabilities: { indexedDB: Boolean(window.indexedDB), fileSystemAccess: typeof window.showOpenFilePicker === "function", performanceMemory: Boolean(performance.memory) },
-      recovery,
-      performance: profiler()?.snapshot?.() || null
-    };
-    try {
-      await utils().copyText(JSON.stringify(payload, null, 2));
-      toast("Support details copied.");
-    } catch { toast("Could not copy support details.", "error"); }
-  }
+  function updateDiagnostics() { recoveryDiagnosticsController?.updateDiagnostics(); }
 
   function setProcessing(active, title = "Processing logs…", detail = "Reading files locally") {
     el.processing.hidden = !active;

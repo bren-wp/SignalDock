@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.17 — 2026-09-17
+
+### Recovery and diagnostics application boundary
+- Extracted recovery banner state, autosave scheduling/status, recovery actions, search-cache clear orchestration, diagnostics rendering and support-detail copy behavior into `src/app/recovery-diagnostics-controller.js`.
+- Kept IndexedDB persistence, search-cache capability access, browser capability detection and full `restoreWorkspacePayload()` orchestration in the root/platform boundary behind narrow injected callbacks.
+- Moved recovery/diagnostics event listener ownership to idempotent `bind()` / `destroy()` lifecycle methods without changing local-first recovery semantics.
+
+### Maintainability and verification
+- Preserved existing dataset/filter/parser/search/cache/Case/Investigation/Recovery diagnostics while allowing diagnostics to render when browser memory metrics are unavailable.
+- Added isolated recovery/diagnostics coverage, capability-boundary assertions, source-layout coverage and permanent HTTP smoke coverage.
+- Preserved the zero-build, no-backend, no-telemetry and `connect-src 'none'` architecture.
+
 ## 2.8.16 — 2026-09-16
 
 ### Command Palette and navigation boundary

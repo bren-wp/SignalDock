@@ -22,6 +22,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/command-navigation-controller.js` owns workspace navigation, Command Palette UI/keyboard behavior and navigation reset listeners while feature actions remain root-injected callbacks.
 
+`app/recovery-diagnostics-controller.js` owns recovery/autosave UI orchestration and diagnostics rendering while persistence, search-cache, workspace-restore and browser capabilities remain root-injected callbacks.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.
