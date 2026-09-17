@@ -140,13 +140,13 @@ assert.ok(html.indexOf('src/app/recovery-diagnostics-controller.js') < html.inde
 assert.ok(app.includes("SignalDockRecoveryDiagnosticsController.create"), "controller factory wiring missing from app.js");
 assert.ok(app.includes("recoveryDiagnosticsController.bind();"), "controller bind() is not invoked");
 for (const token of ["recoveryRestoreButton.addEventListener", "recoveryDismissButton.addEventListener", "clearRecoveryButton.addEventListener", "clearSearchCacheButton?.addEventListener", "copyDiagnosticsButton?.addEventListener"]) {
-  assert.ok(!app.includes(token), `root still owns recovery/diagnostics listener: ${token}`);
+  assert.ok(!app.includes(token), "root still owns recovery/diagnostics listener: " + token);
 }
 for (const token of ["markDatasetForAutosave", "autosaveDataset", "autosaveView", "checkRecoverySnapshot", "updateDiagnostics", "copyDiagnostics", "formatMetricMs", "function bind()", "function destroy()"]) {
-  assert.ok(controllerSource.includes(token), `controller missing expected ownership token: ${token}`);
+  assert.ok(controllerSource.includes(token), "controller missing expected ownership token: " + token);
 }
 for (const token of ["SignalDockPersistence", "SignalDockSearchCache", "indexedDB", "showOpenFilePicker", "SignalDockDesktopBridge", "XMLHttpRequest", "WebSocket", ".invoke("]) {
-  assert.ok(!controllerSource.includes(token), `forbidden capability reference in controller: ${token}`);
+  assert.ok(!controllerSource.includes(token), "forbidden capability reference in controller: " + token);
 }
 assert.ok(!/\\bfetch\\s*\\(/.test(controllerSource), "controller must not use fetch()");
 assert.ok(!/\\bEventSource\\b/.test(controllerSource), "controller must not use EventSource");
@@ -176,7 +176,7 @@ const controller = rootGlobal.SignalDockRecoveryDiagnosticsController.create({
   getAutosaveEligibility: () => ({ allowed: true, estimatedBytes: 128 }), saveRecoveryDataset: async () => ({ allowed: true }), saveRecoveryView: async () => {},
   getRecoveryInfo: async () => ({ entryCount: 2, byteSize: 128, chunkCount: 1, savedAt: "2026-09-17T12:00:00.000Z" }), loadRecovery: async () => null, clearRecovery: async () => {},
   clearSearchCache: async () => { cacheClears += 1; return { available: true }; }, restoreWorkspacePayload: async () => {}, setProcessing: () => {}, toast: () => {},
-  getPerformanceSnapshot: () => ({ metrics: {}, longTasks: 0, longestTaskMs: 0 }), copyText: async () => {}, formatBytes: (value) => `${value} B`, canUseVirtualTable: () => false,
+  getPerformanceSnapshot: () => ({ metrics: {}, longTasks: 0, longestTaskMs: 0 }), copyText: async () => {}, formatBytes: (value) => String(value) + " B", canUseVirtualTable: () => false,
   getCapabilitySnapshot: () => ({ indexedDB: true, fileSystemAccess: false, performanceMemory: false })
 });
 controller.bind();
@@ -264,7 +264,7 @@ write("CHANGELOG.md", changelog);
 
 const finalController = read("src/app/recovery-diagnostics-controller.js");
 for (const token of ["SignalDockPersistence", "SignalDockSearchCache", "indexedDB", "showOpenFilePicker", "SignalDockDesktopBridge", "XMLHttpRequest", "WebSocket", ".invoke("]) assert.ok(!finalController.includes(token), `forbidden controller capability reference: ${token}`);
-assert.ok(!/\\bfetch\\s*\\(/.test(finalController), "forbidden controller fetch() capability");
+assert.ok(!/\bfetch\s*\(/.test(finalController), "forbidden controller fetch() capability");
 assert.ok(read("index.html").indexOf("src/app/recovery-diagnostics-controller.js") < read("index.html").indexOf("app.js"), "controller must load before app.js");
 assert.ok(!read("app.js").includes('el.recoveryRestoreButton.addEventListener("click"'), "root still owns recovery listener");
 console.log("SignalDock v2.8.17 migration prepared successfully.");
