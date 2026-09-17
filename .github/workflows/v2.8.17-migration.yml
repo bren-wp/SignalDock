@@ -1,0 +1,127 @@
+name: SignalDock v2.8.17 migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2.8.17-migration.yml'
+      - 'scripts/migrate-v2.8.17.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Prepare v2.8.17 migration
+        run: node scripts/migrate-v2.8.17.mjs
+
+      - name: Verify release surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "2.8.17"
+          grep -q 'APP_VERSION = "2.8.17"' app.js
+          grep -q 'src/app/recovery-diagnostics-controller.js' index.html
+          grep -q 'SignalDockRecoveryDiagnosticsController.create' app.js
+          grep -q 'recoveryDiagnosticsController.bind();' app.js
+          grep -q 'src/app/recovery-diagnostics-controller.js' .github/workflows/ci.yml
+          grep -q '## 2.8.17 — 2026-09-17' CHANGELOG.md
+          grep -q 'Current version: \*\*2.8.17\*\*' docs/TECHNICAL.md
+
+      - name: Recursive JavaScript syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+
+      - name: Full regression suite
+        shell: bash
+        env:
+          TERM: xterm
+        run: |
+          set -euo pipefail
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+
+      - name: Architecture and capability assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          controller='src/app/recovery-diagnostics-controller.js'
+          for token in SignalDockPersistence SignalDockSearchCache indexedDB showOpenFilePicker SignalDockDesktopBridge XMLHttpRequest WebSocket EventSource '.invoke('; do
+            if grep -Fq "$token" "$controller"; then
+              echo "Forbidden capability reference in $controller: $token" >&2
+              exit 1
+            fi
+          done
+          if grep -Eq '\bfetch[[:space:]]*\(' "$controller"; then
+            echo "Forbidden fetch() capability in $controller" >&2
+            exit 1
+          fi
+          ! grep -Fq 'el.recoveryRestoreButton.addEventListener("click"' app.js
+          ! grep -Fq 'el.recoveryDismissButton.addEventListener("click"' app.js
+          ! grep -Fq 'el.clearRecoveryButton.addEventListener("click"' app.js
+          ! grep -Fq 'el.clearSearchCacheButton?.addEventListener("click"' app.js
+          ! grep -Fq 'el.copyDiagnosticsButton?.addEventListener("click"' app.js
+          grep -Fq 'async function restoreWorkspacePayload' app.js
+          grep -Fq "connect-src 'none'" index.html
+
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8080/index.html -o /tmp/signaldock-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          grep -q 'SignalDock' /tmp/signaldock-index.html
+          curl --fail --silent --show-error http://127.0.0.1:8080/app.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/src/app/recovery-diagnostics-controller.js -o /dev/null
+
+      - name: Diff integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+
+      - name: Commit verified runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add VERSION app.js index.html README.md CHANGELOG.md docs/TECHNICAL.md docs/SOURCE-LAYOUT.md src/README.md tests/source-layout-smoke.mjs tests/recovery-diagnostics-controller-smoke.mjs
+          if git diff --cached --quiet; then
+            echo 'Migration produced no release changes.' >&2
+            exit 1
+          fi
+          git commit -m 'release: SignalDock v2.8.17'
+          git push origin HEAD:main
