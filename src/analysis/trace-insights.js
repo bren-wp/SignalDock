@@ -3,8 +3,15 @@
 
   function analyze(entries) {
     const rows = Array.isArray(entries) ? entries : [];
-    const spans = rows.filter((entry) => entry?.correlations?.span);
-    const spanIds = new Set(spans.map((entry) => String(entry.correlations.span)));
+    const spanIds = new Set();
+    let spanCount = 0;
+    for (const entry of rows) {
+      const span = entry?.correlations?.span;
+      if (!span) continue;
+      spanCount += 1;
+      spanIds.add(String(span));
+    }
+
     let roots = 0;
     let orphans = 0;
     let errorSpans = 0;
@@ -39,7 +46,7 @@
       }
     }
 
-    const parented = Math.max(0, spans.length - roots);
+    const parented = Math.max(0, spanCount - roots);
     const linkedParents = Math.max(0, parented - orphans);
     const parentCoverage = parented ? linkedParents / parented : 1;
     const serviceBreakdown = [...serviceStats.values()].map((stat) => ({
@@ -49,8 +56,8 @@
 
     return {
       entries: rows.length,
-      spans: spans.length,
-      events: Math.max(0, rows.length - spans.length),
+      spans: spanCount,
+      events: Math.max(0, rows.length - spanCount),
       roots,
       orphans,
       parentCoverage,
