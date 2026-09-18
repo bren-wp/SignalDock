@@ -14,20 +14,32 @@
     const input = Array.isArray(value) ? value : String(value || "").split(/[;,]/);
     return [...new Set(input.map((tag) => clean(tag, 48).toLowerCase().replace(/\s+/g, "-")).filter(Boolean))].slice(0, 20);
   }
-  function percentile(values, p) {
-    const nums = values.filter(Number.isFinite).sort((a, b) => a - b);
-    if (!nums.length) return null;
-    const pos = (nums.length - 1) * p; const lo = Math.floor(pos); const hi = Math.ceil(pos);
-    return lo === hi ? nums[lo] : nums[lo] + (nums[hi] - nums[lo]) * (pos - lo);
+  function percentileSorted(sorted, p) {
+    if (!sorted.length) return null;
+    const pos = (sorted.length - 1) * p; const lo = Math.floor(pos); const hi = Math.ceil(pos);
+    return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
   }
-  function selectedEntries(entries, indexes) {
+  function eachSelected(entries, indexes, callback) {
     const source = Array.isArray(entries) ? entries : [];
-    if (!Array.isArray(indexes)) return source;
-    return indexes.map((i) => source[i]).filter(Boolean);
+    if (Array.isArray(indexes)) {
+      for (const index of indexes) {
+        const entry = source[index];
+        if (entry) callback(entry, index);
+      }
+      return;
+    }
+    for (let index = 0; index < source.length; index += 1) callback(source[index], index);
   }
-  function serviceRows(rows) {
+  function selectedCount(entries, indexes) {
+    const source = Array.isArray(entries) ? entries : [];
+    if (!Array.isArray(indexes)) return source.length;
+    let count = 0;
+    for (const index of indexes) if (source[index]) count += 1;
+    return count;
+  }
+  function serviceRows(entries, indexes) {
     const map = new Map();
-    for (const entry of rows) {
+    eachSelected(entries, indexes, (entry) => {
       const service = clean(entry?.service || "—", 160) || "—";
       const row = map.get(service) || { service, entries: 0, errors: 0, warnings: 0, durations: [] };
       row.entries += 1;
@@ -36,24 +48,27 @@
       const duration = Number(entry?.traceMeta?.durationMs);
       if (Number.isFinite(duration) && duration >= 0) row.durations.push(duration);
       map.set(service, row);
-    }
-    return [...map.values()].map((row) => ({
-      service: row.service, entries: row.entries, errors: row.errors, warnings: row.warnings,
-      errorRate: row.entries ? row.errors / row.entries : 0, p95Ms: percentile(row.durations, .95)
-    })).sort((a, b) => b.entries - a.entries || a.service.localeCompare(b.service)).slice(0, MAX_ROWS);
+    });
+    return [...map.values()].map((row) => {
+      row.durations.sort((a, b) => a - b);
+      return {
+        service: row.service, entries: row.entries, errors: row.errors, warnings: row.warnings,
+        errorRate: row.entries ? row.errors / row.entries : 0, p95Ms: percentileSorted(row.durations, .95)
+      };
+    }).sort((a, b) => b.entries - a.entries || a.service.localeCompare(b.service)).slice(0, MAX_ROWS);
   }
-  function dependencyRows(rows) {
+  function dependencyRows(entries, indexes) {
     if (!root.SignalDockServiceMatrix?.build) return [];
-    const result = root.SignalDockServiceMatrix.build(rows);
+    const result = root.SignalDockServiceMatrix.build(entries, indexes);
     return (result?.rows || []).slice(0, MAX_ROWS).map((row) => ({
       from: clean(row.source, 160), to: clean(row.target, 160), calls: Number(row.calls) || 0,
       errors: Number(row.errors) || 0, errorRate: Number(row.errorRate) || 0,
       p95Ms: Number.isFinite(row.p95Ms) ? row.p95Ms : null
     }));
   }
-  function traceSets(rows) {
+  function traceSets(entries, indexes) {
     if (!root.SignalDockTraceExplorer?.build) return [];
-    const traces = root.SignalDockTraceExplorer.build(rows)?.rows || [];
+    const traces = root.SignalDockTraceExplorer.build(entries, indexes)?.rows || [];
     const map = new Map();
     for (const trace of traces) {
       const services = [...(trace.services || [])].sort();
@@ -64,26 +79,37 @@
       if (Number.isFinite(trace.spans)) row.spans.push(trace.spans);
       map.set(signature, row);
     }
-    return [...map.values()].map((row) => ({
-      signature: row.signature, services: row.services, traces: row.traces,
-      errorRate: row.traces ? row.errors / row.traces : 0,
-      medianDurationMs: percentile(row.durations, .5), p95DurationMs: percentile(row.durations, .95),
-      medianSpans: percentile(row.spans, .5)
-    })).sort((a, b) => b.traces - a.traces || a.signature.localeCompare(b.signature)).slice(0, MAX_ROWS);
+    return [...map.values()].map((row) => {
+      row.durations.sort((a, b) => a - b);
+      row.spans.sort((a, b) => a - b);
+      return {
+        signature: row.signature, services: row.services, traces: row.traces,
+        errorRate: row.traces ? row.errors / row.traces : 0,
+        medianDurationMs: percentileSorted(row.durations, .5), p95DurationMs: percentileSorted(row.durations, .95),
+        medianSpans: percentileSorted(row.spans, .5)
+      };
+    }).sort((a, b) => b.traces - a.traces || a.signature.localeCompare(b.signature)).slice(0, MAX_ROWS);
   }
   function snapshot(entries, indexes = null, options = {}) {
-    const rows = selectedEntries(entries, indexes); let min = null; let max = null;
-    for (const entry of rows) {
-      const timestamp = Number(entry?.timestampMs); if (!Number.isFinite(timestamp)) continue;
-      min = min === null ? timestamp : Math.min(min, timestamp); max = max === null ? timestamp : Math.max(max, timestamp);
-    }
-    const sources = [...new Set(rows.map((entry) => clean(entry?.source, 240)).filter(Boolean))].sort().slice(0, 500);
+    const source = Array.isArray(entries) ? entries : [];
+    let min = null; let max = null;
+    const sourceNames = new Set();
+    eachSelected(source, indexes, (entry) => {
+      const timestamp = Number(entry?.timestampMs);
+      if (Number.isFinite(timestamp)) {
+        min = min === null ? timestamp : Math.min(min, timestamp);
+        max = max === null ? timestamp : Math.max(max, timestamp);
+      }
+      const sourceName = clean(entry?.source, 240);
+      if (sourceName) sourceNames.add(sourceName);
+    });
+    const sources = [...sourceNames].sort().slice(0, 500);
     return {
       schema: SCHEMA, version: VERSION, appVersion: clean(options.appVersion, 32),
       id: clean(options.id, 96) || `baseline-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
       name: clean(options.name || "SignalDock baseline", 120), capturedAt: new Date().toISOString(),
-      scope: options.scope === "filtered" ? "filtered" : "all", entries: rows.length, sources,
-      timeRange: { startMs: min, endMs: max }, services: serviceRows(rows), dependencies: dependencyRows(rows), traceSets: traceSets(rows)
+      scope: options.scope === "filtered" ? "filtered" : "all", entries: selectedCount(source, indexes), sources,
+      timeRange: { startMs: min, endMs: max }, services: serviceRows(source, indexes), dependencies: dependencyRows(source, indexes), traceSets: traceSets(source, indexes)
     };
   }
   function normalize(input) {
