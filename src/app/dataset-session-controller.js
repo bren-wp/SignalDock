@@ -37,20 +37,27 @@
       if (state.filteredIndexes.length > 50000) {
         const parts = [];
         const chunkSize = 2000;
+        let exportedCount = 0;
         for (let offset = 0; offset < state.filteredIndexes.length; offset += chunkSize) {
           const lines = [];
           const end = Math.min(offset + chunkSize, state.filteredIndexes.length);
           for (let i = offset; i < end; i += 1) {
             const entry = state.entries[state.filteredIndexes[i]];
-            if (entry) lines.push(JSON.stringify(normalizeExportEntry(entry)));
+            if (!entry) continue;
+            lines.push(JSON.stringify(normalizeExportEntry(entry)));
+            exportedCount += 1;
           }
           if (lines.length) parts.push(lines.join("\n") + "\n");
         }
         downloadParts(`signaldock-export-${day}.ndjson`, parts, "application/x-ndjson;charset=utf-8");
-        toast(`Exported ${state.filteredIndexes.length.toLocaleString()} entries as NDJSON for lower memory overhead.`);
-        return { mode: "ndjson", count: state.filteredIndexes.length, parts: parts.length };
+        toast(`Exported ${exportedCount.toLocaleString()} entries as NDJSON for lower memory overhead.`);
+        return { mode: "ndjson", count: exportedCount, parts: parts.length };
       }
-      const payload = state.filteredIndexes.map((index) => state.entries[index]).filter(Boolean).map(normalizeExportEntry);
+      const payload = [];
+      for (const index of state.filteredIndexes) {
+        const entry = state.entries[index];
+        if (entry) payload.push(normalizeExportEntry(entry));
+      }
       downloadJson(`signaldock-export-${day}.json`, payload);
       toast(`Exported ${payload.length.toLocaleString()} entries.`);
       return { mode: "json", count: payload.length };
