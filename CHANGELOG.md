@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.20 — 2026-09-18
+
+### Dataset filter application boundary
+- Extracted normalized filter-index construction, dataset summary counts, filter request/application state, query-validity feedback, control enablement and filter/source event ownership into `src/app/dataset-filter-controller.js`.
+- Kept Query Engine evaluation, worker protocol/dispatch, exception and service analysis, trace aggregation and performance timing in the root boundary behind narrow callbacks.
+- Preserved worker threshold behavior, request IDs, background-filter UI state, page reset/windowed-scroll semantics and source filter restoration.
+
+### Maintainability and verification
+- Added isolated Dataset Filter controller coverage for index/summary construction, main-thread filtering, worker dispatch handoff, source options, query errors and listener lifecycle.
+- Added capability assertions preventing direct worker, Query Engine, analysis-module, storage, filesystem or network access from the controller.
+- Updated permanent source-layout and HTTP smoke gates while preserving the zero-build local-first runtime.
+
 ## 2.8.19 — 2026-09-18
 
 ### Import and Live Tail application boundary

@@ -22,6 +22,8 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `import-live-tail-controller.js` owns file-input and drag/drop listeners, import progress/state coordination, parsed-entry append state and the Live Tail lifecycle. Parser execution, File System Access picker/handle reads, Project Manager persistence, worker synchronization and recovery autosave remain root-injected callbacks; the controller never receives those capabilities directly.
 
+`dataset-filter-controller.js` owns the normalized filter index, dataset summary counts, filter request/application state, query validity feedback, filter control enablement and filter/source UI listener lifecycle. Query Engine calls, worker dispatch, exception/health/service/trace analysis and performance timing stay in the root boundary and are exposed only through narrow callbacks.
+
 `investigation-controller.js` owns Investigation evidence rendering/actions, local import/export, Case Activity and Unified Case Timeline coordination. Investigation and Case domain modules remain authoritative for normalization and bounded evidence/case data; log selection, inspector refresh, Case Workspace refresh and autosave are injected callbacks.
 
 `exception-controller.js` owns Exception Explorer rendering, deterministic fingerprint query coordination and representative-sample actions. Grouping and trend classification remain in `src/analysis/exception-groups.js` and `src/analysis/exception-trends.js`; log filtering, evidence pinning and selected-log navigation are injected callbacks. Sample resolution prefers stable entry IDs before index and fingerprint fallbacks so restored workspaces do not depend on stale array positions.
@@ -47,7 +49,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.19**.
+Current version: **2.8.20**.
 
 ## Highlights
 

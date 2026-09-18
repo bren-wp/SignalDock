@@ -28,6 +28,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/import-live-tail-controller.js` owns file import/drag-drop UI orchestration, parsed-entry append state and Live Tail lifecycle while parser, File System Access, Project Manager, worker and recovery capabilities remain root-injected callbacks.
 
+`app/dataset-filter-controller.js` owns normalized filter-index/summary state, filter request/application orchestration and filter/source UI listeners while Query Engine, worker dispatch, analysis modules and performance timing remain root-injected callbacks.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.

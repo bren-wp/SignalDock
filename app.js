@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.19";
+  const APP_VERSION = "2.8.20";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -81,6 +81,7 @@
   let recoveryDiagnosticsController = null;
   let savedViewsController = null;
   let importLiveTailController = null;
+  let datasetFilterController = null;
   let virtualSpacerRules = null;
   let queryLibraryController = null;
   let baselineController = null;
@@ -204,6 +205,39 @@
       }
     });
     importLiveTailController.bind();
+    if (!window.SignalDockDatasetFilterController?.create) throw new Error("SignalDock Dataset Filter controller is unavailable.");
+    datasetFilterController = window.SignalDockDatasetFilterController.create({
+      state,
+      el,
+      debounce: (callback, wait) => utils().debounce(callback, wait),
+      parseSmartQuery: (query) => engine().parseSmartQuery(query),
+      filterIndexes: (entries, request) => engine().filterIndexes(entries, request),
+      shouldUseWorkerFilter: () => state.settings.useWorker !== false && state.workerReady && state.entries.length >= WORKER_THRESHOLD,
+      requestWorkerFilter: ({ requestId, request }) => state.worker.postMessage({ type: "filter", protocol: 1, token: state.workerToken, requestId, request }),
+      now: () => performance.now(),
+      recordPerformance: (elapsed, meta) => profiler()?.record?.("filter", elapsed, meta),
+      getExceptionFingerprint: (entry) => window.SignalDockExceptionGroups?.candidate?.(entry) ? window.SignalDockExceptionGroups.fingerprint(entry) : "",
+      refreshDerivedAnalysis: () => {
+        state.serviceGraph = null;
+        state.exceptionGroups = window.SignalDockExceptionGroups?.group?.(state.entries, { maxGroups: 1500 }) || [];
+        state.exceptionTrends = window.SignalDockExceptionTrends?.analyze?.(state.entries, { bucketCount: 20 }) || null;
+        state.healthData = window.SignalDockServiceHealth?.analyze?.(state.entries) || null;
+        state.serviceMatrixData = window.SignalDockServiceMatrix?.build?.(state.entries) || null;
+        state.serviceHeatmapData = window.SignalDockServiceHeatmap?.build?.(state.entries, null, { bucketCount: 12 }) || null;
+        state.serviceTrendsData = window.SignalDockServiceTrends?.compare?.(state.entries) || null;
+        state.traceExplorerData = window.SignalDockTraceExplorer?.buildWindow?.(state.entries, null, { limit: 1000 }) || window.SignalDockTraceExplorer?.build?.(state.entries) || null;
+        state.traceOutlierData = window.SignalDockTraceOutliers?.rank?.(state.entries, { limit: 250 }) || null;
+        traceExplorerController?.reconcileSelection(state.traceExplorerData);
+      },
+      syncLevelChips,
+      ensurePageInRange,
+      renderDataViews,
+      scheduleViewAutosave: () => scheduleViewAutosave(),
+      updateStats,
+      renderSourceNavigation,
+      getShortSource: (source) => utils().shortSource(source)
+    });
+    datasetFilterController.bind();
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -562,37 +596,9 @@
 
   function bindEvents() {
 
-    const debouncedFilter = utils().debounce(() => applyFilters(true), 80);
-    el.queryInput.addEventListener("input", debouncedFilter);
-    el.levelFilter.addEventListener("change", () => { syncLevelChips(el.levelFilter.value); applyFilters(true); });
-    el.sourceFilter.addEventListener("change", () => applyFilters(true));
-    el.timeFilter.addEventListener("change", () => applyFilters(true));
-    el.sortFilter.addEventListener("change", () => applyFilters(true));
-    el.levelChips.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-level]");
-      if (!button || el.levelFilter.disabled) return;
-      el.levelFilter.value = button.dataset.level;
-      syncLevelChips(button.dataset.level);
-      applyFilters(true);
-    });
-
-    el.resetButton.addEventListener("click", resetFilters);
     el.exportButton.addEventListener("click", exportFiltered);
     el.workspaceSaveButton.addEventListener("click", saveWorkspace);
     el.clearAllButton.addEventListener("click", clearAll);
-
-    el.fileTabs.addEventListener("click", (event) => {
-      const tab = event.target.closest("[data-source]");
-      if (!tab || el.sourceFilter.disabled) return;
-      el.sourceFilter.value = tab.dataset.source;
-      applyFilters(true);
-    });
-    el.sourceList.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-source]");
-      if (!button || el.sourceFilter.disabled) return;
-      el.sourceFilter.value = button.dataset.source;
-      applyFilters(true);
-    });
 
     el.prevPage.addEventListener("click", () => setPage(state.page - 1));
     el.nextPage.addEventListener("click", () => setPage(state.page + 1));
@@ -767,140 +773,23 @@
 
   function appendParsedEntries(parsed) { return importLiveTailController?.appendParsedEntries(parsed) || 0; }
 
-  function rebuildFilterIndex() {
-    let latest = null;
-    let errors = 0;
-    let warnings = 0;
-    const sourceCounts = new Map();
-    const serviceCounts = new Map();
-    state.filterEntries = state.entries.map((entry) => {
-      const timestampMs = Number.isFinite(entry.timestampMs) ? entry.timestampMs : (() => {
-        const parsed = entry.timestamp ? Date.parse(entry.timestamp) : NaN;
-        return Number.isNaN(parsed) ? null : parsed;
-      })();
-      if (timestampMs !== null && (latest === null || timestampMs > latest)) latest = timestampMs;
-      if (entry.level === "ERROR" || entry.level === "FATAL") errors += 1;
-      else if (entry.level === "WARN") warnings += 1;
-      sourceCounts.set(entry.source, (sourceCounts.get(entry.source) || 0) + 1);
-      if (entry.service && entry.service !== "—") serviceCounts.set(entry.service, (serviceCounts.get(entry.service) || 0) + 1);
-      const exceptionFingerprint = window.SignalDockExceptionGroups?.candidate?.(entry) ? window.SignalDockExceptionGroups.fingerprint(entry) : "";
-      entry.exceptionFingerprint = exceptionFingerprint;
-      return {
-        level: entry.level,
-        source: entry.source,
-        service: entry.service,
-        message: entry.message,
-        timestamp: entry.timestamp,
-        timestampMs,
-        searchText: entry.searchText,
-        correlations: entry.correlations || {},
-        dimensions: entry.dimensions || {},
-        exceptionFingerprint
-      };
-    });
-    state.latestTimestampMs = latest;
-    state.summary = {
-      total: state.entries.length,
-      errors,
-      warnings,
-      sources: Array.from(sourceCounts.keys()).sort((a, b) => a.localeCompare(b)),
-      sourceCounts,
-      services: Array.from(serviceCounts.keys()).sort((a, b) => a.localeCompare(b)),
-      serviceCounts
-    };
-    state.serviceGraph = null;
-    state.exceptionGroups = window.SignalDockExceptionGroups?.group?.(state.entries, { maxGroups: 1500 }) || [];
-    state.exceptionTrends = window.SignalDockExceptionTrends?.analyze?.(state.entries, { bucketCount: 20 }) || null;
-    state.healthData = window.SignalDockServiceHealth?.analyze?.(state.entries) || null;
-    state.serviceMatrixData = window.SignalDockServiceMatrix?.build?.(state.entries) || null;
-    state.serviceHeatmapData = window.SignalDockServiceHeatmap?.build?.(state.entries, null, { bucketCount: 12 }) || null;
-    state.serviceTrendsData = window.SignalDockServiceTrends?.compare?.(state.entries) || null;
-    state.traceExplorerData = window.SignalDockTraceExplorer?.buildWindow?.(state.entries, null, { limit: 1000 }) || window.SignalDockTraceExplorer?.build?.(state.entries) || null;
-    state.traceOutlierData = window.SignalDockTraceOutliers?.rank?.(state.entries, { limit: 250 }) || null;
-    traceExplorerController?.reconcileSelection(state.traceExplorerData);
-  }
+  function rebuildFilterIndex() { return datasetFilterController?.rebuildFilterIndex(); }
 
-  function currentFilterRequest() {
-    return {
-      query: el.queryInput.value.trim(),
-      parsed: engine().parseSmartQuery(el.queryInput.value.trim()),
-      level: el.levelFilter.value,
-      source: el.sourceFilter.value,
-      timeRange: el.timeFilter.value,
-      sortMode: el.sortFilter.value,
-      showUnknown: state.settings.showUnknown !== false,
-      referenceTime: state.latestTimestampMs || 0
-    };
-  }
+  function currentFilterRequest() { return datasetFilterController?.currentFilterRequest() || {}; }
 
-  function applyFilters(resetPage) {
-    const request = currentFilterRequest();
-    state.filterRequestId += 1;
-    const requestId = state.filterRequestId;
-    const useWorker = state.settings.useWorker !== false && state.workerReady && state.entries.length >= WORKER_THRESHOLD;
-    if (useWorker) {
-      state.lastEngine = "worker";
-      el.resultsSummary.textContent = "Filtering in background…";
-      document.body.classList.add("filtering-active");
-      state.worker.postMessage({ type: "filter", protocol: 1, token: state.workerToken, requestId, request });
-      if (resetPage) state.page = 1;
-      return;
-    }
+  function applyFilters(resetPage) { return datasetFilterController?.applyFilters(resetPage); }
 
-    const started = performance.now();
-    const result = engine().filterIndexes(state.filterEntries, request);
-    const elapsed = Math.round((performance.now() - started) * 10) / 10;
-    state.lastEngine = `main · ${elapsed} ms`;
-    profiler()?.record?.("filter", elapsed, { engine: "main", entries: state.entries.length });
-    applyFilteredIndexes(result.indexes, result.parsed.invalid, resetPage);
-  }
+  function applyFilteredIndexes(indexes, invalidTokens, resetPage) { return datasetFilterController?.applyFilteredIndexes(indexes, invalidTokens, resetPage); }
 
-  function applyFilteredIndexes(indexes, invalidTokens, resetPage) {
-    state.filteredIndexes = Array.isArray(indexes) ? indexes : [];
-    if (resetPage) {
-      state.page = 1;
-      if (state.renderMode === "virtual" && el.logTable) el.logTable.scrollTop = 0;
-    }
-    ensurePageInRange();
-    document.body.classList.remove("filtering-active");
-    updateQueryValidity(invalidTokens);
-    renderDataViews();
-    scheduleViewAutosave();
-  }
+  function updateQueryValidity(invalidTokens) { return datasetFilterController?.updateQueryValidity(invalidTokens); }
 
-  function updateQueryValidity(invalidTokens) {
-    const invalid = Array.isArray(invalidTokens) ? invalidTokens : [];
-    el.queryInput.classList.toggle("has-query-error", invalid.length > 0);
-    el.queryInput.title = invalid.length ? `Could not parse: ${invalid.join(", ")}` : "Smart query: level:error source:api env:prod namespace:payments trace:abc any:timeout,retry re:/ETIMEDOUT|ECONNRESET/i";
-  }
+  function resetFilters() { return datasetFilterController?.resetFilters(); }
 
-  function resetFilters() {
-    el.queryInput.value = "";
-    el.levelFilter.value = "";
-    el.sourceFilter.value = "";
-    el.timeFilter.value = "";
-    el.sortFilter.value = "original";
-    syncLevelChips("");
-    applyFilters(true);
-  }
+  function setControlsEnabled(enabled) { return datasetFilterController?.setControlsEnabled(enabled); }
 
-  function setControlsEnabled(enabled) {
-    [el.queryInput, el.levelFilter, el.sourceFilter, el.timeFilter, el.sortFilter, el.saveViewButton, el.resetButton, el.exportButton, el.workspaceSaveButton, el.clearAllButton, el.pageSize, el.renderMode]
-      .forEach((control) => { if (control) control.disabled = !enabled; });
-  }
+  function refreshFilters() { return datasetFilterController?.refreshFilters(); }
 
-  function refreshFilters() {
-    const current = el.sourceFilter.value;
-    const sources = getSources();
-    el.sourceFilter.replaceChildren(new Option("All sources", ""), ...sources.map((source) => new Option(utils().shortSource(source), source)));
-    if (sources.includes(current)) el.sourceFilter.value = current;
-    updateStats();
-    renderSourceNavigation();
-  }
-
-  function getSources() {
-    return state.summary.sources || [];
-  }
+  function getSources() { return datasetFilterController?.getSources() || []; }
 
   function renderEverything() {
     if (state.entries.length && !state.filterEntries.length) rebuildFilterIndex();
