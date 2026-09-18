@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.17";
+  const APP_VERSION = "2.8.18";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -79,6 +79,7 @@
   };
 
   let recoveryDiagnosticsController = null;
+  let savedViewsController = null;
   let virtualSpacerRules = null;
   let queryLibraryController = null;
   let baselineController = null;
@@ -147,6 +148,19 @@
     });
 
     state.savedViews = utils().loadJson(STORAGE_VIEWS, null) || utils().loadJson("signaldock-saved-views-v2", null) || utils().loadJson("signaldock-saved-views-v1", []);
+    if (!window.SignalDockSavedViewsController?.create) throw new Error("SignalDock Saved Views controller is unavailable.");
+    savedViewsController = window.SignalDockSavedViewsController.create({
+      state,
+      el,
+      persistSavedViews: (views) => utils().saveJson(STORAGE_VIEWS, views),
+      requestName: (message, suggested) => window.prompt(message, suggested),
+      createViewId: () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      getShortSource: (value) => utils().shortSource(value),
+      syncLevelChips,
+      applyFilters,
+      toast
+    });
+    savedViewsController.bind();
     state.settings = Object.assign(state.settings, utils().loadJson("signaldock-settings-v1", {}), utils().loadJson("signaldock-settings-v2", {}), utils().loadJson("signaldock-settings-v3", {}), utils().loadJson("signaldock-settings-v5", {}), utils().loadJson("signaldock-settings-v6", {}), utils().loadJson("signaldock-settings-v8", {}), utils().loadJson(STORAGE_SETTINGS, {}));
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
@@ -550,7 +564,6 @@
     el.exportButton.addEventListener("click", exportFiltered);
     el.workspaceSaveButton.addEventListener("click", saveWorkspace);
     el.clearAllButton.addEventListener("click", clearAll);
-    el.saveViewButton.addEventListener("click", saveCurrentView);
 
     el.fileTabs.addEventListener("click", (event) => {
       const tab = event.target.closest("[data-source]");
@@ -564,7 +577,6 @@
       el.sourceFilter.value = button.dataset.source;
       applyFilters(true);
     });
-    el.savedList.addEventListener("click", onSavedViewsClick);
 
     el.prevPage.addEventListener("click", () => setPage(state.page - 1));
     el.nextPage.addEventListener("click", () => setPage(state.page + 1));
@@ -1708,93 +1720,11 @@
     syncLevelChips("");
   }
 
-  function saveCurrentView() {
-    if (!state.entries.length) return;
-    const suggested = buildViewName();
-    const name = window.prompt("Name this saved view:", suggested);
-    if (!name?.trim()) return;
-    const view = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      name: name.trim().slice(0, 48),
-      query: el.queryInput.value,
-      level: el.levelFilter.value,
-      source: el.sourceFilter.value,
-      timeRange: el.timeFilter.value,
-      sortMode: el.sortFilter.value
-    };
-    state.savedViews.unshift(view);
-    state.savedViews = state.savedViews.slice(0, 24);
-    utils().saveJson(STORAGE_VIEWS, state.savedViews);
-    renderSavedViews();
-    toast(`Saved view “${view.name}”.`);
-  }
+  function saveCurrentView() { savedViewsController?.saveCurrentView(); }
 
-  function buildViewName() {
-    const parts = [];
-    if (el.levelFilter.value) parts.push(el.levelFilter.value);
-    if (el.sourceFilter.value) parts.push(utils().shortSource(el.sourceFilter.value));
-    if (el.timeFilter.value) parts.push(el.timeFilter.options[el.timeFilter.selectedIndex].textContent);
-    if (el.queryInput.value.trim()) parts.push(el.queryInput.value.trim().slice(0, 24));
-    return parts.join(" · ") || "My log view";
-  }
+  function buildViewName() { return savedViewsController?.buildViewName() || "My log view"; }
 
-  function renderSavedViews() {
-    el.savedList.replaceChildren();
-    el.savedCount.textContent = (state.queryLibrary?.length || 0).toLocaleString();
-    if (!state.savedViews.length) {
-      const empty = document.createElement("div");
-      empty.className = "sidebar-empty";
-      empty.textContent = "Save filters for quick access";
-      el.savedList.appendChild(empty);
-      return;
-    }
-
-    state.savedViews.forEach((view) => {
-      const wrap = document.createElement("div");
-      wrap.className = "saved-row";
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "saved-button";
-      button.dataset.viewId = view.id;
-      const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg"); icon.setAttribute("class", "icon"); icon.setAttribute("aria-hidden", "true");
-      const use = document.createElementNS("http://www.w3.org/2000/svg", "use"); use.setAttribute("href", "assets/icons.svg#bookmark"); icon.appendChild(use);
-      const name = document.createElement("span"); name.textContent = view.name; name.title = view.name;
-      const count = document.createElement("em"); count.textContent = view.level || view.timeRange || "VIEW";
-      button.append(icon, name, count);
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "icon-button icon-button--tiny";
-      remove.dataset.deleteView = view.id;
-      remove.title = `Delete ${view.name}`;
-      remove.setAttribute("aria-label", `Delete saved view ${view.name}`);
-      const x = document.createElementNS("http://www.w3.org/2000/svg", "svg"); x.setAttribute("class", "icon"); x.setAttribute("aria-hidden", "true");
-      const xu = document.createElementNS("http://www.w3.org/2000/svg", "use"); xu.setAttribute("href", "assets/icons.svg#close"); x.appendChild(xu); remove.appendChild(x);
-      wrap.append(button, remove);
-      el.savedList.appendChild(wrap);
-    });
-  }
-
-  function onSavedViewsClick(event) {
-    const remove = event.target.closest("[data-delete-view]");
-    if (remove) {
-      state.savedViews = state.savedViews.filter((view) => view.id !== remove.dataset.deleteView);
-      utils().saveJson(STORAGE_VIEWS, state.savedViews);
-      renderSavedViews();
-      return;
-    }
-    const button = event.target.closest("[data-view-id]");
-    if (!button) return;
-    const view = state.savedViews.find((item) => item.id === button.dataset.viewId);
-    if (!view) return;
-    el.queryInput.value = view.query || "";
-    el.levelFilter.value = view.level || "";
-    el.sourceFilter.value = Array.from(el.sourceFilter.options).some((option) => option.value === view.source) ? view.source : "";
-    el.timeFilter.value = Array.from(el.timeFilter.options).some((option) => option.value === view.timeRange) ? view.timeRange : "";
-    el.sortFilter.value = Array.from(el.sortFilter.options).some((option) => option.value === view.sortMode) ? view.sortMode : "original";
-    syncLevelChips(el.levelFilter.value);
-    applyFilters(true);
-    toast(`Applied “${view.name}”.`);
-  }
+  function renderSavedViews() { savedViewsController?.render(); }
 
   function syncLevelChips(level) {
     document.querySelectorAll("[data-level]").forEach((button) => button.classList.toggle("is-active", button.dataset.level === level));

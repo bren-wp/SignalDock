@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.18 — 2026-09-18
+
+### Saved Views application boundary
+- Extracted legacy quick Saved Views creation, naming, rendering, apply/delete behavior and event-listener ownership into `src/app/saved-views-controller.js`.
+- Kept local JSON loading/persistence, prompt/ID generation and actual filter execution in the root/application boundary behind narrow injected callbacks.
+- Retained the existing 24-view cap and current filter/source/time/sort restoration semantics without introducing a second state store.
+
+### Maintainability and verification
+- Added isolated Saved Views controller lifecycle/state/apply/delete coverage and capability-boundary assertions.
+- Updated permanent source-layout and HTTP smoke gates for the new controller.
+- Preserved the zero-build, local-first, no-backend, no-telemetry and `connect-src 'none'` architecture.
+
 ## 2.8.17 — 2026-09-17
 
 ### Recovery and diagnostics application boundary
