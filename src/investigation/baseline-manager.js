@@ -12,7 +12,28 @@
   function clean(value, max = 240) { return String(value ?? "").trim().slice(0, max); }
   function cleanTags(value) {
     const input = Array.isArray(value) ? value : String(value || "").split(/[;,]/);
-    return [...new Set(input.map((tag) => clean(tag, 48).toLowerCase().replace(/\s+/g, "-")).filter(Boolean))].slice(0, 20);
+    const out = [];
+    const seen = new Set();
+    for (const value of input) {
+      const tag = clean(value, 48).toLowerCase().replace(/\s+/g, "-");
+      if (!tag || seen.has(tag)) continue;
+      seen.add(tag);
+      out.push(tag);
+      if (out.length >= 20) break;
+    }
+    return out;
+  }
+
+  function cleanSources(value) {
+    const input = Array.isArray(value) ? value : [];
+    const out = [];
+    for (const source of input) {
+      const normalized = clean(source, 240);
+      if (!normalized) continue;
+      out.push(normalized);
+      if (out.length >= 500) break;
+    }
+    return out;
   }
   function percentileSorted(sorted, p) {
     if (!sorted.length) return null;
@@ -118,7 +139,7 @@
       schema: SCHEMA, version: VERSION, appVersion: clean(input.appVersion, 32), id: clean(input.id, 96),
       name: clean(input.name || "SignalDock baseline", 120), capturedAt: clean(input.capturedAt, 64),
       scope: input.scope === "filtered" ? "filtered" : "all", entries: Math.max(0, Number(input.entries) || 0),
-      sources: (Array.isArray(input.sources) ? input.sources : []).map((value) => clean(value, 240)).filter(Boolean).slice(0, 500),
+      sources: cleanSources(input.sources),
       timeRange: {
         startMs: input.timeRange?.startMs !== null && input.timeRange?.startMs !== undefined && input.timeRange?.startMs !== "" && Number.isFinite(Number(input.timeRange.startMs))
           ? Number(input.timeRange.startMs)
