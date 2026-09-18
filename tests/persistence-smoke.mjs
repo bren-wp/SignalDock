@@ -27,6 +27,10 @@ for (const invalid of [0, -1, 1.5, NaN, Infinity, persistence.MAX_CHUNKS + 1, "1
   assert(persistence.validChunkCount(invalid) === 0, `invalid recovery chunk count must be rejected: ${String(invalid)}`);
 }
 console.log("PASS bounded recovery manifest chunks");
+const persistenceSource = fs.readFileSync(path.join(root, "src/core/persistence.js"), "utf8");
+assert(persistenceSource.includes("const oldCount = validChunkCount(previousManifest?.chunkCount);"), "stale recovery cleanup must validate previous chunk count");
+assert(!persistenceSource.includes("const oldCount = Number(previousManifest?.chunkCount) || 0;"), "stale recovery cleanup must not trust coerced chunk metadata");
+console.log("PASS bounded stale recovery cleanup");
 console.log("PASS recovery size estimation");
 console.log("PASS recovery autosave eligibility guards");
 console.log("SignalDock persistence smoke test passed.");
