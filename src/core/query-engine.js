@@ -238,16 +238,22 @@
     };
     const indexes = [];
     const candidates = Array.isArray(candidateIndexes) ? candidateIndexes : null;
+    let ascending = true;
+    const append = (index) => {
+      if (indexes.length && index < indexes[indexes.length - 1]) ascending = false;
+      indexes.push(index);
+    };
     if (candidates) {
       for (const i of candidates) {
-        if (i >= 0 && i < entries.length && matches(entries[i], parsed, options, compiledRegexes)) indexes.push(i);
+        if (i >= 0 && i < entries.length && matches(entries[i], parsed, options, compiledRegexes)) append(i);
       }
     } else {
       for (let i = 0; i < entries.length; i += 1) {
-        if (matches(entries[i], parsed, options, compiledRegexes)) indexes.push(i);
+        if (matches(entries[i], parsed, options, compiledRegexes)) append(i);
       }
     }
-    indexes.sort(compareIndexes(entries, request.sortMode || "original"));
+    const sortMode = request.sortMode || "original";
+    if (sortMode !== "original" || !ascending) indexes.sort(compareIndexes(entries, sortMode));
     return { indexes, parsed };
   }
 
