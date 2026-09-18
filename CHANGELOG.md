@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Core runtime cleanup
+- Repaired stale Persistence smoke coverage so recovery metadata tests follow the validated-manifest path actually used by the runtime, and removed duplicate orphan-chunk setup/assertions from the IndexedDB integration test.
+- Removed proven-unused website design tokens and added production guards that reject unused website custom properties and CSS classes.
+- Reduced Search Index allocation overhead by avoiding read-only posting-list pre-clones, intersecting the most selective 3-gram postings first and preserving balanced sorted unions.
+- Centralized Search Cache metadata validation so metadata load and diagnostics use one version/dataset/bucket validation rule.
+- Removed three redundant Case Timeline summary rescans by counting accepted activity, milestone and evidence rows during the build pass.
+- Skipped redundant Query Engine sorting when original-order results are already ascending while preserving normalization for unsorted candidate inputs.
+- Cached parser-plugin priority order across parsed lines and invalidate the cache only when plugins are registered or removed.
+- Removed per-chunk entry-reference copies from portable workspace serialization and NDJSON export; added multi-chunk regressions across 2,505 workspace entries and 5,001 exported NDJSON rows.
+- Reduced performance-metric summarization to one value buffer while preserving count, last, average, p95 and max semantics.
+
 ### Website/runtime alignment
 - Replaced the hand-built landing-page application mock with the bundled real SignalDock application screenshot so the product page reflects the shipped UI instead of an approximation.
 - Reworked the landing page around current runtime capabilities: Smart Query, Trace Explorer/Compare/Outliers, explicit parent-span service analysis, Observed Health, Exception Trends, Case Workspace/Checkpoints, baselines, Query Library, projects/reopen flows, recovery/search cache, Live Tail and parser profiles.
