@@ -153,7 +153,7 @@
       byteSize: Number(dataset.byteSize) || Number(dataset.blob?.size) || 0,
       appVersion: dataset.appVersion || "",
       hasView: Boolean(view),
-      chunkCount: Number(manifest?.chunkCount) || (legacy ? 1 : 0),
+      chunkCount: manifest ? validChunkCount(manifest.chunkCount) : (legacy ? 1 : 0),
       format: manifest ? "chunked-v1" : "legacy"
     };
   }
@@ -189,7 +189,7 @@
         savedAt: view?.savedAt || metadata.savedAt,
         byteSize: Number(metadata.byteSize) || blob.size,
         entryCount: Number(metadata.entryCount) || parsed.entries.length,
-        chunkCount: Number(metadata.chunkCount) || 1,
+        chunkCount: manifest ? validChunkCount(metadata.chunkCount) : 1,
         format: manifest ? "chunked-v1" : "legacy"
       }
     };
