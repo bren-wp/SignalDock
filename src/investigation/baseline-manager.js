@@ -220,8 +220,12 @@
   function compare(current, baseline) {
     const cur = normalize(current); const base = normalize(baseline);
     const join = (a, b, keyFn, mapper) => {
-      const am = new Map(a.map((row) => [keyFn(row), row])); const bm = new Map(b.map((row) => [keyFn(row), row]));
-      return [...new Set([...am.keys(), ...bm.keys()])].map((key) => mapper(am.get(key), bm.get(key), key));
+      const am = new Map(a.map((row) => [keyFn(row), row]));
+      const bm = new Map(b.map((row) => [keyFn(row), row]));
+      const rows = [];
+      for (const [key, row] of am) rows.push(mapper(row, bm.get(key), key));
+      for (const [key, row] of bm) if (!am.has(key)) rows.push(mapper(undefined, row, key));
+      return rows;
     };
     const services = join(cur.services, base.services, (row) => row.service, (c, b, key) => ({
       service: key, currentEntries: c?.entries || 0, baselineEntries: b?.entries || 0,
@@ -240,12 +244,16 @@
         p95Delta: Number.isFinite(c?.p95Ms) && Number.isFinite(b?.p95Ms) ? c.p95Ms - b.p95Ms : null
       };
     }).sort((a, b) => Math.abs(b.errorRateDelta) - Math.abs(a.errorRateDelta) || Math.abs(b.callDelta) - Math.abs(a.callDelta));
+    let serviceChanges = 0;
+    for (const row of services) if (row.entryDelta || row.errorRateDelta || row.p95Delta) serviceChanges += 1;
+    let dependencyChanges = 0;
+    for (const row of dependencies) if (row.callDelta || row.errorRateDelta || row.p95Delta) dependencyChanges += 1;
     return {
       current: cur, baseline: base, services, dependencies,
       summary: {
         currentEntries: cur.entries, baselineEntries: base.entries,
-        serviceChanges: services.filter((row) => row.entryDelta || row.errorRateDelta || row.p95Delta).length,
-        dependencyChanges: dependencies.filter((row) => row.callDelta || row.errorRateDelta || row.p95Delta).length
+        serviceChanges,
+        dependencyChanges
       }
     };
   }
