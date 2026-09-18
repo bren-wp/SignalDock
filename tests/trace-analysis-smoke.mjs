@@ -24,6 +24,18 @@ assert(result.bottleneck?.id === "root", "root span should be bottleneck by meas
 assert(result.latencyMs === 120, `expected 120 ms trace latency, got ${result.latencyMs}`);
 console.log("PASS explicit parent-span critical chain");
 
+const indexedSource = [
+  null,
+  entries[0],
+  { id: "plain", service: "api", message: "not a span" },
+  entries[2]
+];
+const indexedResult = globalThis.SignalDockTraceAnalysis.analyze(indexedSource, [0, 1, 2, 3, 99]);
+assert(indexedResult.entries === 3, `indexed selection should count only present entries, got ${indexedResult.entries}`);
+assert(indexedResult.spans === 2, `indexed selection should include only timestamped spans, got ${indexedResult.spans}`);
+assert(indexedResult.traceStart === base && indexedResult.traceEnd === base + 100, "indexed trace bounds changed");
+console.log("PASS indexed trace selection semantics");
+
 const partial = globalThis.SignalDockTraceAnalysis.analyze([
   entries[0],
   { id: "orphan", service: "worker", timestampMs: base + 5, correlations: { span: "orphan" }, traceMeta: { parentSpan: "missing", durationMs: 20 } }
