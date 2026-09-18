@@ -49,4 +49,8 @@ const tieEntries = Array.from({ length: 80 }, (_, index) => ({
 const tieLayout = SignalDockTraceFlame.layout(tieEntries, { maxBars: 50 });
 assert(tieLayout.bars.length === 50, "tie flame selection size mismatch");
 assert(tieLayout.bars[0]?.id === "tie-79" && tieLayout.bars[49]?.id === "tie-30", "tie flame selection must preserve longer-duration-first ordering");
+
+const source = fs.readFileSync(path.join(root, "src/analysis/trace-flame.js"), "utf8");
+assert(!source.includes("(entries || []).filter("), "Trace Flame must not materialize a full eligible-span array");
+assert(!source.includes("selectEarliestSpans("), "obsolete array-based flame selector must stay removed");
 console.log("PASS bounded trace flame tie ordering");
