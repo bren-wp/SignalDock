@@ -31,7 +31,7 @@ const persistenceSource = fs.readFileSync(path.join(root, "src/core/persistence.
 assert(persistenceSource.includes("const oldCount = validChunkCount(previousManifest?.chunkCount);"), "stale recovery cleanup must validate previous chunk count");
 assert(persistenceSource.includes("const cleanupLimit = oldCount || (previousManifest ? MAX_CHUNKS : chunkCount);"), "corrupt previous recovery manifests must trigger a bounded stale-chunk sweep");
 assert(!persistenceSource.includes("const oldCount = Number(previousManifest?.chunkCount) || 0;"), "stale recovery cleanup must not trust coerced chunk metadata");
-assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(manifest.chunkCount) : (legacy ? 1 : 0)"), "recovery info must normalize manifest chunk count");
+assert(persistenceSource.includes("chunkCount: activeManifest ? manifestChunkCount : 1"), "recovery info must expose only a validated manifest chunk count");
 assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(metadata.chunkCount) : 1"), "restored recovery metadata must normalize manifest chunk count");
 assert(persistenceSource.includes("for (let index = 0; index < MAX_CHUNKS; index += 1)"), "recovery clear must sweep the full bounded chunk key space");
 assert(persistenceSource.includes("const activeManifest = manifestChunkCount ? manifest : null;"), "recovery info must reject invalid chunk manifests before advertising restore");
