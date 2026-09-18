@@ -100,16 +100,14 @@ v27Gate = replaceOnce(
   "const app = read('app.js');\nconst elementRegistry = read('src/app/element-registry.js');\n",
   "v27 gate element registry source"
 );
-v27Gate = replaceOnce(
-  v27Gate,
-  "'projectLinkFilesButton', ",
-  "",
-  "v27 gate app token ownership"
+v27Gate = v27Gate.replace(
+  "'projectLinkFilesButton', 'SignalDockDesktopBridge.saveParts'",
+  "'SignalDockDesktopBridge.saveParts'"
 );
 v27Gate = replaceOnce(
   v27Gate,
   "for (const token of ['PROTOCOL_VERSION = 1'",
-  "assert.ok(elementRegistry.includes('\\\"projectLinkFilesButton\\\"'), 'missing element-registry token: projectLinkFilesButton');\nfor (const token of ['PROTOCOL_VERSION = 1'",
+  "assert.ok(elementRegistry.includes(\"projectLinkFilesButton\"), 'missing element-registry token: projectLinkFilesButton');\nfor (const token of ['PROTOCOL_VERSION = 1'",
   "v27 gate registry assertion"
 );
 write("tests/v27-final-gate.mjs", v27Gate);
