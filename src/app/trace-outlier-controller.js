@@ -13,8 +13,8 @@
     const filtered = Boolean(useFiltered) && indexes.length < source.length;
     if (!filtered) return { entries: source, indexes: null, filtered: false };
     return {
-      entries: indexes.map((index) => source[index]).filter(Boolean),
-      indexes: [...indexes],
+      entries: source,
+      indexes,
       filtered: true
     };
   }
@@ -76,7 +76,7 @@
       state.traceOutlierScopeFiltered = Boolean(useFiltered);
       const scope = selectScope(state.entries, state.filteredIndexes, state.traceOutlierScopeFiltered);
       const data = scope.filtered
-        ? root.SignalDockTraceOutliers.rank(scope.entries, { limit: 250 })
+        ? root.SignalDockTraceOutliers.rank(state.entries, { indexes: scope.indexes, limit: 250 })
         : (state.traceOutlierData || root.SignalDockTraceOutliers.rank(state.entries, { limit: 250 }));
       const samples = buildSampleLookup(state.entries, scope.indexes);
 
@@ -103,7 +103,7 @@
         const td = document.createElement("td");
         td.colSpan = 7;
         td.className = "investigation-empty";
-        td.textContent = scope.filtered && !scope.entries.length
+        td.textContent = scope.filtered && !scope.indexes.length
           ? "No trace entries match the current filters."
           : "No trace has enough measured latency/error signal to rank as an outlier in this scope.";
         tr.appendChild(td);
