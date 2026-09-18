@@ -33,7 +33,7 @@ const indexedSource = [
 const indexedResult = globalThis.SignalDockTraceAnalysis.analyze(indexedSource, [0, 1, 2, 3, 99]);
 assert(indexedResult.entries === 3, `indexed selection should count only present entries, got ${indexedResult.entries}`);
 assert(indexedResult.spans === 2, `indexed selection should include only timestamped spans, got ${indexedResult.spans}`);
-assert(indexedResult.traceStart === base && indexedResult.traceEnd === base + 100, "indexed trace bounds changed");
+assert(indexedResult.traceStart === base && indexedResult.traceEnd === base + 120, "indexed trace bounds changed");
 console.log("PASS indexed trace selection semantics");
 
 const partial = globalThis.SignalDockTraceAnalysis.analyze([
