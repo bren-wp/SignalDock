@@ -4,6 +4,7 @@
   const STATUS_RANK = { regressed: 0, new: 1, stable: 2, improved: 3, missing: 4 };
 
   function finite(value) {
+    if (value === null || value === undefined || value === "") return false;
     return Number.isFinite(Number(value));
   }
 
