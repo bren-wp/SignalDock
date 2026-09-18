@@ -140,12 +140,14 @@
       const requestId = state.filterRequestId;
 
       if (shouldUseWorkerFilter()) {
-        state.lastEngine = "worker";
-        if (el.resultsSummary) el.resultsSummary.textContent = "Filtering in background…";
-        ownerDocument.body?.classList?.add("filtering-active");
-        requestWorkerFilter({ requestId, request });
-        if (resetPage) state.page = 1;
-        return { engine: "worker", requestId };
+        const dispatched = requestWorkerFilter({ requestId, request });
+        if (dispatched !== false) {
+          state.lastEngine = "worker";
+          if (el.resultsSummary) el.resultsSummary.textContent = "Filtering in background…";
+          ownerDocument.body?.classList?.add("filtering-active");
+          if (resetPage) state.page = 1;
+          return { engine: "worker", requestId };
+        }
       }
 
       const started = now();

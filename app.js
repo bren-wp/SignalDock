@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.23";
+  const APP_VERSION = "2.8.24";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -82,6 +82,7 @@
   let tableViewController = null;
   let workspaceController = null;
   let datasetOverviewController = null;
+  let filterWorkerController = null;
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
@@ -211,8 +212,8 @@
       debounce: (callback, wait) => utils().debounce(callback, wait),
       parseSmartQuery: (query) => engine().parseSmartQuery(query),
       filterIndexes: (entries, request) => engine().filterIndexes(entries, request),
-      shouldUseWorkerFilter: () => state.settings.useWorker !== false && state.workerReady && state.entries.length >= WORKER_THRESHOLD,
-      requestWorkerFilter: ({ requestId, request }) => state.worker.postMessage({ type: "filter", protocol: 1, token: state.workerToken, requestId, request }),
+      shouldUseWorkerFilter: () => filterWorkerController?.canUseWorker() || false,
+      requestWorkerFilter: ({ requestId, request }) => filterWorkerController?.requestFilter({ requestId, request }) ?? false,
       now: () => performance.now(),
       recordPerformance: (elapsed, meta) => profiler()?.record?.("filter", elapsed, meta),
       getExceptionFingerprint: (entry) => window.SignalDockExceptionGroups?.candidate?.(entry) ? window.SignalDockExceptionGroups.fingerprint(entry) : "",
@@ -367,6 +368,21 @@
       }
     });
     datasetOverviewController.bind();
+    if (!window.SignalDockFilterWorkerController?.create) throw new Error("SignalDock Filter Worker controller is unavailable.");
+    filterWorkerController = window.SignalDockFilterWorkerController.create({
+      state, workerThreshold: WORKER_THRESHOLD,
+      isFileProtocol: () => window.location?.protocol === "file:",
+      createSessionToken: () => {
+        const cryptoApi = window.crypto;
+        if (typeof cryptoApi?.randomUUID === "function") return cryptoApi.randomUUID().replace(/-/g, "");
+        if (typeof cryptoApi?.getRandomValues === "function") { const bytes = new Uint8Array(24); cryptoApi.getRandomValues(bytes); return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(""); }
+        return "";
+      },
+      createWorkerInstance: (token) => typeof Worker === "function" ? new Worker("filter-worker.js?sd_session=" + encodeURIComponent(token)) : null,
+      applyFilteredIndexes, renderCorrelationsPane, renderTracePane, getSelectedEntry: selectedEntry, updateDiagnostics,
+      recordPerformance: (name, elapsed, meta) => profiler()?.record?.(name, elapsed, meta),
+      toast
+    });
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -718,7 +734,7 @@
     profiler()?.observeLongTasks?.();
     bindEvents();
     setActiveNav("logs");
-    initFilterWorker();
+    filterWorkerController.init();
     renderEverything();
     void recoveryDiagnosticsController.checkRecoverySnapshot();
   }
@@ -759,97 +775,7 @@
     });
   }
 
-  function createWorkerSessionToken() {
-    const cryptoApi = window.crypto;
-    if (typeof cryptoApi?.randomUUID === "function") return cryptoApi.randomUUID().replace(/-/g, "");
-    if (typeof cryptoApi?.getRandomValues === "function") { const bytes = new Uint8Array(24); cryptoApi.getRandomValues(bytes); return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join(""); }
-    return "";
-  }
-
-  function initFilterWorker() {
-    if (typeof Worker !== "function") return;
-    if (window.location?.protocol === "file:") {
-      state.lastEngine = "main · local file mode";
-      return;
-    }
-    try {
-      const token = createWorkerSessionToken();
-      if (!token) { state.lastEngine = "main · secure worker token unavailable"; return; }
-      const worker = new Worker(`filter-worker.js?sd_session=${encodeURIComponent(token)}`);
-      state.worker = worker;
-      state.workerToken = token;
-      worker.onmessage = onWorkerMessage;
-      worker.onerror = () => disableWorker("Background filter worker unavailable; using the main thread.");
-    } catch {
-      state.worker = null;
-    }
-  }
-
-  function onWorkerMessage(event) {
-    const message = event?.data;
-    if (!message || typeof message !== "object" || Array.isArray(message) || message.protocol !== 1 || !state.workerToken || message.token !== state.workerToken) return;
-    if (message.type === "ready") {
-      state.workerAvailable = true;
-      if (state.entries.length) syncWorkerIndex();
-      return;
-    }
-    if (message.type === "indexed") {
-      if (message.version === state.workerVersion) {
-        state.workerReady = true;
-        state.searchIndex = Object.assign({ enabled: false, tokens: 0, postings: 0, truncated: false, elapsedMs: 0, mode: "linear", candidateCount: state.entries.length }, message.searchIndex || {});
-        updateDiagnostics();
-      }
-      return;
-    }
-    if (message.type === "filtered") {
-      if (message.requestId !== state.filterRequestId || message.version !== state.workerVersion) return;
-      state.searchIndex.mode = message.searchMode || "linear";
-      state.searchIndex.candidateCount = Number(message.candidateCount) || state.entries.length;
-      state.searchIndex.reason = message.indexReason || "";
-      state.lastEngine = `worker ${message.searchMode === "disk-indexed" ? "disk-indexed" : message.searchMode === "indexed" ? "indexed" : "linear"} · ${message.elapsedMs} ms`;
-      profiler()?.record?.("filter", Number(message.elapsedMs) || 0, { engine: `worker-${message.searchMode || "linear"}`, entries: state.entries.length, candidates: state.searchIndex.candidateCount });
-      applyFilteredIndexes(message.indexes, message.invalid || [], false);
-      return;
-    }
-    if (message.type === "correlated") {
-      if (message.requestId !== state.correlationRequestId || message.version !== state.workerVersion) return;
-      state.correlatedIndexes = message.indexes || [];
-      state.correlationEngine = `worker · ${message.elapsedMs} ms`;
-      profiler()?.record?.("correlation", Number(message.elapsedMs) || 0, { engine: "worker" });
-      renderCorrelationsPane(selectedEntry());
-    }
-    if (message.type === "trace-related") {
-      if (message.requestId !== state.traceRequestId || message.version !== state.workerVersion) return;
-      state.traceIndexes = message.indexes || [];
-      state.traceEngine = `worker · ${message.elapsedMs} ms`;
-      profiler()?.record?.("trace", Number(message.elapsedMs) || 0, { engine: "worker" });
-      renderTracePane(selectedEntry());
-    }
-  }
-
-  function disableWorker(message) {
-    if (state.worker) state.worker.terminate();
-    state.worker = null;
-    state.workerAvailable = false;
-    state.workerReady = false;
-    state.workerToken = "";
-    state.searchIndex = { enabled: false, tokens: 0, postings: 0, truncated: false, elapsedMs: 0, mode: "linear", candidateCount: state.entries.length, cacheHit: false, cacheEligible: false, cacheSegments: 0 };
-    state.lastEngine = "main";
-    if (message) toast(message);
-  }
-
-  function syncWorkerIndex() {
-    if (!state.worker || !state.workerAvailable || !state.workerToken) return;
-    state.workerReady = false;
-    state.searchIndex.mode = "building";
-    state.searchIndex.candidateCount = state.entries.length;
-    state.workerVersion += 1;
-    try {
-      state.worker.postMessage({ type: "index", protocol: 1, token: state.workerToken, version: state.workerVersion, entries: state.filterEntries });
-    } catch {
-      disableWorker();
-    }
-  }
+  function syncWorkerIndex() { return filterWorkerController?.syncIndex() || false; }
 
   async function startLiveTail() { return importLiveTailController?.startLiveTail(); }
 
@@ -931,12 +857,11 @@
     }
     state.correlationRequestId += 1;
     const requestId = state.correlationRequestId;
-    const useWorker = state.settings.useWorker !== false && state.workerReady && state.entries.length >= WORKER_THRESHOLD;
+    const useWorker = filterWorkerController?.canUseWorker() || false;
     if (useWorker) {
       state.correlationEngine = "worker · searching";
       renderCorrelationsPane(entry);
-      state.worker.postMessage({ type: "correlate", protocol: 1, token: state.workerToken, requestId, correlations, limit: 200, origin: entry.globalIndex });
-      return;
+      if (filterWorkerController.requestCorrelation({ requestId, correlations, limit: 200, origin: entry.globalIndex })) return;
     }
     const started = performance.now();
     state.correlatedIndexes = engine().relatedIndexes(state.filterEntries, correlations, 200, entry.globalIndex);
@@ -960,12 +885,11 @@
     state.traceRequestId += 1;
     const requestId = state.traceRequestId;
     const correlations = { trace: traceId };
-    const useWorker = state.settings.useWorker !== false && state.workerReady && state.entries.length >= WORKER_THRESHOLD;
+    const useWorker = filterWorkerController?.canUseWorker() || false;
     if (useWorker) {
       state.traceEngine = "worker · searching";
       renderTracePane(entry);
-      state.worker.postMessage({ type: "trace", protocol: 1, token: state.workerToken, requestId, correlations, limit: 1000, origin: entry.globalIndex });
-      return;
+      if (filterWorkerController.requestTrace({ requestId, correlations, limit: 1000, origin: entry.globalIndex })) return;
     }
     const started = performance.now();
     state.traceIndexes = engine().relatedIndexes(state.filterEntries, correlations, 1000, entry.globalIndex);

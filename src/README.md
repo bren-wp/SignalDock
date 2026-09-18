@@ -36,6 +36,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/dataset-overview-controller.js` owns dataset metrics, source navigation, active-source UI state and timeline rendering while filter/index state, formatting and all privileged capabilities remain outside the controller.
 
+`app/filter-worker-controller.js` owns main-thread worker lifecycle plus authenticated index/filter/correlation/trace routing. Token generation and Worker construction remain root-injected, and the worker script remains authoritative for validation and bounds.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.24 — 2026-09-18
+
+### Filter Worker application boundary
+- Extracted main-thread worker lifecycle, protocol-v1 authenticated response routing, index synchronization and filter/correlation/trace dispatch into `src/app/filter-worker-controller.js`.
+- Preserved protocol v1, the session token, worker message allowlists, exact validation/bounds and local-file fallback; no `event.origin` check was introduced.
+- Kept cryptographic token generation and Worker construction in root composition as explicit injected capabilities.
+- Fixed zero-candidate diagnostics so a valid `candidateCount: 0` remains zero, normalized malformed worker index arrays, and added synchronous dispatch fallback to the main thread.
+
+### Verification
+- Added isolated worker-controller coverage for token/type rejection, ready/index/filter/correlation/trace routing, stale responses, zero candidates and teardown.
+- Migrated the legacy v2.7 worker integration ownership assertions without weakening protocol checks and left `filter-worker.js` unchanged.
+
 ## 2.8.23 — 2026-09-18
 
 ### Dataset Overview application boundary
