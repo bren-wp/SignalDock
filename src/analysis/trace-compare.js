@@ -5,16 +5,19 @@
 
   function summarize(entries, traceId) {
     const id = cleanTraceId(traceId);
-    const rows = (Array.isArray(entries) ? entries : []).filter((entry) => String(entry?.correlations?.trace || "").trim() === id);
+    const source = Array.isArray(entries) ? entries : [];
     const services = new Set();
-    const spans = new Set();
+    const spanIds = new Set();
     const scopes = new Set();
+    let entryCount = 0;
     let errors = 0, warnings = 0, events = 0, startMs = null, endMs = null, timedSpans = 0, durationSum = 0, parented = 0, linkedParents = 0;
-    const spanIds = new Set(); const parentIds = [];
-    rows.forEach((entry) => {
+
+    for (const entry of source) {
+      if (String(entry?.correlations?.trace || "").trim() !== id) continue;
+      entryCount += 1;
       const service = String(entry?.service || "").trim(); if (service && service !== "—") services.add(service);
-      const span = String(entry?.correlations?.span || "").trim(); if (span) { spans.add(span); spanIds.add(span); }
-      const parent = String(entry?.traceMeta?.parentSpan || entry?.correlations?.parent_span || "").trim(); if (parent) { parented += 1; parentIds.push(parent); }
+      const span = String(entry?.correlations?.span || "").trim(); if (span) spanIds.add(span);
+      const parent = String(entry?.traceMeta?.parentSpan || entry?.correlations?.parent_span || "").trim(); if (parent) parented += 1;
       if (entry.level === "ERROR" || entry.level === "FATAL") errors += 1; else if (entry.level === "WARN") warnings += 1;
       const spanEvents = Array.isArray(entry?.traceMeta?.otel?.events) ? entry.traceMeta.otel.events : Array.isArray(entry?.traceMeta?.events) ? entry.traceMeta.events : [];
       events += spanEvents.length;
@@ -25,12 +28,20 @@
         startMs = startMs === null ? start : Math.min(startMs, start); endMs = endMs === null ? end : Math.max(endMs, end);
       }
       if (Number.isFinite(duration) && duration >= 0) { timedSpans += 1; durationSum += duration; }
-    });
-    linkedParents = parentIds.filter((parent) => spanIds.has(parent)).length;
+    }
+
+    if (parented) {
+      for (const entry of source) {
+        if (String(entry?.correlations?.trace || "").trim() !== id) continue;
+        const parent = String(entry?.traceMeta?.parentSpan || entry?.correlations?.parent_span || "").trim();
+        if (parent && spanIds.has(parent)) linkedParents += 1;
+      }
+    }
+
     return {
       traceId: id,
-      entries: rows.length,
-      spans: spans.size,
+      entries: entryCount,
+      spans: spanIds.size,
       services: [...services].sort(),
       serviceCount: services.size,
       errors,
