@@ -10,6 +10,7 @@ const html = read("index.html");
 const app = read("app.js");
 const queryController = read("src/app/query-library-controller.js");
 const baselineController = read("src/app/baseline-controller.js");
+const tableViewController = read("src/app/table-view-controller.js");
 
 const featureVersionParts = version.split(".").map(Number);
 assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
@@ -34,5 +35,5 @@ for (const token of [
 ]) assert.ok(app.includes(token), `static app registry binding missing: ${token}`);
 assert.ok(queryController.includes('listen(el.queryLibraryBulkSelectVisible, "click", selectVisible)'), "Query Library bulk selection listener must be owned by the feature controller");
 assert.ok(baselineController.includes('listen(el.baselineHistoryExportButton, "click", exportHistory)'), "Baseline history export listener must be owned by the Baseline controller");
-assert.ok(app.includes('icon.setAttribute("aria-hidden", "true")'));
+assert.ok(tableViewController.includes('icon.setAttribute("aria-hidden", "true")'));
 console.log("static-foundation-ui-smoke PASS");

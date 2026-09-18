@@ -3,11 +3,10 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.20";
+  const APP_VERSION = "2.8.21";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
-  const MAX_VIRTUAL_SCROLL_PX = 8000000;
 
   const state = {
     entries: [],
@@ -82,7 +81,7 @@
   let savedViewsController = null;
   let importLiveTailController = null;
   let datasetFilterController = null;
-  let virtualSpacerRules = null;
+  let tableViewController = null;
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
@@ -238,6 +237,23 @@
       getShortSource: (source) => utils().shortSource(source)
     });
     datasetFilterController.bind();
+    if (!window.SignalDockTableViewController?.create) throw new Error("SignalDock Table View controller is unavailable.");
+    tableViewController = window.SignalDockTableViewController.create({
+      state,
+      el,
+      ownerDocument: document,
+      ownerWindow: window,
+      debounce: (callback, wait) => utils().debounce(callback, wait),
+      scheduleFrame: (callback) => requestAnimationFrame(callback),
+      now: () => performance.now(),
+      calculateVirtualViewport: (options) => window.SignalDockVirtualViewport?.calculate?.(options) || null,
+      formatTime: (value) => utils().formatTime(value),
+      shortSource: (value) => utils().shortSource(value),
+      recordPerformance: (elapsed, meta) => profiler()?.record?.("table-render", elapsed, meta),
+      scheduleViewAutosave: () => scheduleViewAutosave(),
+      selectEntry
+    });
+    tableViewController.bind();
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -600,47 +616,11 @@
     el.workspaceSaveButton.addEventListener("click", saveWorkspace);
     el.clearAllButton.addEventListener("click", clearAll);
 
-    el.prevPage.addEventListener("click", () => setPage(state.page - 1));
-    el.nextPage.addEventListener("click", () => setPage(state.page + 1));
-    el.pageSize.addEventListener("change", () => {
-      state.pageSize = Number(el.pageSize.value) || 100;
-      state.page = 1;
-      renderTable();
-      scheduleViewAutosave();
-    });
-    el.renderMode?.addEventListener("change", () => {
-      state.renderMode = el.renderMode.value === "virtual" ? "virtual" : "paged";
-      state.page = 1;
-      el.logTable.scrollTop = 0;
-      renderTable();
-      scheduleViewAutosave();
-    });
-    el.logTable.addEventListener("scroll", () => {
-      if (state.renderMode !== "virtual") return;
-      const now = performance.now();
-      const delta = Math.abs(el.logTable.scrollTop - state.virtual.lastScrollTop);
-      const elapsed = Math.max(1, now - state.virtual.lastScrollAt);
-      const velocity = delta / elapsed;
-      state.virtual.overscan = Math.max(10, Math.min(64, Math.round(10 + velocity * 10)));
-      state.virtual.lastScrollTop = el.logTable.scrollTop;
-      state.virtual.lastScrollAt = now;
-      if (state.virtual.raf) return;
-      state.virtual.raf = requestAnimationFrame(() => {
-        state.virtual.raf = 0;
-        renderVirtualTable(false);
-      });
-    });
 
-    el.logTable.addEventListener("click", (event) => {
-      const row = event.target.closest("[data-entry-id]");
-      if (row) selectEntry(row.dataset.entryId);
-    });
     el.exportCaseMarkdownButton?.addEventListener("click", exportCaseMarkdown);
     el.exportCaseJsonButton?.addEventListener("click", exportCaseJson);
     el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
     el.caseFileInput?.addEventListener("change", importCaseJson);
-
-    window.addEventListener("resize", utils().debounce(() => { if (state.renderMode === "virtual") renderTable(); }, 120));
 
     document.addEventListener("keydown", (event) => {
       const tag = document.activeElement?.tagName;
@@ -939,221 +919,15 @@
     return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
   }
 
-  function renderTable() {
-    if (state.renderMode === "virtual" && canUseVirtualTable()) {
-      renderVirtualTable(false);
-      return;
-    }
-    document.body.classList.remove("virtual-log-view");
-    el.logTable.classList.remove("is-virtual");
-    renderPagedTable();
-  }
+  function renderTable() { return tableViewController?.renderTable(); }
 
-  function renderPagedTable() {
-    const renderStarted = performance.now();
-    el.logTable.replaceChildren();
-    const total = state.filteredIndexes.length;
-    ensurePageInRange();
+  function canUseVirtualTable() { return tableViewController?.canUseVirtualTable() || false; }
 
-    if (!state.entries.length) {
-      el.logTable.appendChild(emptyTable("No logs loaded", "Import JSON, NDJSON, LOG, TXT or ZIP files. SignalDock processes everything locally in your browser."));
-      updatePagination(0);
-      return;
-    }
-    if (!total) {
-      el.logTable.appendChild(emptyTable("No matching entries", "Try a broader query or reset your active level, source, time, or query filters."));
-      updatePagination(0);
-      return;
-    }
+  function renderVirtualTable(resetScroll = false) { return tableViewController?.renderVirtualTable(resetScroll); }
 
-    const start = (state.page - 1) * state.pageSize;
-    const end = Math.min(start + state.pageSize, total);
-    const pageIndexes = state.filteredIndexes.slice(start, end);
-    const generation = ++state.renderGeneration;
-    const chunkSize = state.pageSize >= 500 ? 125 : pageIndexes.length;
-    const appendChunk = (offset) => {
-      if (generation !== state.renderGeneration) return;
-      const fragment = document.createDocumentFragment();
-      const limit = Math.min(offset + chunkSize, pageIndexes.length);
-      for (let i = offset; i < limit; i += 1) {
-        const entry = state.entries[pageIndexes[i]];
-        if (entry) fragment.appendChild(buildLogRow(entry));
-      }
-      el.logTable.appendChild(fragment);
-      if (limit < pageIndexes.length) requestAnimationFrame(() => appendChunk(limit));
-      else profiler()?.record?.("table-render", performance.now() - renderStarted, { rows: pageIndexes.length, pageSize: state.pageSize, mode: "paged" });
-    };
-    appendChunk(0);
-    el.resultsSummary.textContent = `Showing ${start + 1}–${end} of ${total.toLocaleString()} matching entries · ${state.lastEngine}`;
-    updatePagination(total);
-  }
+  function ensurePageInRange() { return tableViewController?.ensurePageInRange(); }
 
-  function canUseVirtualTable() {
-    return !state.settings.wrap && window.innerWidth >= 780;
-  }
-
-  function setVirtualSpacerHeights(topPx, bottomPx) {
-    try {
-      if (!virtualSpacerRules) {
-        let topRule = null;
-        let bottomRule = null;
-        for (const sheet of Array.from(document.styleSheets)) {
-          for (const rule of Array.from(sheet.cssRules || [])) {
-            if (rule.selectorText === ".virtual-spacer--top") topRule = rule;
-            if (rule.selectorText === ".virtual-spacer--bottom") bottomRule = rule;
-          }
-        }
-        if (!topRule || !bottomRule) return false;
-        virtualSpacerRules = { topRule, bottomRule };
-      }
-      virtualSpacerRules.topRule.style.height = `${Math.max(0, Math.round(topPx))}px`;
-      virtualSpacerRules.bottomRule.style.height = `${Math.max(0, Math.round(bottomPx))}px`;
-      return true;
-    } catch { return false; }
-  }
-
-  function renderVirtualTable(resetScroll = false) {
-    const renderStarted = performance.now();
-    const total = state.filteredIndexes.length;
-    document.body.classList.add("virtual-log-view");
-    el.logTable.classList.add("is-virtual");
-    if (resetScroll) el.logTable.scrollTop = 0;
-
-    if (!state.entries.length || !total) {
-      el.logTable.replaceChildren(emptyTable(state.entries.length ? "No matching entries" : "No logs loaded", state.entries.length ? "Try a broader query or reset the active filters." : "Import logs to begin local analysis."));
-      updatePagination(0);
-      return;
-    }
-
-    const rowHeight = state.settings.compact ? 37 : 46;
-    const viewport = window.SignalDockVirtualViewport?.calculate?.({
-      total, rowHeight, viewportHeight: Math.max(el.logTable.clientHeight || 0, 420),
-      scrollTop: el.logTable.scrollTop, overscan: state.virtual.overscan, maxScrollPx: MAX_VIRTUAL_SCROLL_PX
-    });
-    if (!viewport) { state.renderMode = "paged"; renderPagedTable(); return; }
-    state.virtual.rowHeight = rowHeight;
-    state.virtual.pitch = viewport.pitch;
-    state.virtual.compressed = viewport.compressed;
-    const start = viewport.start;
-    const end = viewport.end;
-    state.virtual.start = start;
-    state.virtual.end = end;
-
-    const topSpacer = document.createElement("div");
-    topSpacer.className = "virtual-spacer virtual-spacer--top";
-    topSpacer.setAttribute("aria-hidden", "true");
-    const bottomSpacer = document.createElement("div");
-    bottomSpacer.className = "virtual-spacer virtual-spacer--bottom";
-    bottomSpacer.setAttribute("aria-hidden", "true");
-    const cssReady = setVirtualSpacerHeights(viewport.topSpacerPx, viewport.bottomSpacerPx);
-    if (!cssReady) {
-      state.renderMode = "paged";
-      if (el.renderMode) el.renderMode.value = "paged";
-      document.body.classList.remove("virtual-log-view");
-      el.logTable.classList.remove("is-virtual");
-      renderPagedTable();
-      return;
-    }
-
-    const fragment = document.createDocumentFragment();
-    fragment.appendChild(topSpacer);
-    for (let position = start; position < end; position += 1) {
-      const entry = state.entries[state.filteredIndexes[position]];
-      if (entry) fragment.appendChild(buildLogRow(entry));
-    }
-    fragment.appendChild(bottomSpacer);
-    el.logTable.replaceChildren(fragment);
-    el.resultsSummary.textContent = `Window ${start + 1}–${end} of ${total.toLocaleString()} matching entries · ${state.lastEngine}`;
-    el.pageLabel.textContent = "Windowed";
-    el.prevPage.disabled = true;
-    el.nextPage.disabled = true;
-    el.pageSize.disabled = true;
-    profiler()?.record?.("table-render", performance.now() - renderStarted, { rows: end - start, total, mode: "virtual" });
-  }
-
-  function buildLogRow(entry) {
-    const row = document.createElement("div");
-    row.className = `log-row${state.selectedId === entry.id ? " is-selected" : ""}`;
-    row.dataset.entryId = entry.id;
-    row.tabIndex = 0;
-
-    const time = document.createElement("span");
-    time.className = "log-row__time";
-    time.textContent = utils().formatTime(entry.timestamp);
-    time.title = entry.timestamp || "No timestamp detected";
-
-    const level = document.createElement("span");
-    level.className = `level-badge level-${entry.level}`;
-    level.textContent = entry.level;
-
-    const source = document.createElement("span");
-    source.className = "log-row__source";
-    source.textContent = entry.service !== "—" ? entry.service : utils().shortSource(entry.source);
-    source.title = entry.service !== "—" ? `${entry.service} · ${entry.source}` : entry.source;
-
-    const message = document.createElement("span");
-    message.className = "log-row__message";
-    message.textContent = entry.message || "(empty message)";
-    message.title = entry.message || "";
-
-    const menu = document.createElement("span");
-    menu.className = "row-menu";
-    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    icon.setAttribute("class", "icon"); icon.setAttribute("aria-hidden", "true");
-    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-    use.setAttribute("href", "assets/icons.svg#chevron");
-    icon.appendChild(use); menu.appendChild(icon);
-
-    row.append(time, level, source, message, menu);
-    row.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectEntry(entry.id); }
-    });
-    return row;
-  }
-
-  function emptyTable(title, text) {
-    const wrap = document.createElement("div");
-    wrap.className = "empty-table";
-    const iconWrap = document.createElement("span"); iconWrap.className = "empty-table__icon";
-    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg"); icon.setAttribute("class", "icon"); icon.setAttribute("aria-hidden", "true");
-    const use = document.createElementNS("http://www.w3.org/2000/svg", "use"); use.setAttribute("href", "assets/icons.svg#terminal"); icon.appendChild(use); iconWrap.appendChild(icon);
-    const strong = document.createElement("strong"); strong.textContent = title;
-    const p = document.createElement("p"); p.textContent = text;
-    wrap.append(iconWrap, strong, p);
-    return wrap;
-  }
-
-  function updatePagination(total) {
-    if (state.renderMode === "virtual" && canUseVirtualTable()) {
-      el.pageLabel.textContent = total ? "Windowed" : "—";
-      el.prevPage.disabled = true;
-      el.nextPage.disabled = true;
-      el.pageSize.disabled = true;
-      if (!total) el.resultsSummary.textContent = state.entries.length ? `0 matching entries · ${state.lastEngine}` : "Load logs to begin";
-      return;
-    }
-    const pages = Math.max(1, Math.ceil(total / state.pageSize));
-    el.pageLabel.textContent = `${state.page} / ${pages}`;
-    el.prevPage.disabled = !total || state.page <= 1;
-    el.nextPage.disabled = !total || state.page >= pages;
-    el.pageSize.disabled = !state.entries.length;
-    if (!total) el.resultsSummary.textContent = state.entries.length ? `0 matching entries · ${state.lastEngine}` : "Load logs to begin";
-  }
-
-  function ensurePageInRange() {
-    const pages = Math.max(1, Math.ceil(state.filteredIndexes.length / state.pageSize));
-    state.page = Math.max(1, Math.min(state.page, pages));
-  }
-
-  function setPage(page) {
-    if (state.renderMode === "virtual" && canUseVirtualTable()) return;
-    const pages = Math.max(1, Math.ceil(state.filteredIndexes.length / state.pageSize));
-    state.page = Math.max(1, Math.min(page, pages));
-    renderTable();
-    el.logTable.scrollTop = 0;
-    scheduleViewAutosave();
-  }
-
+  function setPage(page) { return tableViewController?.setPage(page); }
   function selectedEntry() { return inspectorController?.selectedEntry() || null; }
 
   function selectEntry(id) { inspectorController?.selectEntry(id); }
@@ -1295,18 +1069,7 @@
     finally { event.target.value = ""; }
   }
 
-  function entryRowIntoView(globalIndex) {
-    const position = state.filteredIndexes.indexOf(globalIndex);
-    if (position < 0) return;
-    if (state.renderMode === "virtual" && canUseVirtualTable()) {
-      const metrics = window.SignalDockVirtualViewport?.calculate?.({ total: state.filteredIndexes.length, rowHeight: state.virtual.rowHeight, viewportHeight: el.logTable.clientHeight || 420, overscan: state.virtual.overscan, maxScrollPx: MAX_VIRTUAL_SCROLL_PX, scrollTop: 0 });
-      if (metrics) el.logTable.scrollTop = metrics.compressed ? (position / Math.max(1, state.filteredIndexes.length - 1)) * Math.max(1, Math.min(metrics.maxScrollPx, metrics.logicalHeight) - (el.logTable.clientHeight || 420)) : position * metrics.pitch;
-      renderVirtualTable(true);
-    } else {
-      state.page = Math.floor(position / state.pageSize) + 1;
-      renderTable();
-    }
-  }
+  function entryRowIntoView(globalIndex) { return tableViewController?.entryRowIntoView(globalIndex); }
 
   function filterByServiceValue(service) {
     if (!service) return;

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.21 — 2026-09-18
+
+### Table View application boundary
+- Extracted paged rendering, virtual/windowed rendering, pagination, virtual spacer CSS coordination, row DOM construction, table listeners and entry-row navigation into `src/app/table-view-controller.js`.
+- Kept virtual viewport calculation, formatting, Inspector selection and performance recording behind explicit root callbacks.
+- Fixed virtual entry navigation so the computed target scroll position is preserved instead of being immediately reset to the top.
+
+### Maintainability and verification
+- Added isolated Table View controller coverage for paged rendering, virtual mode, pagination, listener lifecycle and virtual entry navigation.
+- Added capability assertions preventing direct worker, storage, filesystem, Query Engine or network access from the controller.
+- Updated permanent source-layout and HTTP smoke gates while preserving the zero-build local-first runtime.
+
 ## 2.8.20 — 2026-09-18
 
 ### Dataset filter application boundary
