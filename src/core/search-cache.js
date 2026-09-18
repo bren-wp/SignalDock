@@ -122,11 +122,15 @@
     };
   }
 
+  function validMeta(meta, datasetKey = "") {
+    if (!meta || meta.version !== VERSION || !meta.datasetKey || !meta.stats || !validBucketIds(meta.bucketIds)) return false;
+    return !datasetKey || meta.datasetKey === datasetKey;
+  }
+
   async function loadMeta(datasetKey) {
     if (!available() || !datasetKey) return null;
     const [meta] = await getRecords([META_KEY]);
-    if (!meta || meta.version !== VERSION || meta.datasetKey !== datasetKey || !meta.stats || !validBucketIds(meta.bucketIds)) return null;
-    return meta;
+    return validMeta(meta, datasetKey) ? meta : null;
   }
 
   async function loadMetadata(datasetKey) {
@@ -220,7 +224,7 @@
   async function info() {
     if (!available()) return null;
     const [meta] = await getRecords([META_KEY]);
-    if (!meta || meta.version !== VERSION || !meta.datasetKey || !meta.stats || !validBucketIds(meta.bucketIds)) return null;
+    if (!validMeta(meta)) return null;
     return { datasetKey: meta.datasetKey, savedAt: meta.savedAt || "", estimatedBytes: Number(meta.estimatedBytes) || 0, segmentCount: meta.bucketIds.length, bucketCount: meta.bucketIds.length, entries: Number(meta.stats.entries) || 0, format: "bucketed-v3" };
   }
 
