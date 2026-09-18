@@ -105,6 +105,35 @@
       </div>
     </section>
 
+    <section class="query-section section-shell" id="query-language" aria-labelledby="query-title">
+      <div class="query-shell">
+        <div class="section-head">
+          <span class="eyebrow">SMART QUERY LANGUAGE</span>
+          <h2 id="query-title">Narrow evidence without learning a remote query service.</h2>
+          <p>The shipped Query Engine combines ordinary text with explicit structured operators. Unsupported or ambiguous index shortcuts fall back to the canonical local filter path instead of changing match semantics.</p>
+          <div class="query-operators" aria-label="Supported query operator examples">
+            <span><code>level:</code> severity</span>
+            <span><code>service:</code> service</span>
+            <span><code>env:</code> environment</span>
+            <span><code>namespace:</code> namespace</span>
+            <span><code>trace:</code> trace ID</span>
+            <span><code>job:</code> job ID</span>
+            <span><code>has:</code> field presence</span>
+            <span><code>before:</code> time bound</span>
+          </div>
+        </div>
+        <div class="query-code" aria-label="SignalDock Smart Query examples">
+          <pre><code>level:error service:auth timeout
+trace:4bf92f3577b34da6
+job:job-77 service:worker
+message~:/token.*expired/i
+has:exception env:production
+before:2026-09-12T18:00:00 any:timeout,retry,failed</code></pre>
+          <small>Queries run locally. Guarded regular expressions and unsupported candidate-index cases preserve semantics by using the normal query engine.</small>
+        </div>
+      </div>
+    </section>
+
     <section class="runtime section-shell" id="runtime" aria-labelledby="runtime-title">
       <div class="section-head section-head--wide">
         <span class="eyebrow">RUNTIME TRUTH, NOT ROADMAP COPY</span>
