@@ -31,4 +31,16 @@ const partial = globalThis.SignalDockTraceAnalysis.analyze([
 assert(partial.available && !partial.completeParents, "missing parent should mark analysis partial");
 assert(/missing/i.test(partial.note), "partial analysis should explain missing parent spans");
 console.log("PASS partial trace honesty guard");
+
+const largeTrace = Array.from({ length: 200000 }, (_, index) => ({
+  id: `large-${index}`,
+  timestampMs: base + index,
+  correlations: { span: `span-${index}` },
+  traceMeta: { parentSpan: "", durationMs: 1 }
+}));
+const largeResult = globalThis.SignalDockTraceAnalysis.analyze(largeTrace);
+assert(largeResult.available, "large trace analysis should remain available");
+assert(largeResult.traceStart === base, "large trace minimum timestamp mismatch");
+assert(largeResult.traceEnd === base + 200000, "large trace maximum end mismatch");
+console.log("PASS large trace range scan");
 console.log("SignalDock trace analysis smoke test passed.");
