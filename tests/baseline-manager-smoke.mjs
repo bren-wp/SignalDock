@@ -2,7 +2,7 @@ import fs from 'node:fs'; import vm from 'node:vm'; import assert from 'node:ass
 const store=new Map();const ctx={self:{localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,String(v)),removeItem:k=>store.delete(k)}}};vm.createContext(ctx);for(const f of ['src/analysis/service-matrix.js','src/analysis/trace-explorer.js','src/investigation/baseline-manager.js','src/analysis/trace-regression.js'])vm.runInContext(fs.readFileSync(new URL(`../${f}`,import.meta.url),'utf8'),ctx);
 const e=(service,level,t,trace,span,parent,dur)=>({service,level,timestampMs:t,source:'x',correlations:{trace,span,parent_span:parent||''},traceMeta:{parentSpan:parent||'',durationMs:dur}});
 const base=[e('api','INFO',0,'t1','a','',100),e('db','INFO',10,'t1','b','a',70)];const cur=[e('api','INFO',0,'t2','a','',180),e('db','ERROR',10,'t2','b','a',160)];
-const api=ctx.self.SignalDockBaselineManager;assert.throws(()=>api.parse(JSON.stringify({schema:'signaldock.baseline',version:'1'})),/Unsupported|invalid/,'string baseline version must be rejected');const B=api.snapshot(base,null,{name:'base',id:'base'}),C=api.snapshot(cur,null,{name:'cur',id:'cur'});const cmp=api.compare(C,B);assert.equal(cmp.dependencies.length,1);assert.equal(cmp.dependencies[0].from,'api');assert.equal(cmp.dependencies[0].to,'db');assert.ok(cmp.dependencies[0].errorRateDelta>0);const reg=ctx.self.SignalDockTraceRegression.compare(C,B);assert.equal(reg.summary.regressed,1);assert.equal(api.parse(api.exportJson(B)).name,'base');
+const api=ctx.self.SignalDockBaselineManager;assert.throws(()=>api.parse(JSON.stringify({schema:'signaldock.baseline',version:'1'})),/Unsupported|invalid/,'string baseline version must be rejected');const B=api.snapshot(base,null,{name:'base',id:'base'}),C=api.snapshot(cur,null,{name:'cur',id:'cur'});const cmp=api.compare(C,B);assert.equal(cmp.dependencies.length,1);assert.equal(cmp.dependencies[0].from,'api');assert.equal(cmp.dependencies[0].to,'db');assert.ok(cmp.dependencies[0].errorRateDelta>0);const reg=ctx.self.SignalDockTraceRegression.compare(C,B);assert.equal(reg.summary.regressed,1);const roundTrip=api.parse(api.exportJson(B));assert.equal(roundTrip.name,'base');assert.deepEqual(roundTrip.services,B.services);assert.deepEqual(roundTrip.dependencies,B.dependencies);assert.deepEqual(roundTrip.traceSets,B.traceSets);
 
 const mixed=[...base,e('worker','WARN',20,'t3','c','',30),null,e('cache','INFO',30,'t4','d','',15)];
 const filteredIndexes=[0,1,4,99];
@@ -17,13 +17,19 @@ assert.deepEqual(filtered.traceSets,materialized.traceSets);
 
 const baselineSource=fs.readFileSync(new URL('../src/investigation/baseline-manager.js',import.meta.url),'utf8');
 assert.equal(baselineSource.includes('indexes.map((i) => source[i]).filter(Boolean)'),false,'filtered baseline must not materialize an O(N) entry copy');
-assert.equal(baselineSource.includes('function selectedEntries('),false,'obsolete selectedEntries helper must stay removed');
+assert.equal(baselineSource.includes('function selectedEntries('),false,'obsolete selectedEntries helper must stay removed');assert.equal(baselineSource.includes('services: (Array.isArray(input.services) ? input.services : []).slice(0, MAX_ROWS)'),false,'imported baseline rows must not bypass normalization');assert.ok(baselineSource.includes('function normalizeRows('),'baseline row normalization helper missing');
 const missingRange=api.normalize({...B,id:'missing-range',timeRange:{startMs:null,endMs:''}});
 assert.equal(missingRange.timeRange.startMs,null);
 assert.equal(missingRange.timeRange.endMs,null);
 const validRange=api.normalize({...B,id:'valid-range',timeRange:{startMs:'123',endMs:456}});
 assert.equal(validRange.timeRange.startMs,123);
 assert.equal(validRange.timeRange.endMs,456);
+const malformed=api.normalize({...B,id:'malformed',services:[null,'bad',{service:'api',entries:'5',errors:'2',warnings:'1',errorRate:'0.4',p95Ms:'12.5'},{service:'broken',entries:'nope',errors:-5,warnings:'bad',errorRate:Infinity,p95Ms:'NaN'}],dependencies:[null,42,{from:'api',to:'db',calls:'7',errors:'1',errorRate:'0.2',p95Ms:'9'}],traceSets:[null,false,{signature:'api→db',services:['api','api','db',''],traces:'3',errorRate:'0.5',medianDurationMs:'10',p95DurationMs:'20',medianSpans:'2'}]});
+assert.equal(malformed.services.length,2);assert.deepEqual(malformed.services[0],{service:'api',entries:5,errors:2,warnings:1,errorRate:0.4,p95Ms:12.5});assert.deepEqual(malformed.services[1],{service:'broken',entries:0,errors:0,warnings:0,errorRate:0,p95Ms:null});
+assert.equal(malformed.dependencies.length,1);assert.deepEqual(malformed.dependencies[0],{from:'api',to:'db',calls:7,errors:1,errorRate:0.2,p95Ms:9});
+assert.equal(malformed.traceSets.length,1);assert.deepEqual(malformed.traceSets[0],{signature:'api→db',services:['api','db'],traces:3,errorRate:0.5,medianDurationMs:10,p95DurationMs:20,medianSpans:2});
+assert.doesNotThrow(()=>api.compare(malformed,B));assert.doesNotThrow(()=>ctx.self.SignalDockTraceRegression.compare(malformed,B));
+const malformedParsed=api.parse(JSON.stringify({...B,id:'malformed-json',services:[null,7,{service:'json',entries:'2',errorRate:'0.5'}],dependencies:[null,{from:'json',to:'db',calls:'4'}],traceSets:[null,{signature:'json',services:['json'],traces:'1'}]}));assert.equal(malformedParsed.services.length,1);assert.equal(malformedParsed.services[0].entries,2);assert.equal(malformedParsed.dependencies.length,1);assert.equal(malformedParsed.traceSets.length,1);
 const metadataHeavy=api.normalize({...B,id:'metadata-heavy',sources:[...Array.from({length:5000},()=>''),...Array.from({length:600},(_,i)=>`source-${i}`)]});
 assert.equal(metadataHeavy.sources.length,500);assert.equal(metadataHeavy.sources[0],'source-0');assert.equal(metadataHeavy.sources[499],'source-499');
 const tagHeavyHistory=api.addToHistory([],B,{tags:[...Array.from({length:5000},()=> 'dup'),...Array.from({length:25},(_,i)=>`tag-${i}`)]});
