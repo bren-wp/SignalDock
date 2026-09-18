@@ -28,6 +28,8 @@ for (const [name, html] of [["index.html", home], ["privacy.html", privacy], ["s
 for (const token of [
   '<meta name="application-name" content="SignalDock">',
   'id="capabilities"',
+  'id="query-language"',
+  'href="#query-language">Query</a>',
   'id="runtime"',
   'id="security"',
   'id="formats"',
@@ -82,12 +84,14 @@ assert.ok(security.includes("No generic native bridge"));
 assert.ok(security.includes("CodeQL"));
 assert.ok(security.includes("Trace Explorer"));
 assert.ok(security.includes("Trace Outliers"));
+assert.ok(privacy.includes('href="privacy.html" aria-current="page"'));
+assert.ok(security.includes('href="security.html" aria-current="page"'));
 
 for (const token of [
   ".skip-link", ":focus-visible", "overflow-x:auto",
   "@media (prefers-reduced-motion: reduce)", ".faq-grid", ".faq-grid details", ".faq-grid summary",
   ".product-shot", ".runtime-grid", ".status--on", ".status--conditional", ".status--off",
-  ".hardening-note", ".format-groups--three", ".query-shell", ".query-code", ".query-operators"
+  ".hardening-note", ".format-groups--three", ".query-shell", ".query-code", ".query-operators", '[aria-current="page"]'
 ]) assert.ok(css.includes(token), "website CSS token missing: " + token);
 
 assert.ok(!css.includes(".mock-window"), "obsolete mock application CSS must be removed");
