@@ -27,9 +27,16 @@ const entries = [
   { id: "entry-b2", correlations: { trace: "trace-b" }, level: "INFO", timestampMs: 3, traceMeta: { durationMs: 20 } }
 ];
 
-const emptyFiltered = api.selectScope(entries, [], true);
+const emptyIndexes = [];
+const emptyFiltered = api.selectScope(entries, emptyIndexes, true);
 assert.equal(emptyFiltered.filtered, true, "zero-result active filters must stay filtered");
-assert.equal(emptyFiltered.entries.length, 0, "zero-result active filters must not fall back to all logs");
+assert.equal(emptyFiltered.entries, entries, "filtered Trace Outliers scope must reuse the source entries array");
+assert.equal(emptyFiltered.indexes, emptyIndexes, "filtered Trace Outliers scope must reuse the read-only index array");
+const partialIndexes = [1, 2];
+const partialScope = api.selectScope(entries, partialIndexes, true);
+assert.equal(partialScope.filtered, true);
+assert.equal(partialScope.entries, entries);
+assert.equal(partialScope.indexes, partialIndexes);
 const allScope = api.selectScope(entries, [0, 1, 2], true);
 assert.equal(allScope.filtered, false, "full-result filters can reuse the all-log cache");
 
@@ -69,6 +76,8 @@ assert.equal(body.children[0].children[0].textContent, "No trace entries match t
 for (const forbidden of ["fetch(", "XMLHttpRequest", "WebSocket(", "EventSource(", ".invoke(", "localStorage", "sessionStorage"]) {
   assert.equal(source.includes(forbidden), false, `Trace Outliers controller must stay local-only and capability-narrow: ${forbidden}`);
 }
+assert.equal(source.includes("indexes.map((index) => source[index])"), false, "Trace Outliers controller must not materialize filtered entries");
+assert.ok(source.includes("rank(state.entries, { indexes: scope.indexes, limit: 250 })"), "Trace Outliers controller must delegate filtered scope by indexes");
 assert.ok(index.includes('src/app/trace-outlier-controller.js'), "Trace Outliers controller must load from index.html");
 assert.ok(ci.includes('src/app/trace-outlier-controller.js'), "CI must HTTP-smoke the Trace Outliers controller");
 for (const token of [
