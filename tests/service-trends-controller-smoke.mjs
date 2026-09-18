@@ -22,6 +22,9 @@ assert.equal(Object.isFrozen(api), true);
 assert.equal(api.normalizeSplit(-1), 0.1);
 assert.equal(api.normalizeSplit(2), 0.9);
 assert.equal(api.normalizeSplit("bad"), 0.5);
+assert.equal(api.normalizeSplit(null), 0.5);
+assert.equal(api.normalizeSplit(undefined), 0.5);
+assert.equal(api.normalizeSplit(""), 0.5);
 
 const entries = [
   { id: "p1", service: "api", level: "INFO", timestampMs: 1000, correlations: { span: "p1", trace: "t1" }, traceMeta: { durationMs: 5 } },
