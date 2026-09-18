@@ -13,7 +13,16 @@
     const spans = selected.filter((entry) => entry?.correlations?.span && Number.isFinite(entry.timestampMs));
     if (!spans.length) return { available: false, reason: "No timestamped spans are available.", entries: selected.length, spans: 0, chain: [], latencyMs: null, coverage: 0, completeParents: false };
 
-    const bySpan = new Map(spans.map((entry) => [String(entry.correlations.span), entry]));
+    const bySpan = new Map();
+    let traceStart = Infinity;
+    let traceEnd = -Infinity;
+    for (const entry of spans) {
+      bySpan.set(String(entry.correlations.span), entry);
+      if (entry.timestampMs < traceStart) traceStart = entry.timestampMs;
+      const end = endTime(entry) ?? entry.timestampMs;
+      if (end > traceEnd) traceEnd = end;
+    }
+
     const children = new Map();
     let linkedParents = 0;
     for (const span of spans) {
@@ -31,9 +40,6 @@
       const parent = String(span.traceMeta?.parentSpan || "");
       return !parent || !bySpan.has(parent);
     });
-    const traceStart = Math.min(...spans.map((entry) => entry.timestampMs));
-    const traceEnd = Math.max(...spans.map((entry) => endTime(entry) ?? entry.timestampMs));
-
     const memo = new Map();
     function subtreeEnd(span) {
       const id = String(span.correlations.span);
