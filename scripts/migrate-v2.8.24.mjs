@@ -94,6 +94,21 @@ assert.ok(oldAssertionLine, "legacy worker assertion line missing");
 integration = integration.replace(oldAssertionLine, "for(const token of ['workerToken: \"\"','sd_session=','SignalDockFilterWorkerController.create']) assert.ok(app.includes(token),'missing app worker boundary token '+token); for(const token of ['PROTOCOL_VERSION = 1','ALLOWED_INBOUND_TYPES','protocol: 1','token: state.workerToken','message.token === state.workerToken']) assert.ok(controller.includes(token),'missing controller worker token '+token); assert.ok(!controller.includes('event.origin'),'worker controller must not use event.origin');");
 write("tests/v27-worker-integration-smoke.mjs", integration);
 
+let finalGate = read("tests/v27-final-gate.mjs");
+finalGate = replaceOnce(
+  finalGate,
+  "const projectController = read('src/app/project-controller.js');\n",
+  "const projectController = read('src/app/project-controller.js');\nconst filterWorkerController = read('src/app/filter-worker-controller.js');\n",
+  "v27 final gate worker controller source"
+);
+finalGate = replaceOnce(
+  finalGate,
+  "for (const token of ['projectLinkFilesButton', 'SignalDockDesktopBridge.saveParts', 'createWorkerSessionToken', 'workerToken: \\\"\\\"']) assert.ok(app.includes(token), \`missing app token: \${token}\`);",
+  "for (const token of ['projectLinkFilesButton', 'SignalDockDesktopBridge.saveParts', 'workerToken: \\\"\\\"', 'SignalDockFilterWorkerController.create', 'sd_session=']) assert.ok(app.includes(token), \`missing app token: \${token}\`);\nfor (const token of ['PROTOCOL_VERSION = 1', 'ALLOWED_INBOUND_TYPES', 'message.token === state.workerToken', 'protocol: 1']) assert.ok(filterWorkerController.includes(token), \`missing Filter Worker controller token: \${token}\`);\nassert.ok(!filterWorkerController.includes('event.origin'));",
+  "v27 final gate worker ownership"
+);
+write("tests/v27-final-gate.mjs", finalGate);
+
 write("VERSION", "2.8.24\n");
 let readme = read("README.md").replaceAll("2.8.23", "2.8.24");
 const readmeAnchor = "- feature-level Dataset Overview controller under \x60src/app/\x60 that owns summary metrics, source navigation and timeline rendering while filter/index ownership and domain analytics remain outside the UI renderer\n";
