@@ -144,7 +144,9 @@
   async function recoveryInfo() {
     if (!root.indexedDB) return null;
     const [manifest, legacy, view] = await getRecords([MANIFEST_KEY, LEGACY_DATASET_KEY, VIEW_KEY]);
-    const dataset = manifest || legacy;
+    const manifestChunkCount = validChunkCount(manifest?.chunkCount);
+    const activeManifest = manifestChunkCount ? manifest : null;
+    const dataset = activeManifest || legacy;
     if (!dataset) return null;
     return {
       savedAt: view?.savedAt || dataset.savedAt,
@@ -153,8 +155,8 @@
       byteSize: Number(dataset.byteSize) || Number(dataset.blob?.size) || 0,
       appVersion: dataset.appVersion || "",
       hasView: Boolean(view),
-      chunkCount: manifest ? validChunkCount(manifest.chunkCount) : (legacy ? 1 : 0),
-      format: manifest ? "chunked-v1" : "legacy"
+      chunkCount: activeManifest ? manifestChunkCount : 1,
+      format: activeManifest ? "chunked-v1" : "legacy"
     };
   }
 
