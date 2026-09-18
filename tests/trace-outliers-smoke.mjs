@@ -15,4 +15,16 @@ const scoped=globalThis.SignalDockTraceOutliers.rank(entries,{indexes:[8,9],limi
 assert(scoped.totalTraces===1&&scoped.rows[0]?.traceId==='slow','indexed outlier scope mismatch');
 const emptyScoped=globalThis.SignalDockTraceOutliers.rank(entries,{indexes:[],limit:10,includeAll:true});
 assert(emptyScoped.totalTraces===0&&emptyScoped.rows.length===0,'empty indexed outlier scope must stay empty');
+
+const largeEntries=Array.from({length:5000},(_,index)=>({
+ service:`svc-${index%9}`,
+ level:index%97===0?'ERROR':'INFO',
+ timestampMs:t+index*10,
+ correlations:{trace:`large-${index}`,span:`large-span-${index}`},
+ traceMeta:{durationMs:(index*53)%5000}
+}));
+const largeFull=globalThis.SignalDockTraceOutliers.rank(largeEntries,{limit:6000,includeAll:true});
+const largeTop=globalThis.SignalDockTraceOutliers.rank(largeEntries,{limit:250,includeAll:true});
+assert(largeTop.rows.length===250,'bounded outlier ranking size mismatch');
+assert(largeTop.rows.map(r=>r.traceId).join('|')===largeFull.rows.slice(0,250).map(r=>r.traceId).join('|'),'bounded outlier ranking mismatch');
 console.log('trace-outliers-smoke: ok');
