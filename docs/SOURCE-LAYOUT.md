@@ -48,3 +48,6 @@ Startup state application boundary: src/app/startup-state-controller.js owns ini
 
 
 Dataset View composition boundary: src/app/dataset-view-composition.js owns explicit lazy wiring for the pure dataset-view controller stack. It must not acquire storage, filesystem, worker-construction or network capabilities.
+
+
+Analysis View composition staging boundary: `src/app/analysis-view-composition.js` defines capability-narrow lazy wiring for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health. The module is covered in isolation while root runtime ownership remains unchanged until the composition migration can be committed atomically. It must not acquire storage, persistence, filesystem, worker-construction, network or native bridge capabilities.
