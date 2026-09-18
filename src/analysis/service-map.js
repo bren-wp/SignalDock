@@ -32,6 +32,56 @@
     return service ? { id: service, label: service, kind: "service", value: service } : null;
   }
 
+  function compareNodeRank(a, b) {
+    return b.entries - a.entries || b.errors - a.errors || a.id.localeCompare(b.id);
+  }
+
+  function selectTopNodes(values, limit = MAX_NODES) {
+    const count = Math.max(0, Math.floor(Number(limit) || 0));
+    if (!count) return [];
+    const heap = [];
+
+    function swap(left, right) {
+      const value = heap[left];
+      heap[left] = heap[right];
+      heap[right] = value;
+    }
+
+    function siftUp(index) {
+      while (index > 0) {
+        const parent = Math.floor((index - 1) / 2);
+        if (compareNodeRank(heap[parent], heap[index]) >= 0) break;
+        swap(parent, index);
+        index = parent;
+      }
+    }
+
+    function siftDown(index) {
+      while (true) {
+        const left = index * 2 + 1;
+        const right = left + 1;
+        let worst = index;
+        if (left < heap.length && compareNodeRank(heap[left], heap[worst]) > 0) worst = left;
+        if (right < heap.length && compareNodeRank(heap[right], heap[worst]) > 0) worst = right;
+        if (worst === index) break;
+        swap(index, worst);
+        index = worst;
+      }
+    }
+
+    for (const node of values) {
+      if (heap.length < count) {
+        heap.push(node);
+        siftUp(heap.length - 1);
+        continue;
+      }
+      if (compareNodeRank(node, heap[0]) >= 0) continue;
+      heap[0] = node;
+      siftDown(0);
+    }
+    return heap.sort(compareNodeRank);
+  }
+
   function build(entries, indexes = null, options = {}) {
     const source = Array.isArray(entries) ? entries : [];
     const selectedIndexes = Array.isArray(indexes) ? indexes : null;
@@ -51,6 +101,7 @@
     const nodes = new Map();
     const spanMap = new Map();
     const traceIds = new Set();
+    const services = new Set();
     const environments = new Set();
     const namespaces = new Set();
 
@@ -65,7 +116,11 @@
         current.traces.add(entry.correlations.trace);
         traceIds.add(entry.correlations.trace);
       }
-      if (serviceName(entry)) current.services.add(serviceName(entry));
+      const service = serviceName(entry);
+      if (service) {
+        current.services.add(service);
+        services.add(service);
+      }
       const environment = dimension(entry, "environment");
       const namespace = dimension(entry, "namespace");
       if (environment) environments.add(environment);
@@ -92,11 +147,10 @@
       edges.set(key, current);
     });
 
-    const normalizedNodes = [...nodes.values()]
-      .map((node) => ({ ...node, traces: node.traces.size, services: node.services.size }))
-      .sort((a, b) => b.entries - a.entries || b.errors - a.errors || a.id.localeCompare(b.id));
+    const normalizedNodes = selectTopNodes(nodes.values(), MAX_NODES)
+      .map((node) => ({ ...node, traces: node.traces.size, services: node.services.size }));
 
-    const retained = new Set(normalizedNodes.slice(0, MAX_NODES).map((node) => node.id));
+    const retained = new Set(normalizedNodes.map((node) => node.id));
     const normalizedEdges = [...edges.values()]
       .filter((edge) => retained.has(edge.from) && retained.has(edge.to))
       .map((edge) => ({ ...edge, traces: edge.traces.size }))
@@ -104,13 +158,13 @@
 
     return {
       groupBy,
-      nodes: normalizedNodes.slice(0, MAX_NODES),
+      nodes: normalizedNodes,
       edges: normalizedEdges,
       stats: {
-        services: new Set([...nodes.values()].flatMap((node) => [...node.services])).size,
-        groups: normalizedNodes.length,
-        visibleServices: Math.min(normalizedNodes.length, MAX_NODES),
-        hiddenServices: Math.max(0, normalizedNodes.length - MAX_NODES),
+        services: services.size,
+        groups: nodes.size,
+        visibleServices: normalizedNodes.length,
+        hiddenServices: Math.max(0, nodes.size - normalizedNodes.length),
         edges: normalizedEdges.length,
         traces: traceIds.size,
         environments: environments.size,
