@@ -37,9 +37,16 @@
   function add(list, checkpoint) { const out = normalizeList(list); out.push(normalizeOne(checkpoint, out.length)); return out.slice(-MAX); }
   function remove(list, id) { return normalizeList(list).filter((item) => item.id !== id); }
   function collectionIds(value, fallbackPrefix) { return (Array.isArray(value) ? value : []).map((item, index) => clean(item?.id || item?.fingerprint || item?.name || `${fallbackPrefix}-${index}`, 160)).filter(Boolean); }
+  function setDiff(beforeIds, afterIds) {
+    const before = beforeIds instanceof Set ? beforeIds : new Set(beforeIds);
+    const after = afterIds instanceof Set ? afterIds : new Set(afterIds);
+    return {
+      added: [...after].filter((id) => !before.has(id)),
+      removed: [...before].filter((id) => !after.has(id))
+    };
+  }
   function collectionDiff(before, after, fallbackPrefix) {
-    const oldIds = new Set(collectionIds(before, fallbackPrefix)); const newIds = new Set(collectionIds(after, fallbackPrefix));
-    return { added: [...newIds].filter((id) => !oldIds.has(id)), removed: [...oldIds].filter((id) => !newIds.has(id)) };
+    return setDiff(collectionIds(before, fallbackPrefix), collectionIds(after, fallbackPrefix));
   }
   function fieldDiff(before, after, fields) {
     const out = {};
@@ -51,8 +58,8 @@
   }
   function diff(checkpoint, currentCase, investigation) {
     const before = normalizeOne(checkpoint); const after = root.SignalDockCaseWorkspace?.normalize?.(currentCase) || currentCase || {};
-    const nowEvidence = new Set(evidenceIds(investigation)); const oldEvidence = new Set(before.evidenceIds);
-    const evidenceAdded = [...nowEvidence].filter((id) => !oldEvidence.has(id)); const evidenceRemoved = [...oldEvidence].filter((id) => !nowEvidence.has(id));
+    const evidence = setDiff(before.evidenceIds, evidenceIds(investigation));
+    const evidenceAdded = evidence.added; const evidenceRemoved = evidence.removed;
     const findings = collectionDiff(before.caseFile?.findings, after?.findings, "finding");
     const milestones = collectionDiff(before.caseFile?.milestones, after?.milestones, "milestone");
     const attachments = collectionDiff(before.caseFile?.attachments, after?.attachments, "attachment");
