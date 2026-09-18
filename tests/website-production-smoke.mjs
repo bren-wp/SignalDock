@@ -51,16 +51,16 @@ assert.ok(home.includes(`<strong>v${version}</strong>`), "homepage release badge
 
 const runtimeClaims = [
   ["src/core/query-library.js", "Query Library"],
-  ["src/core/search-cache.js", "Search cache"],
+  ["src/core/search-cache.js", "search-cache"],
   ["src/analysis/trace-explorer.js", "Trace Explorer"],
-  ["src/analysis/trace-outliers.js", "Trace outliers"],
+  ["src/analysis/trace-outliers.js", "Trace Outliers"],
   ["src/analysis/service-map.js", "Service dependency analysis"],
   ["src/analysis/service-heatmap.js", "Dependency Heatmap"],
   ["src/analysis/service-health.js", "Observed Health"],
   ["src/investigation/baseline-manager.js", "Baselines &amp; regressions"],
   ["src/investigation/project-manager.js", "Projects &amp; reopen workflows"],
   ["src/investigation/case-workspace.js", "Case &amp; Investigation workspace"],
-  ["src/investigation/case-checkpoints.js", "Case checkpoints"],
+  ["src/investigation/case-checkpoints.js", "Case Checkpoints"],
   ["src/app/import-live-tail-controller.js", "Live Tail"],
   ["src/app/recovery-diagnostics-controller.js", "Recovery &amp; diagnostics"]
 ];
