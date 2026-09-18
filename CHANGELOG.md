@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Website/runtime alignment
+- Replaced the hand-built landing-page application mock with the bundled real SignalDock application screenshot so the product page reflects the shipped UI instead of an approximation.
+- Reworked the landing page around current runtime capabilities: Smart Query, Trace Explorer/Compare/Outliers, explicit parent-span service analysis, Observed Health, Exception Trends, Case Workspace/Checkpoints, baselines, Query Library, projects/reopen flows, recovery/search cache, Live Tail and parser profiles.
+- Added an explicit runtime-status section distinguishing the shipped browser application and permissioned File System Access features from native installers and hosted account/backend capabilities that are not shipped.
+- Expanded Privacy and Security pages to match actual localStorage/IndexedDB, recovery/search-cache, file-handle, portable-export, dedicated-worker and capability-boundary behavior.
+- Added current-main large-dataset hardening copy without mislabeling it as a v2.8.34 release; the stable product version remains v2.8.33.
+- Added a script-free Smart Query reference using operators supported by the local Query Engine.
+- Strengthened website production tests so key marketing claims are tied to the corresponding runtime modules loaded by the application and current-page navigation remains accessible.
+
 ### Analysis View composition staging
 - Added `src/app/analysis-view-composition.js` as a capability-narrow wiring boundary for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health.
 - Added isolated smoke coverage for memoized controller creation and injected action mapping.
