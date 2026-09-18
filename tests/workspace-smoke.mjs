@@ -71,6 +71,28 @@ assert(parsed.workspace.baselineSnapshot?.name === 'Production before deploy', '
 assert(parsed.workspace.activeProjectId === 'project-1', 'workspace: active project id was not preserved');
 console.log("PASS workspace serialization + restore normalization");
 
+const manyEntries = Array.from({ length: 2505 }, (_, index) => ({
+  source: "bulk.log",
+  service: index % 2 ? "api" : "worker",
+  index,
+  raw: { index },
+  message: `bulk ${index}`,
+  level: "INFO",
+  timestamp: "",
+  timestampMs: null,
+  correlations: {},
+  traceMeta: {},
+  dimensions: {}
+}));
+const manyParts = globalThis.SignalDockWorkspace.serializeParts(manyEntries, { view: { query: "bulk" } }, "2.8.33");
+const manyParsed = globalThis.SignalDockWorkspace.parse(manyParts.join(""));
+assert(manyParsed.entries.length === 2505, "workspace: multi-chunk serialization lost entries");
+assert(manyParsed.entries[0].message === "bulk 0" && manyParsed.entries.at(-1).message === "bulk 2504", "workspace: multi-chunk serialization changed entry order");
+assert(manyParsed.workspace.view.query === "bulk", "workspace: multi-chunk serialization lost workspace state");
+const workspaceSource = fs.readFileSync(path.join(root, "src/core/workspace.js"), "utf8");
+assert(!workspaceSource.includes("entries.slice(offset, offset + chunkSize).map"), "workspace serializer must not duplicate each chunk's entry references");
+console.log("PASS workspace multi-chunk serialization without entry slices");
+
 const missingRawEntry = globalThis.SignalDockWorkspace.normalizeEntry({
   source: "legacy.log",
   message: "entry without raw",
