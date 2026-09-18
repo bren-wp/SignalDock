@@ -11,8 +11,9 @@ const privacy = readWebsite("privacy.html");
 const security = readWebsite("security.html");
 const css = readWebsite("styles.css");
 const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
+const appHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-assert.equal(version, "2.8.33");
+assert.match(version, /^\d+\.\d+\.\d+$/);
 
 for (const [name, html] of [["index.html", home], ["privacy.html", privacy], ["security.html", security]]) {
   assert.ok(html.includes('class="skip-link"'), name + " missing skip link");
@@ -44,6 +45,29 @@ for (const token of [
 ]) assert.ok(home.includes(token), "homepage token missing: " + token);
 
 assert.ok(!home.includes('class="mock-window"'), "homepage must use the real application screenshot instead of a hand-built UI mock");
+
+assert.ok(home.includes(`SignalDock v${version}`), "homepage release copy must match VERSION");
+assert.ok(home.includes(`<strong>v${version}</strong>`), "homepage release badge must match VERSION");
+
+const runtimeClaims = [
+  ["src/core/query-library.js", "Query Library"],
+  ["src/core/search-cache.js", "Search cache"],
+  ["src/analysis/trace-explorer.js", "Trace Explorer"],
+  ["src/analysis/trace-outliers.js", "Trace outliers"],
+  ["src/analysis/service-map.js", "Service dependency analysis"],
+  ["src/analysis/service-heatmap.js", "Dependency Heatmap"],
+  ["src/analysis/service-health.js", "Observed Health"],
+  ["src/investigation/baseline-manager.js", "Baselines &amp; regressions"],
+  ["src/investigation/project-manager.js", "Projects &amp; reopen workflows"],
+  ["src/investigation/case-workspace.js", "Case &amp; Investigation workspace"],
+  ["src/investigation/case-checkpoints.js", "Case checkpoints"],
+  ["src/app/import-live-tail-controller.js", "Live Tail"],
+  ["src/app/recovery-diagnostics-controller.js", "Recovery &amp; diagnostics"]
+];
+for (const [modulePath, websiteCopy] of runtimeClaims) {
+  assert.ok(appHtml.includes(`<script src="${modulePath}" defer></script>`), "runtime module missing for website claim: " + modulePath);
+  assert.ok(home.includes(websiteCopy), "website claim missing for loaded runtime module: " + websiteCopy);
+}
 
 assert.ok((home.match(/<details>/g) || []).length >= 10, "FAQ should expose at least ten script-free questions");
 assert.ok(home.includes("Does SignalDock upload my logs?"));
