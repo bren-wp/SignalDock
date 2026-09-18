@@ -49,6 +49,7 @@ for (const token of [
   ".invoke("
 ]) assert.ok(!controllerSource.includes(token), `forbidden Dataset Overview capability reference: ${token}`);
 assert.ok(!/\bfetch\s*\(/.test(controllerSource), "Dataset Overview controller must not use fetch()");
+assert.ok(!controllerSource.includes("timestamped.push("), "Dataset Overview timeline must not retain a duplicate O(N) timestamped entry list");
 
 class FakeClassList {
   constructor(initial = "") { this.values = new Set(String(initial).split(/\s+/).filter(Boolean)); }
@@ -231,6 +232,19 @@ assert.equal(el.timelineBars.children.length, 1);
 assert.equal(el.timelineBars.children[0].className, "timeline-empty");
 assert.equal(el.timelineTitle.textContent, "Filtered activity");
 assert.ok(el.timelineMeta.textContent.includes("1 results"));
+
+state.entries = Array.from({ length: 200000 }, (_, index) => ({
+  timestampMs: index,
+  level: index % 1000 === 0 ? "ERROR" : index % 250 === 0 ? "WARN" : "INFO"
+}));
+state.filteredIndexes = Array.from({ length: state.entries.length }, (_, index) => index);
+state.lastEngine = "large-test";
+controller.renderTimeline();
+assert.equal(el.timelineBars.children.length, 36);
+assert.equal(el.timelineStart.textContent, "T0");
+assert.equal(el.timelineEnd.textContent, "T199999");
+assert.ok(el.timelineMeta.textContent.includes("200,000 timestamped"));
+assert.ok(el.timelineMeta.textContent.includes("200,000 results"));
 
 controller.destroy();
 console.log("dataset-overview-controller-smoke PASS");
