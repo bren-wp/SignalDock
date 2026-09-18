@@ -17,7 +17,7 @@
     const source = Array.isArray(entries) ? entries : [];
     const indexes = Array.isArray(filteredIndexes) ? filteredIndexes : [];
     const filtered = Boolean(useFiltered) && indexes.length < source.length;
-    return { filtered, indexes: filtered ? [...indexes] : null };
+    return { filtered, indexes: filtered ? indexes : null };
   }
 
   function splitTimestamp(entries, indexes, fraction = DEFAULT_SPLIT) {
