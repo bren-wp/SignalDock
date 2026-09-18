@@ -14,4 +14,8 @@ assert(data.rows.length===1,'expected one dependency edge');
 assert(data.summary.calls===2&&data.summary.errors===1,'heatmap summary mismatch');
 assert(data.buckets.length>=1&&data.rows[0].buckets.reduce((s,b)=>s+b.calls,0)===2,'bucket calls mismatch');
 assert(data.rows[0].buckets.some(b=>b.errors===1),'error bucket missing');
+const largeEntries=Array.from({length:200000},(_,index)=>({timestampMs:t+index}));
+const largeData=globalThis.SignalDockServiceHeatmap.build(largeEntries,null,{bucketCount:12});
+assert(largeData.summary.startMs===t&&largeData.summary.endMs===t+199999,'large heatmap timestamp bounds mismatch');
+assert(largeData.buckets.length===12,'large heatmap bucket count mismatch');
 console.log('service-heatmap-smoke: ok');
