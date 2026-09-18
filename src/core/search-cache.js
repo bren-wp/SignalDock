@@ -103,6 +103,16 @@
     return (hash >>> 0) % BUCKET_COUNT;
   }
 
+  function validBucketIds(value) {
+    if (!Array.isArray(value) || value.length > BUCKET_COUNT) return false;
+    const seen = new Set();
+    for (const id of value) {
+      if (!Number.isInteger(id) || id < 0 || id >= BUCKET_COUNT || seen.has(id)) return false;
+      seen.add(id);
+    }
+    return true;
+  }
+
   function indexShell(meta) {
     return {
       tokenMap: new Map(),
@@ -115,7 +125,7 @@
   async function loadMeta(datasetKey) {
     if (!available() || !datasetKey) return null;
     const [meta] = await getRecords([META_KEY]);
-    if (!meta || meta.version !== VERSION || meta.datasetKey !== datasetKey || !meta.stats || !Array.isArray(meta.bucketIds)) return null;
+    if (!meta || meta.version !== VERSION || meta.datasetKey !== datasetKey || !meta.stats || !validBucketIds(meta.bucketIds)) return null;
     return meta;
   }
 
@@ -190,7 +200,6 @@
   async function save(datasetKey, index) {
     const check = eligible(index);
     if (!available() || !datasetKey || !check.allowed) return { saved: false, reason: check.allowed ? "indexeddb-unavailable" : "ineligible", estimatedBytes: check.estimatedBytes };
-    let previous = null; try { [previous] = await getRecords([META_KEY]); } catch { /* first write */ }
     const buckets = Array.from({ length: BUCKET_COUNT }, () => []);
     for (const pair of mapEntries(index.tokenMap)) buckets[bucketId(pair[0])].push(pair);
     const bucketIds = []; buckets.forEach((entries, id) => { if (entries.length) bucketIds.push(id); });
@@ -199,7 +208,8 @@
     await withStore("readwrite", (store) => {
       bucketIds.forEach((id) => store.put({ key: `${BUCKET_PREFIX}${id}`, version: VERSION, datasetKey, bucket: id, entries: buckets[id] }));
       store.put(meta);
-      for (const id of previous?.bucketIds || []) if (!bucketIds.includes(id)) store.delete(`${BUCKET_PREFIX}${id}`);
+      const activeBucketIds = new Set(bucketIds);
+      for (let id = 0; id < BUCKET_COUNT; id += 1) if (!activeBucketIds.has(id)) store.delete(`${BUCKET_PREFIX}${id}`);
     });
     runtimeBuckets.clear(); await deleteLegacyDatabases();
     return { saved: true, savedAt, estimatedBytes: check.estimatedBytes, segmentCount: bucketIds.length, bucketCount: bucketIds.length, format: "bucketed-v3" };
@@ -211,10 +221,13 @@
   }
 
   async function clear() {
-    if (!available()) return; let meta = null; try { [meta] = await getRecords([META_KEY]); } catch { /* ignore */ }
-    await withStore("readwrite", (store) => { store.delete(META_KEY); for (const id of meta?.bucketIds || []) store.delete(`${BUCKET_PREFIX}${id}`); });
+    if (!available()) return;
+    await withStore("readwrite", (store) => {
+      store.delete(META_KEY);
+      for (let id = 0; id < BUCKET_COUNT; id += 1) store.delete(`${BUCKET_PREFIX}${id}`);
+    });
     runtimeBuckets.clear(); await deleteLegacyDatabases();
   }
 
-  root.SignalDockSearchCache = { VERSION, BUCKET_COUNT, MAX_ESTIMATED_BYTES, available, fingerprint, estimateBytes, eligible, bucketId, loadMetadata, load, candidates, save, info, clear };
+  root.SignalDockSearchCache = { VERSION, BUCKET_COUNT, MAX_ESTIMATED_BYTES, available, fingerprint, estimateBytes, eligible, bucketId, validBucketIds, loadMetadata, load, candidates, save, info, clear };
 }(typeof self !== "undefined" ? self : window));
