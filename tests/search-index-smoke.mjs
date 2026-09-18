@@ -62,4 +62,5 @@ assert(searchIndexSource.includes("function mergeSortedUnique("), "search index 
 assert(!searchIndexSource.includes("const set = new Set();\n    for (const array of arrays)"), "search index union must not materialize a global Set then sort");
 assert(!searchIndexSource.includes("for (const array of arrays) current = mergeSortedUnique(current, array);"), "search index union must not repeatedly merge into one growing array");
 assert(searchIndexSource.includes("while (current.length > 1)"), "search index union must use balanced pairwise merging");
+assert(!searchIndexSource.includes(".map((array) => array.slice())"), "search index union must not clone every posting list before read-only merging");
 console.log("PASS sorted multi-posting union equivalence");
