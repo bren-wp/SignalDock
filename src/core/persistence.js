@@ -126,7 +126,7 @@
         format: "chunked-v1"
       });
       store.delete(LEGACY_DATASET_KEY);
-      const oldCount = Number(previousManifest?.chunkCount) || 0;
+      const oldCount = validChunkCount(previousManifest?.chunkCount);
       for (let index = chunkCount; index < oldCount; index += 1) store.delete(`${CHUNK_PREFIX}${index}`);
     });
 
