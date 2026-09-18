@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Analysis View composition staging
+- Added `src/app/analysis-view-composition.js` as a capability-narrow wiring boundary for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health.
+- Added isolated smoke coverage for memoized controller creation and injected action mapping.
+- Kept the live v2.8.33 runtime wiring unchanged because the root `app.js` migration could not be committed atomically through the active repository write path.
+
 ## 2.8.33 — 2026-09-18
 
 ### Dataset View composition
