@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#07111d">
   <meta name="robots" content="index,follow">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="SignalDock security architecture: narrow local capabilities, authenticated worker messages, bounded imports and a no-network application CSP.">
+  <meta name="description" content="SignalDock security architecture: narrow local capabilities, authenticated worker messages, bounded data paths, static audits and a no-network application CSP.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; img-src 'self' data:; style-src 'self'; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Security — SignalDock</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
@@ -21,10 +21,11 @@
       <span><strong>Signal</strong><b>Dock</b></span>
     </a>
     <nav class="site-nav" aria-label="Primary navigation">
-      <a href="index.html#features">Features</a>
+      <a href="index.html#capabilities">Capabilities</a>
+      <a href="index.html#runtime">Runtime</a>
       <a href="privacy.html">Privacy</a>
       <a href="index.html#formats">Formats</a>
-      <a href="index.html#workflow">Workflow</a>
+      <a href="index.html#faq">FAQ</a>
     </nav>
     <a class="header-cta" href="../index.html">Open SignalDock</a>
   </header>
@@ -34,39 +35,72 @@
       <div class="section-head section-head--wide">
         <span class="eyebrow">SECURITY</span>
         <h1 id="security-title">Small capability surfaces, explicit trust boundaries.</h1>
-        <p>SignalDock keeps privileged browser and storage operations at narrow platform boundaries while analysis controllers receive only the callbacks they need.</p>
+        <p>SignalDock keeps privileged browser, filesystem, storage and worker operations at narrow boundaries while domain and UI modules receive only the capabilities they need.</p>
       </div>
       <div class="security-grid">
         <article><span>01</span><h2>No application network path</h2><p>The application CSP uses <code>connect-src 'none'</code>. Production audits reject fetch, XMLHttpRequest, WebSocket and EventSource primitives in runtime JavaScript.</p></article>
-        <article><span>02</span><h2>Authenticated worker protocol</h2><p>Background filtering uses a versioned worker protocol with an unpredictable per-session token, allowlisted message types, request/version checks and bounded payload behavior.</p></article>
-        <article><span>03</span><h2>Bounded local inputs</h2><p>Import and analysis paths use explicit size or count limits where needed. Case imports are rejected above their safety limit before file contents are read.</p></article>
-        <article><span>04</span><h2>No generic native bridge</h2><p>Desktop integration is intentionally narrow. SignalDock does not expose a generic shell, exec, spawn or arbitrary native invoke surface to application controllers.</p></article>
+        <article><span>02</span><h2>Authenticated worker protocol</h2><p>Background filtering uses protocol-v1 messages with an unpredictable per-session token, allowlisted message types, request/version checks and bounded envelope behavior.</p></article>
+        <article><span>03</span><h2>Bounded local processing</h2><p>High-volume paths use explicit caps, streaming scans, bounded result windows, histogram fallbacks or deterministic main-thread fallback rather than unbounded UI work.</p></article>
+        <article><span>04</span><h2>No generic native bridge</h2><p>The desktop capability facade is intentionally narrow. Controllers are not given generic shell, exec, spawn or arbitrary native invoke authority.</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell" aria-labelledby="boundaries-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">CAPABILITY BOUNDARIES</span>
+        <h2 id="boundaries-title">Feature code does not receive ambient authority.</h2>
+        <p>The current architecture progressively moves feature behavior into zero-build controllers under <code>src/app/</code>. Storage, worker construction, filesystem access and cross-feature actions remain injected through explicit boundaries.</p>
+      </div>
+      <div class="runtime-grid">
+        <article><span class="status status--on">ISOLATED</span><h3>Analysis modules</h3><p>Trace, service, span and exception analysis modules operate on supplied data and do not own filesystem, network or persistence capabilities.</p></article>
+        <article><span class="status status--on">INJECTED</span><h3>Application controllers</h3><p>Controllers receive shared state, element registries and narrow callbacks instead of reaching directly into unrelated controllers or generic platform APIs.</p></article>
+        <article><span class="status status--conditional">PLATFORM</span><h3>File capabilities</h3><p>Browser save/open/reopen behavior is kept behind storage and desktop capability facades, with user permission required where File System Access applies.</p></article>
+        <article><span class="status status--on">VERSIONED</span><h3>Worker boundary</h3><p>The filter worker validates its protocol envelope and token before handling allowlisted index, filter, correlation and trace operations.</p></article>
+        <article><span class="status status--on">PORTABLE</span><h3>Export boundary</h3><p>Portable project exports strip file-handle capability keys, baselines omit raw logs and case attachments remain metadata-only.</p></article>
+        <article><span class="status status--off">ABSENT</span><h3>Remote trust dependency</h3><p>The shipped runtime does not depend on a SignalDock account server, hosted ingestion API, runtime CDN or analytics service.</p></article>
       </div>
     </section>
 
     <section class="section-shell" aria-labelledby="security-assurance-title">
       <div class="section-head section-head--wide">
         <span class="eyebrow">ASSURANCE</span>
-        <h2 id="security-assurance-title">Checks that ship with the project.</h2>
-        <p>The repository runs repeatable quality gates around syntax, regressions, static architecture rules, local HTTP serving and CodeQL analysis.</p>
+        <h2 id="security-assurance-title">Checks that ship with the repository.</h2>
+        <p>The project runs repeatable quality gates around syntax, regression behavior, static architecture rules, local HTTP serving and CodeQL analysis.</p>
       </div>
-      <div class="format-groups">
-        <article><h3>Architecture assertions</h3><p>Controller smoke tests verify ownership boundaries and reject direct storage, filesystem, worker or network capability access where it does not belong.</p></article>
-        <article><h3>Static production audit</h3><p>Static checks reject inline CSS/JavaScript, external runtime resources, missing local references and network primitives in production JavaScript.</p></article>
+      <div class="format-groups format-groups--three">
+        <article><h3>Regression suite</h3><p>Node-based smoke tests cover parser/query behavior, large-dataset scans, bounded ranking equivalence, filtered-scope semantics, accessibility contracts and feature-controller boundaries.</p></article>
+        <article><h3>Static production audit</h3><p>Static checks reject inline CSS/JavaScript, external runtime resources, missing local references, legacy branding and forbidden runtime network primitives.</p></article>
+        <article><h3>CodeQL</h3><p>The permanent CodeQL workflow analyzes JavaScript/TypeScript alongside the main quality gate. The repository keeps only the permanent CI and CodeQL workflows.</p></article>
       </div>
-      <p class="format-note"><strong>Dedicated workers:</strong> worker messages are authenticated by protocol and session token. SignalDock intentionally does not use a window-style <code>event.origin</code> check for dedicated worker messages.</p>
+      <p class="format-note"><strong>Dedicated workers:</strong> SignalDock authenticates worker envelopes with protocol version and a per-session token. A dedicated worker is not a cross-origin window message channel, so the security boundary does not rely on a window-style <code>event.origin</code> check.</p>
+    </section>
+
+    <section class="section-shell" aria-labelledby="limits-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">RESOURCE SAFETY</span>
+        <h2 id="limits-title">Large datasets stay explicit and bounded where the UI has a natural cap.</h2>
+        <p>Current main includes deterministic performance hardening without changing the observed result ordering of the affected views.</p>
+      </div>
+      <div class="feature-grid">
+        <article><span aria-hidden="true">≋</span><h3>Trace Explorer</h3><p>Window ranking keeps only the requested offset plus limit instead of sorting the entire trace inventory when a bounded window is requested.</p></article>
+        <article><span aria-hidden="true">△</span><h3>Trace Flame</h3><p>Only the rendered span window is selected and sorted; large timing scans remain linear.</p></article>
+        <article><span aria-hidden="true">▦</span><h3>Service Map</h3><p>Node ranking is bounded to the visible 24 groups while total group/service counts remain exact.</p></article>
+        <article><span aria-hidden="true">♥</span><h3>Observed Health</h3><p>Filtered analysis reuses the original dataset through index scopes rather than copying every selected entry.</p></article>
+        <article><span aria-hidden="true">⌁</span><h3>Dependency Heatmap</h3><p>Timestamp bounds are streamed without a second full timestamp array; duration samples remain explicitly capped.</p></article>
+        <article><span aria-hidden="true">⚠</span><h3>Trace Outliers</h3><p>Final ranking is bounded to the requested result limit while the robust median/MAD baseline remains exact.</p></article>
+      </div>
     </section>
 
     <section class="cta">
-      <div><span class="eyebrow">DEFENSE THROUGH BOUNDARIES</span><h2>Keep privileged capabilities narrow.</h2><p>SignalDock favors explicit local actions over generic or ambient authority.</p></div>
+      <div><span class="eyebrow">DEFENSE THROUGH BOUNDARIES</span><h2>Keep privileged capabilities narrow.</h2><p>SignalDock favors explicit local actions, deterministic analysis and audited limits over generic ambient authority.</p></div>
       <a class="button button--primary" href="../index.html">Launch SignalDock</a>
     </section>
   </main>
 
   <footer>
     <a class="logo" href="index.html#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
-    <span><a href="privacy.html">Privacy</a> · <a href="security.html">Security</a></span>
-    <span>Local-first · capability-bounded</span>
+    <span><a href="index.html">Product</a> · <a href="privacy.html">Privacy</a> · <a href="security.html">Security</a></span>
+    <span>v2.8.33 · local-first · capability-bounded</span>
   </footer>
 </body>
 </html>
