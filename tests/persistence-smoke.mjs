@@ -23,7 +23,7 @@ assert(!tooMany.allowed && /limited/i.test(tooMany.reason), "oversized entry cou
 const persistence = globalThis.SignalDockPersistence;
 assert(persistence.validChunkCount(1) === 1, "single recovery chunk should be valid");
 assert(persistence.validChunkCount(persistence.MAX_CHUNKS) === persistence.MAX_CHUNKS, "maximum recovery chunk count should be valid");
-for (const invalid of [0, -1, 1.5, NaN, Infinity, persistence.MAX_CHUNKS + 1, "999999"]) {
+for (const invalid of [0, -1, 1.5, NaN, Infinity, persistence.MAX_CHUNKS + 1, "1", "999999"]) {
   assert(persistence.validChunkCount(invalid) === 0, `invalid recovery chunk count must be rejected: ${String(invalid)}`);
 }
 console.log("PASS bounded recovery manifest chunks");
