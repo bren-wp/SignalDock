@@ -36,8 +36,8 @@ jobs:
           grep -q 'APP_VERSION = "2.8.25"' app.js
           grep -q 'src/app/related-context-controller.js' index.html
           grep -q 'SignalDockRelatedContextController.create' app.js
-          grep -q 'relatedContextController.loadCorrelations' app.js
-          grep -q 'relatedContextController.loadTrace' app.js
+          grep -q 'relatedContextController?.loadCorrelations' app.js
+          grep -q 'relatedContextController?.loadTrace' app.js
           grep -q 'src/app/related-context-controller.js' .github/workflows/ci.yml
           grep -q '## 2.8.25 — 2026-09-18' CHANGELOG.md
           grep -q 'Current version: \*\*2.8.25\*\*' docs/TECHNICAL.md
@@ -76,8 +76,8 @@ jobs:
           grep -Fq 'state.traceRequestId += 1' "$controller"
           grep -Fq 'limit: 200' "$controller"
           grep -Fq 'limit: 1000' "$controller"
-          grep -Fq 'relatedContextController.loadCorrelations' app.js
-          grep -Fq 'relatedContextController.loadTrace' app.js
+          grep -Fq 'relatedContextController?.loadCorrelations' app.js
+          grep -Fq 'relatedContextController?.loadTrace' app.js
           ! grep -Fq 'engine().relatedIndexes(state.filterEntries, correlations, 200' app.js
           ! grep -Fq 'engine().relatedIndexes(state.filterEntries, correlations, 1000' app.js
           grep -Fq "connect-src 'none'" index.html
