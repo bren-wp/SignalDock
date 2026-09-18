@@ -13,6 +13,17 @@
 - Replaced full-array sorts used only to choose the Trace Analysis root, next critical-chain child and bottleneck with linear selections while preserving the existing end-time, timestamp and duration tie-breaks.
 - Kept the live v2.8.33 runtime wiring unchanged because the root `app.js` migration could not be committed atomically through the active repository write path.
 
+### Large-dataset performance hardening
+- Reduced Trace Analysis working-copy memory by collecting selected entries, timestamped spans, parent counts and measured-span counts in one pass while preserving indexed-scope semantics.
+- Bounded Trace Flame selection to the rendered span window instead of sorting every timed span; 200,000-span and duration-tie regressions preserve chronological ranking.
+- Removed Dataset Overview's duplicate timestamped-entry list and added a 200,000-entry timeline regression while retaining the same 36-bucket output.
+- Added index-scoped Observed Health and Trace Outliers analysis so filtered views reuse the source dataset and read-only filter indexes instead of materializing entry copies.
+- Reused read-only filtered-index arrays across Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health rather than cloning them for analysis-only scopes.
+- Streamed Dependency Heatmap timestamp bounds without retaining a second timestamp array and added a 200,000-entry regression.
+- Bounded Trace Explorer window ranking to the requested offset plus limit; a 12,000-trace equivalence regression verifies the same ranking as the full sort.
+- Bounded Service Map node ranking to the 24 visible groups while preserving total group/service statistics; a 2,000-service regression locks the existing lexical tie-break.
+- Bounded Trace Outliers final ranking to the requested result limit while keeping the exact median/MAD baseline unchanged; a 5,000-trace equivalence regression verifies the same top-250 ordering.
+
 ## 2.8.33 — 2026-09-18
 
 ### Dataset View composition
