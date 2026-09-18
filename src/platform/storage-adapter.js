@@ -16,7 +16,7 @@
   }
 
   function clean(value, max = 200) { return String(value ?? "").trim().slice(0, max); }
-  function clamp(value, min, max, fallback) { const number = Number(value); return Number.isFinite(number) ? Math.min(max, Math.max(min, Math.floor(number))) : fallback; }
+  function clamp(value, min, max, fallback) { if (value === null || value === undefined || value === "") return fallback; const number = Number(value); return Number.isFinite(number) ? Math.min(max, Math.max(min, Math.floor(number))) : fallback; }
 
   function capabilities() {
     return {
@@ -228,8 +228,10 @@
 
   async function readTextFile(file, maxBytes = DEFAULT_MAX_BYTES) {
     if (!file || typeof file.text !== "function") throw new Error("A readable local file is required.");
-    const size = Math.max(0, Number(file.size) || 0);
-    if (size > maxBytes) throw new Error(`Local file exceeds the ${Math.round(maxBytes / 1024 / 1024)} MB safety limit.`);
+    const size = Number(file.size);
+    if (!Number.isFinite(size) || size < 0) throw new Error("A readable local file must report a valid non-negative size.");
+    const limit = Math.max(1, Number(maxBytes) || DEFAULT_MAX_BYTES);
+    if (size > limit) throw new Error(`Local file exceeds the ${Math.round(limit / 1024 / 1024)} MB safety limit.`);
     return { text: await file.text(), reference: reference(file), file };
   }
 
