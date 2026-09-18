@@ -11,4 +11,8 @@ assert(data.rows[0].traceId==='slow','slow error trace should rank first');
 assert(data.rows[0].errors===1,'error count missing');
 assert(data.rows[0].reasons.some(v=>v.includes('error')),'error reason missing');
 assert(data.baseline.timedTraces>=8,'timed baseline missing');
+const scoped=globalThis.SignalDockTraceOutliers.rank(entries,{indexes:[8,9],limit:10});
+assert(scoped.totalTraces===1&&scoped.rows[0]?.traceId==='slow','indexed outlier scope mismatch');
+const emptyScoped=globalThis.SignalDockTraceOutliers.rank(entries,{indexes:[],limit:10,includeAll:true});
+assert(emptyScoped.totalTraces===0&&emptyScoped.rows.length===0,'empty indexed outlier scope must stay empty');
 console.log('trace-outliers-smoke: ok');
