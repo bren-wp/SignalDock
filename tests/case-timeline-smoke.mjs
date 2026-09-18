@@ -6,4 +6,8 @@ const out=globalThis.SignalDockCaseTimeline.build({activity:[{id:'a',at:'2026-01
 assert(out.items.length===3,'combined timeline count mismatch');
 assert(out.items[0].type==='evidence'&&out.items[2].type==='milestone','timeline sort mismatch');
 assert(out.summary.activity===1&&out.summary.milestones===1&&out.summary.evidence===1,'timeline summary mismatch');
+const invalid=globalThis.SignalDockCaseTimeline.build({activity:[{id:'bad-a',at:'not-a-date'}],milestones:[{id:'bad-m',at:''}]},{items:[{id:'bad-e',timestamp:'invalid',timestampMs:NaN}]});
+assert(invalid.items.length===0&&invalid.summary.total===0&&invalid.summary.activity===0&&invalid.summary.milestones===0&&invalid.summary.evidence===0,'invalid timeline entries must not affect summary counts');
+const source=fs.readFileSync(path.join(root,'src/investigation/case-timeline.js'),'utf8');
+assert(!source.includes('rows.filter((row) => row.type ==='), 'case timeline summary must not rescan rows by type');
 console.log('case-timeline-smoke: ok');
