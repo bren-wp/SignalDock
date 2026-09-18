@@ -221,6 +221,54 @@ a:focus-visible,.button:focus-visible { outline:2px solid var(--cyan); outline-o
 .section-head h1,.section-head h2,.workflow h2,.cta h2,.release-strip h2 { font-size:clamp(36px,4vw,54px); }
 .section-head>p { margin:18px 0 0; font-size:13px; }
 
+.query-section { padding-top:34px; padding-bottom:34px; }
+.query-shell {
+  padding:34px;
+  display:grid;
+  grid-template-columns:.82fr 1.18fr;
+  gap:42px;
+  align-items:center;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:radial-gradient(circle at 100% 0,rgba(21,216,242,.08),transparent 34%),linear-gradient(135deg,#0b1825,#07121d);
+}
+.query-shell .section-head { margin:0; }
+.query-operators {
+  margin-top:22px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.query-operators span {
+  padding:8px 10px;
+  border:1px solid #1b3449;
+  border-radius:8px;
+  color:#7f96a9;
+  background:rgba(5,14,23,.42);
+  font-size:10px;
+}
+.query-operators code { color:#7be8ef; }
+.query-code pre {
+  overflow:auto;
+  margin:0;
+  padding:22px;
+  border:1px solid #1b3449;
+  border-radius:12px;
+  color:#b9f6f2;
+  background:#050e17;
+  box-shadow:0 16px 40px rgba(0,0,0,.18) inset;
+  font-size:11px;
+  line-height:1.9;
+  tab-size:2;
+}
+.query-code small {
+  display:block;
+  margin-top:12px;
+  color:#6f879b;
+  font-size:10px;
+  line-height:1.65;
+}
+
 .runtime { padding-top:64px; padding-bottom:62px; }
 .runtime-grid {
   display:grid;
@@ -368,6 +416,7 @@ footer .logo span { font-size:16px; }
   .hero { grid-template-columns:1fr; padding-top:68px; }
   .hero__copy { max-width:760px; }
   .product-shot { max-width:900px; }
+  .query-shell { grid-template-columns:1fr; }
   .security-grid,.runtime-grid { grid-template-columns:1fr 1fr; }
   .format-groups--three { grid-template-columns:1fr 1fr; }
   .feature-grid { grid-template-columns:1fr 1fr; }
@@ -392,6 +441,9 @@ footer .logo span { font-size:16px; }
   .proof article,.proof article:first-child { padding:14px 0; border-right:0; border-bottom:1px solid #172a3c; }
   .proof article:last-child { border-bottom:0; }
   .section-shell { padding:70px 18px; }
+  .query-section { padding-top:24px; padding-bottom:24px; }
+  .query-shell { padding:24px; gap:26px; }
+  .query-operators { grid-template-columns:1fr; }
   .security-grid,.runtime-grid,.feature-grid,.format-groups,.format-groups--three { grid-template-columns:1fr; }
   .workflow { margin:0 18px 60px; padding:28px; gap:34px; }
   .workflow ol { grid-template-columns:1fr; }
