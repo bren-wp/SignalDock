@@ -83,3 +83,6 @@ app/startup-state-controller.js owns phased, idempotent application-state hydrat
 
 
 app/dataset-view-composition.js is the lazy composition factory for Saved Views, Dataset Filter, Table View, Dataset Overview and View Orchestrator. It owns wiring only; feature logic remains in the individual controllers.
+
+
+`app/analysis-view-composition.js` is a staged composition boundary for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health. It is currently exercised in isolation; root runtime ownership remains unchanged until the migration can be committed atomically. The composition owns wiring only and receives no storage, persistence, filesystem, worker-construction, network or native bridge capability.
