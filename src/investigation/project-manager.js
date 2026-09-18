@@ -10,7 +10,19 @@
   const MAX_HISTORY = 20;
 
   function clean(value, max = 2000) { return String(value ?? "").trim().slice(0, max); }
-  function tags(value) { const input = Array.isArray(value) ? value : String(value || "").split(/[;,]/); return [...new Set(input.map((tag) => clean(tag, 48).toLowerCase().replace(/\s+/g, "-")).filter(Boolean))].slice(0, 20); }
+  function tags(value) {
+    const input = Array.isArray(value) ? value : String(value || "").split(/[;,]/);
+    const out = [];
+    const seen = new Set();
+    for (const value of input) {
+      const tag = clean(value, 48).toLowerCase().replace(/\s+/g, "-");
+      if (!tag || seen.has(tag)) continue;
+      seen.add(tag);
+      out.push(tag);
+      if (out.length >= 20) break;
+    }
+    return out;
+  }
 
   function historyList(value, kind) {
     return (Array.isArray(value) ? value : []).slice(0, MAX_HISTORY).map((item, index) => ({
