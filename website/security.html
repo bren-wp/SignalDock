@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#07111d">
+  <meta name="robots" content="index,follow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="SignalDock security architecture: narrow local capabilities, authenticated worker messages, bounded imports and a no-network application CSP.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; img-src 'self' data:; style-src 'self'; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Security — SignalDock</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <a class="logo" href="index.html#top" aria-label="SignalDock home">
+      <img src="../assets/logo.svg" width="40" height="40" alt="">
+      <span><strong>Signal</strong><b>Dock</b></span>
+    </a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="index.html#features">Features</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="index.html#formats">Formats</a>
+      <a href="index.html#workflow">Workflow</a>
+    </nav>
+    <a class="header-cta" href="../index.html">Open SignalDock</a>
+  </header>
+
+  <main id="main-content">
+    <section class="section-shell" aria-labelledby="security-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">SECURITY</span>
+        <h1 id="security-title">Small capability surfaces, explicit trust boundaries.</h1>
+        <p>SignalDock keeps privileged browser and storage operations at narrow platform boundaries while analysis controllers receive only the callbacks they need.</p>
+      </div>
+      <div class="security-grid">
+        <article><span>01</span><h2>No application network path</h2><p>The application CSP uses <code>connect-src 'none'</code>. Production audits reject fetch, XMLHttpRequest, WebSocket and EventSource primitives in runtime JavaScript.</p></article>
+        <article><span>02</span><h2>Authenticated worker protocol</h2><p>Background filtering uses a versioned worker protocol with an unpredictable per-session token, allowlisted message types, request/version checks and bounded payload behavior.</p></article>
+        <article><span>03</span><h2>Bounded local inputs</h2><p>Import and analysis paths use explicit size or count limits where needed. Case imports are rejected above their safety limit before file contents are read.</p></article>
+        <article><span>04</span><h2>No generic native bridge</h2><p>Desktop integration is intentionally narrow. SignalDock does not expose a generic shell, exec, spawn or arbitrary native invoke surface to application controllers.</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell" aria-labelledby="security-assurance-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">ASSURANCE</span>
+        <h2 id="security-assurance-title">Checks that ship with the project.</h2>
+        <p>The repository runs repeatable quality gates around syntax, regressions, static architecture rules, local HTTP serving and CodeQL analysis.</p>
+      </div>
+      <div class="format-groups">
+        <article><h3>Architecture assertions</h3><p>Controller smoke tests verify ownership boundaries and reject direct storage, filesystem, worker or network capability access where it does not belong.</p></article>
+        <article><h3>Static production audit</h3><p>Static checks reject inline CSS/JavaScript, external runtime resources, missing local references and network primitives in production JavaScript.</p></article>
+      </div>
+      <p class="format-note"><strong>Dedicated workers:</strong> worker messages are authenticated by protocol and session token. SignalDock intentionally does not use a window-style <code>event.origin</code> check for dedicated worker messages.</p>
+    </section>
+
+    <section class="cta">
+      <div><span class="eyebrow">DEFENSE THROUGH BOUNDARIES</span><h2>Keep privileged capabilities narrow.</h2><p>SignalDock favors explicit local actions over generic or ambient authority.</p></div>
+      <a class="button button--primary" href="../index.html">Launch SignalDock</a>
+    </section>
+  </main>
+
+  <footer>
+    <a class="logo" href="index.html#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
+    <span><a href="privacy.html">Privacy</a> · <a href="security.html">Security</a></span>
+    <span>Local-first · capability-bounded</span>
+  </footer>
+</body>
+</html>
