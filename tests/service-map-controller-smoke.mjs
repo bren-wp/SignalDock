@@ -77,6 +77,7 @@ const controller = api.create({ state, el });
 controller.render(true);
 assert.ok(Array.isArray(buildCalls.at(-1).indexes), "filtered scope must pass an explicit index list");
 assert.equal(buildCalls.at(-1).indexes.length, 0, "zero-result filtered scope must remain empty");
+assert.equal(buildCalls.at(-1).indexes, state.filteredIndexes, "filtered Service Map scope must reuse the state index array");
 controller.render(false);
 assert.equal(buildCalls.at(-1).indexes, null, "all-log scope must use null indexes");
 console.log("service-map-controller-smoke PASS");
