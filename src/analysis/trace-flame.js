@@ -8,6 +8,55 @@
     return Number.isFinite(value) && value >= 0 ? value : null;
   }
 
+  function compareSpanOrder(a, b) {
+    return a.timestampMs - b.timestampMs || duration(b) - duration(a);
+  }
+
+  function selectEarliestSpans(spans, limit) {
+    if (spans.length <= limit) return spans.slice().sort(compareSpanOrder);
+    const heap = [];
+
+    function swap(left, right) {
+      const value = heap[left];
+      heap[left] = heap[right];
+      heap[right] = value;
+    }
+
+    function siftUp(index) {
+      while (index > 0) {
+        const parent = Math.floor((index - 1) / 2);
+        if (compareSpanOrder(heap[parent], heap[index]) >= 0) break;
+        swap(parent, index);
+        index = parent;
+      }
+    }
+
+    function siftDown(index) {
+      while (true) {
+        const left = index * 2 + 1;
+        const right = left + 1;
+        let worst = index;
+        if (left < heap.length && compareSpanOrder(heap[left], heap[worst]) > 0) worst = left;
+        if (right < heap.length && compareSpanOrder(heap[right], heap[worst]) > 0) worst = right;
+        if (worst === index) break;
+        swap(index, worst);
+        index = worst;
+      }
+    }
+
+    for (const span of spans) {
+      if (heap.length < limit) {
+        heap.push(span);
+        siftUp(heap.length - 1);
+        continue;
+      }
+      if (compareSpanOrder(span, heap[0]) >= 0) continue;
+      heap[0] = span;
+      siftDown(0);
+    }
+    return heap.sort(compareSpanOrder);
+  }
+
   function layout(entries, options = {}) {
     const maxBars = Math.max(50, Math.min(1000, Number(options.maxBars) || 400));
     const spans = (entries || []).filter((entry) => Number.isFinite(entry?.timestampMs) && duration(entry) !== null && entry?.correlations?.span);
@@ -36,8 +85,7 @@
     }
 
     const totalMs = Math.max(0.001, maxEnd - minStart);
-    const sorted = spans.slice().sort((a, b) => a.timestampMs - b.timestampMs || duration(b) - duration(a));
-    const selected = sorted.slice(0, maxBars);
+    const selected = selectEarliestSpans(spans, maxBars);
     const bars = selected.map((entry) => {
       const depth = depthOf(entry);
       const startPct = ((entry.timestampMs - minStart) / totalMs) * 100;
