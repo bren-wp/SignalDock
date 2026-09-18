@@ -8,9 +8,8 @@
     return value && value !== "—" ? value : "";
   }
 
-  function percentile(values, p) {
-    if (!values.length) return null;
-    const sorted = [...values].sort((a, b) => a - b);
+  function percentileSorted(sorted, p) {
+    if (!sorted.length) return null;
     return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1))];
   }
 
@@ -45,18 +44,23 @@
       if (Number.isFinite(duration) && duration >= 0 && row.durations.length < MAX_DURATION_SAMPLES) row.durations.push(duration);
       edges.set(key, row);
     }
-    return new Map([...edges.entries()].map(([key, row]) => [key, {
-      key,
-      source: row.source,
-      target: row.target,
-      calls: row.calls,
-      errors: row.errors,
-      warnings: row.warnings,
-      errorRate: row.calls ? row.errors / row.calls : 0,
-      p95Ms: percentile(row.durations, 0.95),
-      medianMs: percentile(row.durations, 0.5),
-      timedCalls: row.durations.length
-    }]));
+    const normalized = new Map();
+    for (const [key, row] of edges) {
+      row.durations.sort((a, b) => a - b);
+      normalized.set(key, {
+        key,
+        source: row.source,
+        target: row.target,
+        calls: row.calls,
+        errors: row.errors,
+        warnings: row.warnings,
+        errorRate: row.calls ? row.errors / row.calls : 0,
+        p95Ms: percentileSorted(row.durations, 0.95),
+        medianMs: percentileSorted(row.durations, 0.5),
+        timedCalls: row.durations.length
+      });
+    }
+    return normalized;
   }
 
   function classify(before, after) {
@@ -91,11 +95,21 @@
     if (splitMs <= min || splitMs >= max) return { rows: [], windows: null, summary: { edges: 0, changed: 0, newEdges: 0, disappearedEdges: 0 } };
     const before = periodEdges(source, selected, min, splitMs);
     const after = periodEdges(source, selected, splitMs, max + 1);
-    const keys = new Set([...before.keys(), ...after.keys()]);
-    const rows = [...keys].map((key) => {
-      const left = before.get(key) || { key, source: key.split("\u0000")[0], target: key.split("\u0000")[1], calls: 0, errors: 0, warnings: 0, errorRate: 0, p95Ms: null, medianMs: null, timedCalls: 0 };
+    const keys = new Set(before.keys());
+    for (const key of after.keys()) keys.add(key);
+
+    const rows = [];
+    const summary = { edges: keys.size, changed: 0, newEdges: 0, disappearedEdges: 0, degrading: 0 };
+    for (const key of keys) {
+      const [sourceName, targetName] = key.split("\u0000");
+      const left = before.get(key) || { key, source: sourceName, target: targetName, calls: 0, errors: 0, warnings: 0, errorRate: 0, p95Ms: null, medianMs: null, timedCalls: 0 };
       const right = after.get(key) || { key, source: left.source, target: left.target, calls: 0, errors: 0, warnings: 0, errorRate: 0, p95Ms: null, medianMs: null, timedCalls: 0 };
-      return {
+      const trend = classify(left, right);
+      if (trend !== "stable") summary.changed += 1;
+      if (trend === "new") summary.newEdges += 1;
+      else if (trend === "disappeared") summary.disappearedEdges += 1;
+      else if (trend === "degrading") summary.degrading += 1;
+      rows.push({
         key,
         source: left.source || right.source,
         target: left.target || right.target,
@@ -105,22 +119,16 @@
         deltaErrors: right.errors - left.errors,
         deltaErrorRate: right.errorRate - left.errorRate,
         deltaP95Ms: Number.isFinite(left.p95Ms) && Number.isFinite(right.p95Ms) ? right.p95Ms - left.p95Ms : null,
-        trend: classify(left, right)
-      };
-    }).sort((a, b) => {
-      const priority = { new: 6, degrading: 5, rising: 4, disappeared: 3, improving: 2, falling: 1, stable: 0 };
-      return (priority[b.trend] || 0) - (priority[a.trend] || 0) || Math.abs(b.deltaCalls) - Math.abs(a.deltaCalls) || a.key.localeCompare(b.key);
-    });
+        trend
+      });
+    }
+
+    const priority = { new: 6, degrading: 5, rising: 4, disappeared: 3, improving: 2, falling: 1, stable: 0 };
+    rows.sort((a, b) => (priority[b.trend] || 0) - (priority[a.trend] || 0) || Math.abs(b.deltaCalls) - Math.abs(a.deltaCalls) || a.key.localeCompare(b.key));
     return {
       rows,
       windows: { before: { startMs: min, endMs: splitMs }, after: { startMs: splitMs, endMs: max } },
-      summary: {
-        edges: rows.length,
-        changed: rows.filter((row) => row.trend !== "stable").length,
-        newEdges: rows.filter((row) => row.trend === "new").length,
-        disappearedEdges: rows.filter((row) => row.trend === "disappeared").length,
-        degrading: rows.filter((row) => row.trend === "degrading").length
-      }
+      summary
     };
   }
 
