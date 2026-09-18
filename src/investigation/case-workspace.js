@@ -205,11 +205,15 @@
     return target;
   }
 
-  function removeFinding(caseFile, id) {
+  function removeCollectionItem(caseFile, collection, id) {
     const target = normalize(caseFile);
-    target.findings = target.findings.filter((item) => item.id !== id);
+    target[collection] = target[collection].filter((item) => item.id !== id);
     target.updatedAt = new Date().toISOString();
     return target;
+  }
+
+  function removeFinding(caseFile, id) {
+    return removeCollectionItem(caseFile, "findings", id);
   }
 
   function addMilestone(caseFile, patch = {}) {
@@ -229,7 +233,7 @@
     target.updatedAt = new Date().toISOString(); return target;
   }
 
-  function removeMilestone(caseFile, id) { const target = normalize(caseFile); target.milestones = target.milestones.filter((item) => item.id !== id); target.updatedAt = new Date().toISOString(); return target; }
+  function removeMilestone(caseFile, id) { return removeCollectionItem(caseFile, "milestones", id); }
 
   function addAttachmentMetadata(caseFile, fileLike = {}, note = "") {
     const target = normalize(caseFile);
@@ -246,7 +250,7 @@
     target.updatedAt = new Date().toISOString(); return target;
   }
 
-  function removeAttachment(caseFile, id) { const target = normalize(caseFile); target.attachments = target.attachments.filter((item) => item.id !== id); target.updatedAt = new Date().toISOString(); return target; }
+  function removeAttachment(caseFile, id) { return removeCollectionItem(caseFile, "attachments", id); }
 
   function pruneEvidenceLinks(caseFile, evidenceItems = []) {
     const target = normalize(caseFile);
