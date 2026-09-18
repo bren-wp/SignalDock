@@ -15,6 +15,8 @@
       prepareWorkspaceArchive,
       persistWorkspaceArchive,
       readAndParseWorkspace,
+      normalizeWorkspaceSnapshot,
+      normalizeWorkspaceSnapshot,
       normalizeWorkspaceDomain,
       persistActiveProjectId,
       isServiceMapGroupMode,
@@ -93,7 +95,7 @@
     }
 
     function currentWorkspaceState() {
-      return {
+      return normalizeWorkspaceSnapshot({
         loadedBytes: state.loadedBytes,
         inputFileCount: state.inputFileCount,
         view: currentViewState(),
@@ -103,7 +105,7 @@
         caseCheckpoints: state.caseCheckpoints,
         baselineSnapshot: state.baselineSnapshot,
         activeProjectId: state.activeProjectId
-      };
+      });
     }
 
     async function saveWorkspace() {
