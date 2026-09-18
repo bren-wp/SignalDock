@@ -23,7 +23,12 @@ const meta=await SignalDockSearchCache.loadMetadata(key); assert(meta?.index?.to
 const parsed=SignalDockQueryEngine.parseSmartQuery('needle'); const disk=await SignalDockSearchCache.candidates(key,parsed,{query:'needle'},SignalDockSearchIndex); assert(disk.indexes?.includes(19001),'disk candidate lookup failed');
 const loaded=await SignalDockSearchCache.load(key); assert(loaded?.index?.tokenMap instanceof Map&&loaded.index.tokenMap.size===index.tokenMap.size,'full load compatibility failed');
 const info=await SignalDockSearchCache.info(); assert(info?.bucketCount===saved.bucketCount&&info.format==='bucketed-v3','cache info failed');
+records.set('active-meta',{...storedMeta,version:999});assert(await SignalDockSearchCache.info()===null,'stale cache metadata must not be reported by info');
+records.set('active-meta',{...storedMeta,bucketIds:[0,0]});assert(await SignalDockSearchCache.info()===null,'invalid cache bucket manifest must not be reported by info');
+records.set('active-meta',storedMeta);
 await SignalDockSearchCache.clear(); assert(await SignalDockSearchCache.load(key)===null,'clear failed');
 const source=fs.readFileSync(path.join(root,'src/core/search-cache.js'),'utf8');
 assert(!source.includes('let previous = null; try { [previous] = await getRecords([META_KEY]); }'),'search-cache save must not read old metadata only for cleanup');
+assert(!source.includes('for (const pair of mapEntries(index.tokenMap))'),'search-cache save must not materialize the full token map before bucketing');
+assert(source.includes('for (const pair of index.tokenMap)'),'search-cache save must stream token map entries directly');
 console.log('search cache bucketed-v3 smoke ok');
