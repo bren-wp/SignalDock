@@ -2,6 +2,8 @@
   "use strict";
 
   const plugins = new Map();
+  let orderedPlugins = [];
+  let orderDirty = true;
 
   function validate(plugin) {
     if (!plugin || typeof plugin !== "object") throw new Error("Parser plugin must be an object.");
@@ -11,22 +13,33 @@
     return Object.freeze({ id, label: String(plugin.label || id), priority: Number(plugin.priority) || 0, test: plugin.test, parse: plugin.parse });
   }
 
+  function ordered() {
+    if (orderDirty) {
+      orderedPlugins = [...plugins.values()].sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
+      orderDirty = false;
+    }
+    return orderedPlugins;
+  }
+
   function register(plugin) {
     const normalized = validate(plugin);
     plugins.set(normalized.id, normalized);
+    orderDirty = true;
     return normalized;
   }
 
   function unregister(id) {
-    return plugins.delete(String(id || "").toLowerCase());
+    const removed = plugins.delete(String(id || "").toLowerCase());
+    if (removed) orderDirty = true;
+    return removed;
   }
 
   function list() {
-    return [...plugins.values()].sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id)).map((plugin) => ({ id: plugin.id, label: plugin.label, priority: plugin.priority }));
+    return ordered().map((plugin) => ({ id: plugin.id, label: plugin.label, priority: plugin.priority }));
   }
 
   function parseLine(line, context = {}) {
-    for (const plugin of [...plugins.values()].sort((a, b) => b.priority - a.priority)) {
+    for (const plugin of ordered()) {
       try {
         if (!plugin.test(line, context)) continue;
         const result = plugin.parse(line, context);
