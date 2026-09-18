@@ -109,20 +109,16 @@ const definedClasses = new Set([...css.matchAll(/\.([A-Za-z_][\w-]*)/g)].map((ma
 const unusedClasses = [...definedClasses].filter((className) => !usedClasses.has(className)).sort();
 assert.deepEqual(unusedClasses, [], "website CSS contains unused class selectors: " + unusedClasses.join(", "));
 
-function escapeRegExp(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\assert.ok(!/\.site-header nav\s*\{[^}]*display\s*:\s*none/is.test(css), "responsive website nav must remain reachable");
-console.log("website-production-smoke PASS");
-"); }
+const websiteIds = new Map([...websitePages].map(([pageName, html]) => [pageName, new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]))]));
 function assertAnchorTargets(pageName, html) {
   for (const match of html.matchAll(/href="([^"]*#[^"]+)"/g)) {
     const href = match[1];
     const [rawPath, rawFragment] = href.split("#");
     if (!rawFragment) continue;
     const targetName = rawPath || pageName;
-    const targetHtml = websitePages.get(targetName);
-    if (!targetHtml) continue;
-    const fragment = decodeURIComponent(rawFragment);
-    const idPattern = new RegExp('\\bid=["\\\']' + escapeRegExp(fragment) + '["\\\']');
-    assert.ok(idPattern.test(targetHtml), pageName + " has broken anchor target: " + href);
+    const targetIds = websiteIds.get(targetName);
+    if (!targetIds) continue;
+    assert.ok(targetIds.has(decodeURIComponent(rawFragment)), pageName + " has broken anchor target: " + href);
   }
 }
 for (const [pageName, html] of websitePages) assertAnchorTargets(pageName, html);
