@@ -1,11 +1,14 @@
 (function (root) {
   "use strict";
 
-  function percentile(values, p) {
-    if (!values.length) return null;
-    const sorted = values.slice().sort((a, b) => a - b);
+  function percentileSorted(sorted, p) {
+    if (!sorted.length) return null;
     const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1));
     return sorted[index];
+  }
+
+  function percentile(values, p) {
+    return percentileSorted(values.slice().sort((a, b) => a - b), p);
   }
 
   function timestamp(entry) {
@@ -62,6 +65,7 @@
     }
 
     const rows = [...groups.values()].map((row) => {
+      row.durations.sort((a, b) => a - b);
       const result = {
         service: row.service,
         total: row.total,
@@ -74,8 +78,8 @@
         environments: [...row.environments].sort(),
         namespaces: [...row.namespaces].sort(),
         exceptionGroups: row.exceptionFingerprints.size,
-        p95DurationMs: percentile(row.durations, 0.95),
-        medianDurationMs: percentile(row.durations, 0.50),
+        p95DurationMs: percentileSorted(row.durations, 0.95),
+        medianDurationMs: percentileSorted(row.durations, 0.50),
         durationSamples: row.durations.length,
         recentErrors: row.recentErrors,
         previousErrors: row.previousErrors,
