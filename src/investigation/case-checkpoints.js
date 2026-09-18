@@ -13,7 +13,17 @@
     }
     return out;
   }
-  function evidenceIds(investigation) { return cleanEvidenceIds((Array.isArray(investigation?.items) ? investigation.items : []).map((item) => item?.id)); }
+  function evidenceIds(investigation) {
+    const items = Array.isArray(investigation?.items) ? investigation.items : [];
+    const out = [];
+    for (const item of items) {
+      const id = clean(item?.id, 96);
+      if (!id) continue;
+      out.push(id);
+      if (out.length >= 5000) break;
+    }
+    return out;
+  }
   function normalizeOne(checkpoint, index = 0) {
     const source = checkpoint && typeof checkpoint === "object" ? checkpoint : {};
     return { id: clean(source.id || `checkpoint-${index + 1}`, 96), label: clean(source.label || `Checkpoint ${index + 1}`, 160), note: clean(source.note || "", 3000), createdAt: clean(source.createdAt || new Date().toISOString(), 64), caseFile: source.caseFile && typeof source.caseFile === "object" ? source.caseFile : {}, evidenceIds: cleanEvidenceIds(source.evidenceIds) };
