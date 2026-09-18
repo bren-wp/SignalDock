@@ -51,3 +51,17 @@ const nsServiceGraph = globalThis.SignalDockServiceMap.build(scopedEntries, null
 assert(nsServiceGraph.nodes.some((node) => node.id === "front/api") && nsServiceGraph.nodes.some((node) => node.id === "data/db"), "namespace + service grouping failed");
 assert(nsServiceGraph.edges.some((edge) => edge.from === "front/api" && edge.to === "data/db"), "grouped explicit dependency missing");
 console.log("PASS environment/namespace topology grouping");
+
+const manyServices = Array.from({ length: 2000 }, (_, index) => ({
+  service: `svc-${String(index).padStart(4, "0")}`,
+  level: "INFO",
+  correlations: { trace: `trace-${index}`, span: `span-${index}` },
+  traceMeta: { parentSpan: "", durationMs: 1 }
+}));
+const cappedGraph = globalThis.SignalDockServiceMap.build(manyServices);
+assert(cappedGraph.stats.services === 2000, "large service map service count mismatch");
+assert(cappedGraph.stats.groups === 2000, "large service map group count mismatch");
+assert(cappedGraph.nodes.length === globalThis.SignalDockServiceMap.MAX_NODES, "service map visible node cap mismatch");
+assert(cappedGraph.stats.hiddenServices === 2000 - globalThis.SignalDockServiceMap.MAX_NODES, "service map hidden node count mismatch");
+assert(cappedGraph.nodes[0]?.id === "svc-0000" && cappedGraph.nodes.at(-1)?.id === "svc-0023", "bounded service map tie ranking mismatch");
+console.log("PASS bounded service map node ranking");
