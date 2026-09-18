@@ -51,6 +51,13 @@ assert.equal(regressed.countDelta, 2);
 assert.equal(regressed.p95Delta, 50);
 assert.ok(regressed.errorRateDelta > 0);
 
+const missingLatency = context.SignalDockTraceRegression.compare(
+  { traceSets: [traceSet("untimed", 3, 120, 0.01)] },
+  { traceSets: [traceSet("untimed", 3, null, 0.01)] }
+);
+assert.equal(missingLatency.rows[0].p95Delta, null, "missing baseline latency must stay unknown");
+assert.equal(missingLatency.rows[0].status, "stable", "missing latency alone must not create a regression label");
+
 const source = fs.readFileSync(new URL("../src/analysis/trace-regression.js", import.meta.url), "utf8");
 assert.equal((source.match(/rows\.filter\(/g) || []).length, 0, "trace regression summary must not rescan rows with filter()");
 assert.equal(source.includes("cur.map("), false, "trace regression must not build temporary current-map arrays");
