@@ -201,7 +201,9 @@
     const check = eligible(index);
     if (!available() || !datasetKey || !check.allowed) return { saved: false, reason: check.allowed ? "indexeddb-unavailable" : "ineligible", estimatedBytes: check.estimatedBytes };
     const buckets = Array.from({ length: BUCKET_COUNT }, () => []);
-    for (const pair of mapEntries(index.tokenMap)) buckets[bucketId(pair[0])].push(pair);
+    if (index.tokenMap instanceof Map) {
+      for (const pair of index.tokenMap) buckets[bucketId(pair[0])].push(pair);
+    }
     const bucketIds = []; buckets.forEach((entries, id) => { if (entries.length) bucketIds.push(id); });
     const savedAt = new Date().toISOString();
     const meta = { key: META_KEY, version: VERSION, datasetKey, savedAt, estimatedBytes: check.estimatedBytes, bucketIds, stats: index.stats, maps: { level: mapEntries(index.levelMap), service: mapEntries(index.serviceMap), source: mapEntries(index.sourceMap), environment: mapEntries(index.environmentMap), namespace: mapEntries(index.namespaceMap), exception: mapEntries(index.exceptionMap), correlations: correlationEntries(index.correlationMaps) } };
