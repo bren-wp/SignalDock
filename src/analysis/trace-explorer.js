@@ -161,19 +161,27 @@
       });
     }
 
-    const allRows = [...traces.values()].map((row) => ({
-      traceId: row.traceId,
-      entries: row.entries,
-      spans: row.spans,
-      services: [...row.services].sort(),
-      serviceCount: row.services.size,
-      errors: row.errors,
-      warnings: row.warnings,
-      events: row.events,
-      durationMs: row.startMs !== null && row.endMs !== null ? Math.max(0, row.endMs - row.startMs) : null,
-      parentCoverage: row.parented ? row.linkedParents / row.parented : 1,
-      sampleIndex: row.sampleIndex
-    }));
+    const allRows = [];
+    let errorTraces = 0;
+    let incompleteTraces = 0;
+    for (const row of traces.values()) {
+      const normalized = {
+        traceId: row.traceId,
+        entries: row.entries,
+        spans: row.spans,
+        services: [...row.services].sort(),
+        serviceCount: row.services.size,
+        errors: row.errors,
+        warnings: row.warnings,
+        events: row.events,
+        durationMs: row.startMs !== null && row.endMs !== null ? Math.max(0, row.endMs - row.startMs) : null,
+        parentCoverage: row.parented ? row.linkedParents / row.parented : 1,
+        sampleIndex: row.sampleIndex
+      };
+      if (normalized.errors > 0) errorTraces += 1;
+      if (normalized.parentCoverage < 1) incompleteTraces += 1;
+      allRows.push(normalized);
+    }
 
     const offset = Math.max(0, Math.floor(Number(options.offset) || 0));
     const hasExplicitLimit = options.limit !== undefined && options.limit !== null;
@@ -191,8 +199,8 @@
       rows,
       summary: {
         traces: allRows.length,
-        errors: allRows.filter((row) => row.errors > 0).length,
-        incomplete: allRows.filter((row) => row.parentCoverage < 1).length,
+        errors: errorTraces,
+        incomplete: incompleteTraces,
         services: globalServices.size,
         entriesScanned,
         traceEntries,
