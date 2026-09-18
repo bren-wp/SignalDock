@@ -248,7 +248,7 @@ write("CHANGELOG.md", changelog);
 
 const finalController = read("src/app/workspace-controller.js");
 for (const token of [
-  "SignalDockWorkspace",
+  "SignalDockWorkspace.",
   "SignalDockDesktopBridge",
   "SignalDockProjectManager",
   "SignalDockPersistence",
