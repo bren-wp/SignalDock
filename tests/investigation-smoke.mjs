@@ -4,6 +4,10 @@ const exCode=fs.readFileSync(new URL('../src/analysis/exception-groups.js', impo
 const code = fs.readFileSync(new URL('../src/investigation/investigation.js', import.meta.url), 'utf8');
 const context = { console, Date, Math, JSON, self: {} }; vm.createContext(context); vm.runInContext(exCode, context); vm.runInContext(code, context);
 const api = context.self.SignalDockInvestigation;
+const source=fs.readFileSync(new URL('../src/investigation/investigation.js', import.meta.url),'utf8');
+if(source.includes('target.items.map((item) => ({ item, ms:')) throw new Error('investigation timeline must not materialize a timed row copy');
+if(source.includes('Math.min(...timed.map(')||source.includes('Math.max(...timed.map(')) throw new Error('investigation timeline must not spread timed arrays');
+if(source.includes('target.items.filter((item) => item.snapshot).length')) throw new Error('bundle manifest must count snapshots in the shared streaming pass');
 let notebook = api.empty();
 const entry = { id:'sd-4', globalIndex:4, source:'api.log', service:'auth', level:'ERROR', timestamp:'2026-09-12T10:00:00.000Z', message:'TimeoutError: token 123 expired', raw:{exception:{type:'TimeoutError'}}, correlations:{trace:'t1'}, traceMeta:{durationMs:12}, dimensions:{environment:'prod'} };
 let result = api.add(notebook, entry, 'Investigate this', ['Auth', 'incident 42']); notebook = result.notebook;
@@ -19,5 +23,15 @@ const legacy = api.importJson(JSON.stringify({schema:'signaldock.investigation',
 let badBundleVersion=false;try{api.importBundle(JSON.stringify({schema:'signaldock.evidence-bundle',version:'2',investigation:{schema:'signaldock.investigation',version:2,items:[]}}))}catch{badBundleVersion=true}if(!badBundleVersion)throw new Error('string evidence bundle version must be rejected');
 const bundleText=api.exportBundle(notebook,{appVersion:'2.0.0',sourceLabel:'test',caseFile:{schema:'signaldock.case',version:1,title:'Incident',status:'investigating',severity:'sev2',findings:[]}}); const bundle=api.importBundle(bundleText); if(bundle.investigation.items[0].snapshot?.dimensions?.environment!=='prod')throw new Error('evidence bundle roundtrip failed'); if(bundle.caseFile?.severity!=='sev2')throw new Error('case workspace missing from evidence bundle');
 const timeline=api.timeline(notebook); if(!timeline.buckets.length||timeline.total!==1)throw new Error('timeline failed');
+const baseMs=Date.parse('2026-09-12T00:00:00.000Z');
+const largeNotebook=api.normalize({items:Array.from({length:api.MAX_ITEMS+500},(_,index)=>({id:`large-${index}`,service:`svc-${index}`,fingerprint:`fp-${index}`,level:index%97===0?'FATAL':index%31===0?'ERROR':'INFO',timestamp:new Date(baseMs+index*1000).toISOString(),snapshot:index%2===0?{}:null}))});
+if(largeNotebook.items.length!==api.MAX_ITEMS)throw new Error('large investigation normalization cap failed');
+const largeTimeline=api.timeline(largeNotebook,{maxBuckets:48});
+if(largeTimeline.total!==api.MAX_ITEMS||largeTimeline.buckets.length!==48)throw new Error('large investigation timeline bucket cap failed');
+if(largeTimeline.start!==baseMs||largeTimeline.end!==baseMs+(api.MAX_ITEMS-1)*1000)throw new Error('large investigation timeline bounds failed');
+const largeBundle=JSON.parse(api.exportBundle(largeNotebook));
+if(largeBundle.manifest.snapshotItems!==api.MAX_ITEMS/2)throw new Error('large bundle snapshot count failed');
+if(largeBundle.manifest.services.length!==256||largeBundle.manifest.services[0]!=='svc-0'||largeBundle.manifest.services[255]!=='svc-255')throw new Error('bundle service cap/order failed');
+if(largeBundle.manifest.fingerprints.length!==512||largeBundle.manifest.fingerprints[0]!=='fp-0'||largeBundle.manifest.fingerprints[511]!=='fp-511')throw new Error('bundle fingerprint cap/order failed');
 notebook = api.remove(round, round.items[0].id); if (notebook.items.length) throw new Error('remove failed');
 console.log('investigation smoke ok');
