@@ -19,6 +19,8 @@ for (const token of ['function openHealth()', 'function renderHealth(', 'functio
 for (const forbidden of ['fetch(', 'XMLHttpRequest', 'WebSocket', '.invoke(', 'localStorage', 'sessionStorage']) {
   assert.ok(!source.includes(forbidden), `Health controller must remain local-only: ${forbidden}`);
 }
+assert.ok(!source.includes("scope.indexes.map("), "Health controller must not materialize a filtered entry copy");
+assert.ok(source.includes("SignalDockServiceHealth.analyze(state.entries, { indexes: scope.indexes })"), "Health controller must delegate filtered scope by indexes");
 
 const context = { self: {} };
 vm.runInNewContext(source, context, { filename: 'health-controller.js' });
