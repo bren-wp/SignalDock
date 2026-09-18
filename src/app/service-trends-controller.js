@@ -8,6 +8,7 @@
   const MAX_RENDER_ROWS = 500;
 
   function normalizeSplit(value) {
+    if (value === null || value === undefined || value === "") return DEFAULT_SPLIT;
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return DEFAULT_SPLIT;
     return Math.max(MIN_SPLIT, Math.min(MAX_SPLIT, numeric));
