@@ -16,16 +16,17 @@
 
   function periodEdges(entries, indexes, startMs, endMs) {
     const source = Array.isArray(entries) ? entries : [];
-    const selected = Array.isArray(indexes) ? indexes : source.map((_, index) => index);
+    const selected = Array.isArray(indexes) ? indexes : null;
+    const selectedIndexes = () => selected || source.keys();
     const spanMap = new Map();
-    for (const index of selected) {
+    for (const index of selectedIndexes()) {
       const entry = source[index];
       if (!entry) continue;
       const span = String(entry?.correlations?.span || "").trim();
       if (span) spanMap.set(span, entry);
     }
     const edges = new Map();
-    for (const index of selected) {
+    for (const index of selectedIndexes()) {
       const entry = source[index];
       if (!entry) continue;
       const ts = Number(entry.timestampMs);
@@ -74,11 +75,11 @@
 
   function compare(entries, indexes = null, options = {}) {
     const source = Array.isArray(entries) ? entries : [];
-    const selected = Array.isArray(indexes) ? indexes : source.map((_, index) => index);
+    const selected = Array.isArray(indexes) ? indexes : null;
     let min = Infinity;
     let max = -Infinity;
     let timedEntries = 0;
-    for (const index of selected) {
+    for (const index of selected || source.keys()) {
       const timestampMs = Number(source[index]?.timestampMs);
       if (!Number.isFinite(timestampMs)) continue;
       timedEntries += 1;
