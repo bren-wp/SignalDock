@@ -57,6 +57,21 @@ layout = replaceOnce(
 write("tests/source-layout-smoke.mjs", layout);
 write("tests/element-registry-smoke.mjs", "import fs from \"node:fs\";\nimport path from \"node:path\";\nimport assert from \"node:assert/strict\";\nimport vm from \"node:vm\";\nimport { fileURLToPath } from \"node:url\";\n\nconst root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), \"..\");\nconst read = (name) => fs.readFileSync(path.join(root, name), \"utf8\");\nconst html = read(\"index.html\");\nconst app = read(\"app.js\");\nconst source = read(\"src/app/element-registry.js\");\n\nassert.ok(html.includes('src/app/element-registry.js'));\nassert.ok(html.indexOf('src/app/element-registry.js') < html.indexOf('app.js'));\nassert.ok(app.includes(\"SignalDockElementRegistry.create(document)\"));\nassert.ok(!app.includes('const $ = (id) => document.getElementById(id);'));\nassert.ok(!app.includes(\"Object.assign(el, {\"));\n\nfor (const token of [\n  \"SignalDockStorageAdapter\", \"SignalDockPersistence\", \"SignalDockQueryEngine\",\n  \"indexedDB\", \"localStorage\", \"sessionStorage\", \"showOpenFilePicker\",\n  \"new Worker\", \".postMessage(\", \"XMLHttpRequest\", \"WebSocket\", \"EventSource\", \".invoke(\"\n]) assert.ok(!source.includes(token), \"forbidden element-registry capability: \" + token);\nassert.ok(!/\\bfetch\\s*\\(/.test(source));\n\nconst htmlIds = [...html.matchAll(/\\bid=\"([^\"]+)\"/g)].map((match) => match[1]);\nconst counts = new Map();\nfor (const id of htmlIds) counts.set(id, (counts.get(id) || 0) + 1);\n\nconst requested = [];\nconst document = {\n  getElementById(id) {\n    requested.push(id);\n    return { id };\n  }\n};\nconst host = { document };\nvm.runInNewContext(source, { self:host, window:host, console, Object }, { filename:\"element-registry.js\" });\n\nconst api = host.SignalDockElementRegistry;\nassert.ok(api);\nassert.ok(Object.isFrozen(api));\nassert.ok(Object.isFrozen(api.ELEMENT_IDS));\nassert.equal(api.ELEMENT_IDS.length, 255);\nassert.equal(new Set(api.ELEMENT_IDS).size, api.ELEMENT_IDS.length, \"registry IDs must be unique\");\n\nfor (const id of api.ELEMENT_IDS) {\n  assert.equal(counts.get(id), 1, \"registered element must exist exactly once in index.html: \" + id);\n}\n\nconst registry = api.create(document);\nassert.ok(Object.isFrozen(registry));\nassert.equal(Object.keys(registry).length, 255);\nassert.equal(requested.length, 255);\nfor (const id of api.ELEMENT_IDS) assert.equal(registry[id].id, id);\n\nconst unregisteredHtmlIds = htmlIds.filter((id) => !api.ELEMENT_IDS.includes(id));\nassert.ok(unregisteredHtmlIds.length < htmlIds.length, \"registry coverage sanity check failed\");\nconsole.log(\"element-registry-smoke PASS\");\n");
 
+let foundation = read("tests/static-foundation-ui-smoke.mjs");
+foundation = replaceOnce(
+  foundation,
+  'const tableViewController = read("src/app/table-view-controller.js");\n',
+  'const tableViewController = read("src/app/table-view-controller.js");\nconst elementRegistry = read("src/app/element-registry.js");\n',
+  "foundation element registry source"
+);
+foundation = replaceOnce(
+  foundation,
+  'for (const token of [\n  \'queryLibraryBulkCount: $("queryLibraryBulkCount")\',\n  \'baselineHistoryList: $("baselineHistoryList")\'\n]) assert.ok(app.includes(token), `static app registry binding missing: ${token}`);',
+  'assert.ok(app.includes("SignalDockElementRegistry.create(document)"), "static app must initialize the declarative element registry");\nfor (const id of ["queryLibraryBulkCount", "baselineHistoryList"]) assert.ok(elementRegistry.includes("\\\"" + id + "\\\""), "static element registry binding missing: " + id);',
+  "foundation registry ownership"
+);
+write("tests/static-foundation-ui-smoke.mjs", foundation);
+
 write("VERSION", "2.8.31\n");
 write("README.md", read("README.md").replaceAll("2.8.30", "2.8.31"));
 
