@@ -39,5 +39,25 @@ const exceptionCandidates = SignalDockSearchIndex.candidates(index, exceptionPar
 assert(exceptionCandidates.indexes?.length === 1 && exceptionCandidates.indexes[0] === 17777, "exception fingerprint should use exact candidate index");
 const regex = SignalDockSearchIndex.candidates(index, SignalDockQueryEngine.parseSmartQuery("re:/needle/i"), {});
 assert(regex.indexes === null, "regex query should use linear fallback");
+
+const multiLevelParsed = SignalDockQueryEngine.parseSmartQuery("level:error,info service:api");
+const multiLevelCandidates = SignalDockSearchIndex.candidates(index, multiLevelParsed, {});
+assert(Array.isArray(multiLevelCandidates.indexes), "multi-level query should stay indexable");
+for (let i = 1; i < multiLevelCandidates.indexes.length; i += 1) assert(multiLevelCandidates.indexes[i - 1] < multiLevelCandidates.indexes[i], "multi-level candidate union must stay sorted and unique");
+const multiLevelIndexed = SignalDockQueryEngine.filterIndexes(entries, { parsed: multiLevelParsed, showUnknown: true, sortMode: "original" }, multiLevelCandidates.indexes);
+const multiLevelLinear = SignalDockQueryEngine.filterIndexes(entries, { parsed: multiLevelParsed, showUnknown: true, sortMode: "original" });
+assert(multiLevelIndexed.indexes.join(",") === multiLevelLinear.indexes.join(","), "multi-level indexed union changed query semantics");
+
+const anyParsed = SignalDockQueryEngine.parseSmartQuery("any:needle,timeout");
+const anyCandidates = SignalDockSearchIndex.candidates(index, anyParsed, {});
+assert(Array.isArray(anyCandidates.indexes), "any query should stay indexable");
+for (let i = 1; i < anyCandidates.indexes.length; i += 1) assert(anyCandidates.indexes[i - 1] < anyCandidates.indexes[i], "any candidate union must stay sorted and unique");
+const anyIndexed = SignalDockQueryEngine.filterIndexes(entries, { parsed: anyParsed, showUnknown: true, sortMode: "original" }, anyCandidates.indexes);
+const anyLinear = SignalDockQueryEngine.filterIndexes(entries, { parsed: anyParsed, showUnknown: true, sortMode: "original" });
+assert(anyIndexed.indexes.join(",") === anyLinear.indexes.join(","), "any indexed union changed query semantics");
 console.log(`PASS search index build (${index.stats.tokens.toLocaleString()} tokens · ${index.stats.elapsedMs} ms)`);
 console.log("PASS 3-gram substring candidate narrowing + semantic fallback guards");
+const searchIndexSource = fs.readFileSync(path.join(root, "src/core/search-index.js"), "utf8");
+assert(searchIndexSource.includes("function mergeSortedUnique("), "search index must merge sorted posting lists directly");
+assert(!searchIndexSource.includes("const set = new Set();\n    for (const array of arrays)"), "search index union must not materialize a global Set then sort");
+console.log("PASS sorted multi-posting union equivalence");
