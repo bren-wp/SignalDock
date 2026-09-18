@@ -16,6 +16,11 @@ const entries=[
 ];
 const data=globalThis.SignalDockServiceTrends.compare(entries,null,{splitMs:t+8000});
 assert(data.rows.length===1,'expected one edge'); const row=data.rows[0];
+const autoSplit=globalThis.SignalDockServiceTrends.compare(entries,null,{splitMs:null});
+assert(autoSplit.windows!==null,'null split must use the default midpoint');
+assert(autoSplit.windows.before.endMs===t+7500,'null split midpoint changed');
+const emptySplit=globalThis.SignalDockServiceTrends.compare(entries,null,{splitMs:''});
+assert(emptySplit.windows?.before.endMs===t+7500,'empty split must use the default midpoint');
 assert(row.before.calls===2&&row.after.calls===3,'period call counts mismatch');
 assert(row.after.errors===3&&row.deltaErrors===3,'period error delta mismatch');
 assert(row.before.medianMs===10&&row.before.p95Ms===12,'before percentile values changed');
