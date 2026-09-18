@@ -521,6 +521,7 @@
     }
 
     function formatDuration(value) {
+      if (value === null || value === undefined || value === "") return "—";
       const ms = Number(value);
       if (!Number.isFinite(ms)) return "—";
       if (ms < 1) return `${Math.round(ms * 1000)} µs`;
