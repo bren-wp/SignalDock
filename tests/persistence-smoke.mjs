@@ -29,6 +29,7 @@ for (const invalid of [0, -1, 1.5, NaN, Infinity, persistence.MAX_CHUNKS + 1, "1
 console.log("PASS bounded recovery manifest chunks");
 const persistenceSource = fs.readFileSync(path.join(root, "src/core/persistence.js"), "utf8");
 assert(persistenceSource.includes("const oldCount = validChunkCount(previousManifest?.chunkCount);"), "stale recovery cleanup must validate previous chunk count");
+assert(persistenceSource.includes("const cleanupLimit = oldCount || (previousManifest ? MAX_CHUNKS : chunkCount);"), "corrupt previous recovery manifests must trigger a bounded stale-chunk sweep");
 assert(!persistenceSource.includes("const oldCount = Number(previousManifest?.chunkCount) || 0;"), "stale recovery cleanup must not trust coerced chunk metadata");
 assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(manifest.chunkCount) : (legacy ? 1 : 0)"), "recovery info must normalize manifest chunk count");
 assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(metadata.chunkCount) : 1"), "restored recovery metadata must normalize manifest chunk count");
