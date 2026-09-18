@@ -12,7 +12,7 @@ const security = readWebsite("security.html");
 const css = readWebsite("styles.css");
 const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
 
-assert.equal(version, "2.8.30");
+assert.equal(version, "2.8.31");
 
 for (const [name, html] of [["index.html", home], ["privacy.html", privacy], ["security.html", security]]) {
   assert.ok(html.includes('class="skip-link"'), name + " missing skip link");
@@ -29,7 +29,7 @@ for (const token of [
   'id="security"',
   'id="formats"',
   'id="faq"',
-  'SignalDock v2.8.30',
+  'SignalDock v2.8.31',
   'href="privacy.html"',
   'href="security.html"'
 ]) assert.ok(home.includes(token), "homepage token missing: " + token);

@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.30**.
+Current version: **2.8.31**.
 
 ## Highlights
 
@@ -679,3 +679,6 @@ View Orchestrator controller: high-level full-view and data-view render sequenci
 Settings capability hardening: parser-profile imports no longer call file.text() inside Settings. A 4 MB pre-read guard is enforced and text is supplied through a root-injected Storage Adapter callback. Custom parser profile normalization is now owned by Settings with a thin root delegate for parser callbacks.
 
 Mobile hardening: the application keeps dynamic viewport height at mobile breakpoints, honors iOS safe-area insets for topbar/Inspector/toasts and increases key coarse-pointer action targets without changing desktop density.
+
+
+Element Registry: the 255 application DOM references are declared under src/app/element-registry.js rather than assembled inline inside init(). The registry has no storage, worker, filesystem or network capabilities, and its smoke test requires every registered ID to exist exactly once in index.html. Root startup now performs one explicit registry creation step before controller composition.

@@ -39,3 +39,6 @@ Interaction shell application boundary: src/app/interaction-shell-controller.js 
 
 
 View orchestration application boundary: src/app/view-orchestrator-controller.js coordinates full/data render passes and level-chip UI synchronization without direct parser, storage, worker, filesystem or network capabilities.
+
+
+Element registry boundary: src/app/element-registry.js owns the declarative list of application DOM IDs and lookup creation. Tests require every registered ID to exist exactly once in index.html.

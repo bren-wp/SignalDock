@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const elementRegistry = fs.readFileSync(path.join(root, "src/app/element-registry.js"), "utf8");
 const queryController = fs.readFileSync(path.join(root, "src/app/query-library-controller.js"), "utf8");
 const baselineController = fs.readFileSync(path.join(root, "src/app/baseline-controller.js"), "utf8");
 const projectController = fs.readFileSync(path.join(root, "src/app/project-controller.js"), "utf8");
@@ -22,7 +23,6 @@ const caseWorkspaceController = fs.readFileSync(path.join(root, "src/app/case-wo
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 
 const required = [
-  "baselineHistoryList",
   "touchWorkspace",
   "touchDataset",
   "attachBaseline",
@@ -31,6 +31,7 @@ const required = [
 for (const token of required) {
   if (!app.includes(token)) throw new Error(`Missing UI foundation token: ${token}`);
 }
+if (!elementRegistry.includes("\"baselineHistoryList\"")) throw new Error("Missing UI foundation element-registry token: baselineHistoryList");
 for (const token of ["bulkUpdate", "bulkRemove", "exportSelected", "markUsed"]) {
   if (!queryController.includes(token)) throw new Error(`Missing Query Library controller foundation token: ${token}`);
 }

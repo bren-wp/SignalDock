@@ -74,3 +74,6 @@ app/interaction-shell-controller.js owns global keyboard shortcuts and generic d
 
 
 app/view-orchestrator-controller.js owns high-level render sequencing and level-chip synchronization. Settings parser-profile file reads are injected from the platform boundary rather than performed directly inside app/settings-controller.js.
+
+
+app/element-registry.js is the declarative application DOM registry. It resolves the shipped element IDs from an explicit document context and carries no feature or platform capabilities.

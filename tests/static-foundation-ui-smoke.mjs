@@ -11,6 +11,7 @@ const app = read("app.js");
 const queryController = read("src/app/query-library-controller.js");
 const baselineController = read("src/app/baseline-controller.js");
 const tableViewController = read("src/app/table-view-controller.js");
+const elementRegistry = read("src/app/element-registry.js");
 
 const featureVersionParts = version.split(".").map(Number);
 assert.ok(featureVersionParts.length === 3 && featureVersionParts.every(Number.isFinite) && (featureVersionParts[0] > 2 || (featureVersionParts[0] === 2 && featureVersionParts[1] >= 7)), `expected SignalDock >= 2.7.x, got ${version}`);
@@ -29,10 +30,8 @@ assert.ok(!app.includes("function ensureFoundationUi()"), "stable UI must not be
 assert.ok(!app.includes("ensureFoundationUi();"), "runtime foundation initializer must stay removed");
 assert.ok(!app.includes('bar.id = "queryLibraryBulkBar"'));
 assert.ok(!app.includes('list.id = "baselineHistoryList"'));
-for (const token of [
-  'queryLibraryBulkCount: $("queryLibraryBulkCount")',
-  'baselineHistoryList: $("baselineHistoryList")'
-]) assert.ok(app.includes(token), `static app registry binding missing: ${token}`);
+assert.ok(app.includes("SignalDockElementRegistry.create(document)"), "static app must initialize the declarative element registry");
+for (const id of ["queryLibraryBulkCount", "baselineHistoryList"]) assert.ok(elementRegistry.includes("\"" + id + "\""), "static element registry binding missing: " + id);
 assert.ok(queryController.includes('listen(el.queryLibraryBulkSelectVisible, "click", selectVisible)'), "Query Library bulk selection listener must be owned by the feature controller");
 assert.ok(baselineController.includes('listen(el.baselineHistoryExportButton, "click", exportHistory)'), "Baseline history export listener must be owned by the Baseline controller");
 assert.ok(tableViewController.includes('icon.setAttribute("aria-hidden", "true")'));

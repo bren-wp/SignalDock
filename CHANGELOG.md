@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.31 — 2026-09-18
+
+### Startup composition + DOM integrity
+- Replaced 255 inline document.getElementById lookups in app.js startup with src/app/element-registry.js.
+- Added a registry smoke test that requires every registered application ID to exist exactly once in index.html and rejects duplicate registry IDs.
+- Removed the legacy root $() lookup helper and reduced init() to one explicit element-registry creation step before controller composition.
+- Updated the application description to reflect traces, service relationships and incident evidence in addition to local logs.
+
 ## 2.8.30 — 2026-09-18
 
 ### View orchestration + settings capability hardening
