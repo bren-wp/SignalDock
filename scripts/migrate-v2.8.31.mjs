@@ -93,6 +93,21 @@ uiFoundations = replaceOnce(
 );
 write("tests/ui-foundations-smoke.mjs", uiFoundations);
 
+let v27Gate = read("tests/v27-final-gate.mjs");
+v27Gate = replaceOnce(
+  v27Gate,
+  "const app = read('app.js');\n",
+  "const app = read('app.js');\nconst elementRegistry = read('src/app/element-registry.js');\n",
+  "v27 gate element registry source"
+);
+v27Gate = replaceOnce(
+  v27Gate,
+  "for (const token of ['projectLinkFilesButton', 'SignalDockDesktopBridge.saveParts', 'workerToken: \\"\\"', 'SignalDockFilterWorkerController.create', 'sd_session=']) assert.ok(app.includes(token), \`missing app token: \${token}\`);",
+  "for (const token of ['SignalDockDesktopBridge.saveParts', 'workerToken: \\"\\"', 'SignalDockFilterWorkerController.create', 'sd_session=']) assert.ok(app.includes(token), \`missing app token: \${token}\`);\nassert.ok(elementRegistry.includes('\\\"projectLinkFilesButton\\\"'), 'missing element-registry token: projectLinkFilesButton');",
+  "v27 gate registry ownership"
+);
+write("tests/v27-final-gate.mjs", v27Gate);
+
 write("VERSION", "2.8.31\n");
 write("README.md", read("README.md").replaceAll("2.8.30", "2.8.31"));
 
