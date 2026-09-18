@@ -9,37 +9,53 @@
 
   function analyze(entries, indexes = null) {
     const source = Array.isArray(entries) ? entries : [];
-    const selected = Array.isArray(indexes) ? indexes.map((index) => source[index]).filter(Boolean) : source.filter(Boolean);
-    const spans = selected.filter((entry) => entry?.correlations?.span && Number.isFinite(entry.timestampMs));
-    if (!spans.length) return { available: false, reason: "No timestamped spans are available.", entries: selected.length, spans: 0, chain: [], latencyMs: null, coverage: 0, completeParents: false };
-
-    const bySpan = new Map();
+    const selectedIndexes = Array.isArray(indexes) ? indexes : null;
+    const spans = [];
+    let selectedCount = 0;
     let traceStart = Infinity;
     let traceEnd = -Infinity;
-    for (const entry of spans) {
-      bySpan.set(String(entry.correlations.span), entry);
+    let declaredParents = 0;
+    let measuredSpans = 0;
+
+    const collect = (entry) => {
+      if (!entry) return;
+      selectedCount += 1;
+      if (!entry?.correlations?.span || !Number.isFinite(entry.timestampMs)) return;
+      spans.push(entry);
+      if (String(entry.traceMeta?.parentSpan || "")) declaredParents += 1;
+      if (Number.isFinite(entry.traceMeta?.durationMs)) measuredSpans += 1;
       if (entry.timestampMs < traceStart) traceStart = entry.timestampMs;
       const end = endTime(entry) ?? entry.timestampMs;
       if (end > traceEnd) traceEnd = end;
+    };
+
+    if (selectedIndexes) {
+      for (const index of selectedIndexes) collect(source[index]);
+    } else {
+      for (const entry of source) collect(entry);
     }
 
+    if (!spans.length) return { available: false, reason: "No timestamped spans are available.", entries: selectedCount, spans: 0, chain: [], latencyMs: null, coverage: 0, completeParents: false };
+
+    const bySpan = new Map();
+    for (const entry of spans) bySpan.set(String(entry.correlations.span), entry);
+
     const children = new Map();
+    const roots = [];
     let linkedParents = 0;
     for (const span of spans) {
       const parent = String(span.traceMeta?.parentSpan || "");
-      if (!parent || !bySpan.has(parent)) continue;
+      if (!parent || !bySpan.has(parent)) {
+        roots.push(span);
+        continue;
+      }
       linkedParents += 1;
       const list = children.get(parent) || [];
       list.push(span);
       children.set(parent, list);
     }
 
-    const declaredParents = spans.filter((span) => String(span.traceMeta?.parentSpan || "")).length;
     const missingParents = Math.max(0, declaredParents - linkedParents);
-    const roots = spans.filter((span) => {
-      const parent = String(span.traceMeta?.parentSpan || "");
-      return !parent || !bySpan.has(parent);
-    });
     const memo = new Map();
     function subtreeEnd(span) {
       const rootId = String(span.correlations.span);
@@ -113,10 +129,9 @@
       current = next;
     }
 
-    const measured = spans.filter((entry) => Number.isFinite(entry.traceMeta?.durationMs));
-    const chainMeasured = chain.filter((entry) => Number.isFinite(entry.traceMeta?.durationMs));
     let bottleneck = null;
-    for (const entry of chainMeasured) {
+    for (const entry of chain) {
+      if (!Number.isFinite(entry.traceMeta?.durationMs)) continue;
       if (!bottleneck || entry.traceMeta.durationMs > bottleneck.traceMeta.durationMs) bottleneck = entry;
     }
     const coverage = declaredParents ? linkedParents / declaredParents : 1;
@@ -124,7 +139,7 @@
 
     return {
       available: true,
-      entries: selected.length,
+      entries: selectedCount,
       spans: spans.length,
       roots: roots.length,
       linkedParents,
@@ -134,7 +149,7 @@
       traceStart,
       traceEnd,
       latencyMs: Math.max(0, traceEnd - traceStart),
-      measuredSpans: measured.length,
+      measuredSpans,
       chain,
       bottleneck,
       method: completeParents ? "parent-span critical chain" : "partial parent-span critical chain",
