@@ -9,7 +9,6 @@ const root = path.resolve(here, "..");
 let capturedBlob = null;
 let clickedDownload = "";
 globalThis.window = globalThis;
-globalThis.navigator = { clipboard: null };
 globalThis.URL = {
   createObjectURL(blob) { capturedBlob = blob; return "blob:signaldock-test"; },
   revokeObjectURL() {}
