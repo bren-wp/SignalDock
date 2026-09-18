@@ -41,8 +41,8 @@
   <main id="main-content">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero__copy">
-        <div class="release-badge" aria-label="Current release SignalDock version 2.8.31">
-          <strong>v2.8.31</strong>
+        <div class="release-badge" aria-label="Current release SignalDock version 2.8.32">
+          <strong>v2.8.32</strong>
           <span>Local-first · zero telemetry · zero backend</span>
         </div>
         <span class="eyebrow">PRIVATE OBSERVABILITY FOR REAL DEBUGGING</span>
@@ -219,13 +219,13 @@
     <section class="release-strip" aria-labelledby="release-title">
       <div>
         <span class="eyebrow">CURRENT RELEASE</span>
-        <h2 id="release-title">SignalDock v2.8.31</h2>
+        <h2 id="release-title">SignalDock v2.8.32</h2>
       </div>
       <ul>
-        <li>Declarative DOM registry replaces 255 inline startup lookups</li>
-        <li>Every registered UI ID is regression-checked against the shipped HTML</li>
-        <li>Startup composition is thinner without changing feature ownership</li>
-        <li>Application metadata now reflects traces, topology and incident evidence</li>
+        <li>Startup state hydration now has one explicit application owner</li>
+        <li>Saved Views and settings preserve legacy migration order without root storage glue</li>
+        <li>Investigation, baseline, project and checkpoint initialization is phase-idempotent</li>
+        <li>Startup composition is thinner while domain loaders stay injected and testable</li>
       </ul>
     </section>
 
@@ -238,7 +238,7 @@
   <footer>
     <a class="logo" href="#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
     <span><a href="privacy.html">Privacy</a> · <a href="security.html">Security</a> · <a href="#faq">FAQ</a></span>
-    <span>v2.8.31 · local-first · zero telemetry</span>
+    <span>v2.8.32 · local-first · zero telemetry</span>
   </footer>
 </body>
 </html>

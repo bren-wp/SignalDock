@@ -77,3 +77,6 @@ app/view-orchestrator-controller.js owns high-level render sequencing and level-
 
 
 app/element-registry.js is the declarative application DOM registry. It resolves the shipped element IDs from an explicit document context and carries no feature or platform capabilities.
+
+
+app/startup-state-controller.js owns phased, idempotent application-state hydration while storage/domain loaders remain injected from the root composition boundary.

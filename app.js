@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.31";
+  const APP_VERSION = "2.8.32";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -103,6 +103,7 @@
   let commandNavigationController = null;
   let interactionShellController = null;
   let viewOrchestratorController = null;
+  let startupStateController = null;
   let caseWorkspaceController = null;
   let caseFileController = null;
   let caseCheckpointController = null;
@@ -124,7 +125,21 @@
   function init() {
     if (!window.SignalDockElementRegistry?.create) throw new Error("SignalDock Element Registry is unavailable.");
     Object.assign(el, window.SignalDockElementRegistry.create(document));
-    state.savedViews = utils().loadJson(STORAGE_VIEWS, null) || utils().loadJson("signaldock-saved-views-v2", null) || utils().loadJson("signaldock-saved-views-v1", []);
+    if (!window.SignalDockStartupStateController?.create) throw new Error("SignalDock Startup State controller is unavailable.");
+    startupStateController = window.SignalDockStartupStateController.create({
+      state,
+      loadJson: (key, fallback) => utils().loadJson(key, fallback),
+      savedViewKeys: [STORAGE_VIEWS, "signaldock-saved-views-v2", "signaldock-saved-views-v1"],
+      settingsKeys: ["signaldock-settings-v1", "signaldock-settings-v2", "signaldock-settings-v3", "signaldock-settings-v5", "signaldock-settings-v6", "signaldock-settings-v8", STORAGE_SETTINGS],
+      activeProjectKey: "signaldock-active-project-v1",
+      createInvestigation: () => window.SignalDockInvestigation?.empty?.(),
+      createCase: (title) => window.SignalDockCaseWorkspace?.empty?.(title),
+      loadQueryLibrary: () => window.SignalDockQueryLibrary?.load?.(),
+      loadBaselineHistory: () => window.SignalDockBaselineManager?.loadHistory?.(),
+      loadProjects: () => window.SignalDockProjectManager?.load?.(),
+      normalizeCheckpoints: (items) => window.SignalDockCaseCheckpoints?.normalizeList?.(items)
+    });
+    startupStateController.hydratePreferences();
     if (!window.SignalDockSavedViewsController?.create) throw new Error("SignalDock Saved Views controller is unavailable.");
     savedViewsController = window.SignalDockSavedViewsController.create({
       state,
@@ -138,7 +153,6 @@
       toast
     });
     savedViewsController.bind();
-    state.settings = Object.assign(state.settings, utils().loadJson("signaldock-settings-v1", {}), utils().loadJson("signaldock-settings-v2", {}), utils().loadJson("signaldock-settings-v3", {}), utils().loadJson("signaldock-settings-v5", {}), utils().loadJson("signaldock-settings-v6", {}), utils().loadJson("signaldock-settings-v8", {}), utils().loadJson(STORAGE_SETTINGS, {}));
     if (!window.SignalDockImportLiveTailController?.create) throw new Error("SignalDock Import/Live Tail controller is unavailable.");
     importLiveTailController = window.SignalDockImportLiveTailController.create({
       state,
@@ -418,9 +432,7 @@
       renderInspector: () => inspectorController?.render(),
       updateActiveSourceUI: () => datasetOverviewController?.updateActiveSourceUI()
     });
-    state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
-    state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
-    state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
+    startupStateController.hydrateInvestigation();
     if (!window.SignalDockRecoveryDiagnosticsController?.create) throw new Error("SignalDock Recovery/diagnostics controller is unavailable.");
     recoveryDiagnosticsController = window.SignalDockRecoveryDiagnosticsController.create({
       state,
@@ -475,7 +487,7 @@
       applyFilters: (resetPage) => applyFilters(resetPage),
       toast
     });
-    state.baselineHistory = window.SignalDockBaselineManager?.loadHistory?.() || [];
+    startupStateController.hydrateBaselineHistory();
     if (!window.SignalDockBaselineController?.create) throw new Error("SignalDock Baseline controller is unavailable.");
     baselineController = window.SignalDockBaselineController.create({
       state,
@@ -501,8 +513,7 @@
       scheduleDatasetAutosave: () => scheduleDatasetAutosave()
     });
     baselineController.bind();
-    state.projects = window.SignalDockProjectManager?.load?.() || [];
-    state.activeProjectId = String(utils().loadJson("signaldock-active-project-v1", "") || "");
+    startupStateController.hydrateProjects();
     if (!window.SignalDockProjectController?.create) throw new Error("SignalDock Project controller is unavailable.");
     projectController = window.SignalDockProjectController.create({
       state,
@@ -795,7 +806,7 @@
       todayStamp: () => new Date().toISOString().slice(0, 10),
       toast
     });
-    state.caseCheckpoints = window.SignalDockCaseCheckpoints?.normalizeList?.([]) || [];
+    startupStateController.hydrateCaseCheckpoints();
     if (!window.SignalDockCaseCheckpointController?.create) throw new Error("SignalDock Case Checkpoint controller is unavailable.");
     caseCheckpointController = window.SignalDockCaseCheckpointController.create({
       state,

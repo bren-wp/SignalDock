@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.31**.
+Current version: **2.8.32**.
 
 ## Highlights
 
@@ -682,3 +682,6 @@ Mobile hardening: the application keeps dynamic viewport height at mobile breakp
 
 
 Element Registry: the 255 application DOM references are declared under src/app/element-registry.js rather than assembled inline inside init(). The registry has no storage, worker, filesystem or network capabilities, and its smoke test requires every registered ID to exist exactly once in index.html. Root startup now performs one explicit registry creation step before controller composition.
+
+
+Startup State controller: src/app/startup-state-controller.js owns phased initial hydration of Saved Views/settings, investigation/case/query defaults, baseline history, projects/active project and Case checkpoints. Loaders and domain factories are injected; the controller has no direct browser-storage, filesystem, worker or network capability. Each hydration phase is idempotent and remains invoked at the same startup point as the previous inline logic.

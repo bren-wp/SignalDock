@@ -42,3 +42,6 @@ View orchestration application boundary: src/app/view-orchestrator-controller.js
 
 
 Element registry boundary: src/app/element-registry.js owns the declarative list of application DOM IDs and lookup creation. Tests require every registered ID to exist exactly once in index.html.
+
+
+Startup state application boundary: src/app/startup-state-controller.js owns initial Saved Views/settings, investigation/case/query, baseline, project and checkpoint hydration through explicit injected loaders. It must not acquire direct storage, filesystem, worker or network capabilities.

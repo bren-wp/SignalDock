@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.32 — 2026-09-18
+
+### Startup state composition
+- Added src/app/startup-state-controller.js as the explicit owner of phased initial application-state hydration.
+- Preserved Saved Views legacy fallback order and settings merge order while removing those storage-load expressions from app.js.
+- Moved investigation/case/query defaults, baseline history, projects/active project and Case checkpoint initialization behind injected, idempotent hydration phases.
+- Kept each hydration phase at the same startup point as before so controller binding and capability timing do not change.
+
 ## 2.8.31 — 2026-09-18
 
 ### Startup composition + DOM integrity
