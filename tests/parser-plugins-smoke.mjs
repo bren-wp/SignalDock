@@ -18,5 +18,18 @@ assert(/Invalid token/.test(entry.message), `unexpected CEF message: ${entry.mes
 SignalDockParserPlugins.register({ id: "demo-plugin", label: "Demo", priority: 200, test: (line) => line.startsWith("DEMO|"), parse: (line) => ({ service: "demo", level: "INFO", message: line.slice(5) }) });
 const demo = SignalDockParser.parseText("DEMO|hello plugin", "demo.log")[0];
 assert(demo.service === "demo" && demo.message === "hello plugin", "registered parser plugin should participate in auto parsing");
+
+SignalDockParserPlugins.register({ id: "demo-low", label: "Low", priority: 10, test: (line) => line.startsWith("ORDER|"), parse: () => ({ service: "low", level: "INFO", message: "low" }) });
+SignalDockParserPlugins.register({ id: "demo-high", label: "High", priority: 300, test: (line) => line.startsWith("ORDER|"), parse: () => ({ service: "high", level: "INFO", message: "high" }) });
+const orderedHigh = SignalDockParser.parseText("ORDER|priority", "order.log")[0];
+assert(orderedHigh.service === "high", "higher-priority plugin should win after registry cache invalidation");
+assert(SignalDockParserPlugins.unregister("demo-high"), "high-priority plugin unregister should succeed");
+const orderedLow = SignalDockParser.parseText("ORDER|priority", "order.log")[0];
+assert(orderedLow.service === "low", "unregister must invalidate cached parser priority order");
+assert(SignalDockParserPlugins.unregister("demo-low"), "low-priority plugin unregister should succeed");
+
 assert(SignalDockParserPlugins.unregister("demo-plugin"), "plugin unregister should succeed");
+const pluginSource = fs.readFileSync(path.join(root, "src/core/parser-plugins.js"), "utf8");
+assert(pluginSource.includes("function ordered()"), "parser plugin registry must centralize cached priority order");
+assert(!pluginSource.includes("for (const plugin of [...plugins.values()].sort"), "parseLine must not sort the plugin registry for every input line");
 console.log("PASS parser plugin registry + bundled CEF parser");
