@@ -25,8 +25,57 @@
     source.forEach((entry, index) => { if (entry) fn(entry, index); });
   }
 
+  function compareRows(a, b) {
+    return b.errors - a.errors || (b.durationMs ?? -1) - (a.durationMs ?? -1) || b.spans - a.spans || a.traceId.localeCompare(b.traceId);
+  }
+
   function sortRows(rows) {
-    return rows.sort((a, b) => b.errors - a.errors || (b.durationMs ?? -1) - (a.durationMs ?? -1) || b.spans - a.spans || a.traceId.localeCompare(b.traceId));
+    return rows.sort(compareRows);
+  }
+
+  function selectTopRows(rows, limit) {
+    const count = Math.max(0, Math.min(rows.length, Math.floor(Number(limit) || 0)));
+    if (!count) return [];
+    if (count >= rows.length) return sortRows(rows);
+
+    const heap = [];
+    function swap(left, right) {
+      const value = heap[left];
+      heap[left] = heap[right];
+      heap[right] = value;
+    }
+    function siftUp(index) {
+      while (index > 0) {
+        const parent = Math.floor((index - 1) / 2);
+        if (compareRows(heap[parent], heap[index]) >= 0) break;
+        swap(parent, index);
+        index = parent;
+      }
+    }
+    function siftDown(index) {
+      while (true) {
+        const left = index * 2 + 1;
+        const right = left + 1;
+        let worst = index;
+        if (left < heap.length && compareRows(heap[left], heap[worst]) > 0) worst = left;
+        if (right < heap.length && compareRows(heap[right], heap[worst]) > 0) worst = right;
+        if (worst === index) break;
+        swap(index, worst);
+        index = worst;
+      }
+    }
+
+    for (const row of rows) {
+      if (heap.length < count) {
+        heap.push(row);
+        siftUp(heap.length - 1);
+        continue;
+      }
+      if (compareRows(row, heap[0]) >= 0) continue;
+      heap[0] = row;
+      siftDown(0);
+    }
+    return heap.sort(compareRows);
   }
 
   function build(entries, indexes = null, options = {}) {
@@ -112,7 +161,7 @@
       });
     }
 
-    const allRows = sortRows([...traces.values()].map((row) => ({
+    const allRows = [...traces.values()].map((row) => ({
       traceId: row.traceId,
       entries: row.entries,
       spans: row.spans,
@@ -124,12 +173,19 @@
       durationMs: row.startMs !== null && row.endMs !== null ? Math.max(0, row.endMs - row.startMs) : null,
       parentCoverage: row.parented ? row.linkedParents / row.parented : 1,
       sampleIndex: row.sampleIndex
-    })));
+    }));
 
     const offset = Math.max(0, Math.floor(Number(options.offset) || 0));
     const hasExplicitLimit = options.limit !== undefined && options.limit !== null;
     const limit = hasExplicitLimit ? clampWindow(options.limit, DEFAULT_WINDOW) : allRows.length;
-    const rows = allRows.slice(offset, offset + limit);
+    let rankedRows = [];
+    if (offset < allRows.length) {
+      const requested = Math.min(allRows.length, offset + limit);
+      rankedRows = hasExplicitLimit && requested < allRows.length
+        ? selectTopRows(allRows, requested)
+        : sortRows(allRows);
+    }
+    const rows = rankedRows.slice(offset, offset + limit);
 
     return {
       rows,
