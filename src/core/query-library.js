@@ -2,7 +2,19 @@
   "use strict";
   const SCHEMA = "signaldock.query-library", VERSION = 3, LEGACY_VERSION = 1, LEGACY_VERSIONS = [1, 2], STORAGE_KEY = "signaldock-query-library-v3", LEGACY_STORAGE_KEY = "signaldock-query-library-v1", LEGACY_STORAGE_KEYS = ["signaldock-query-library-v2", LEGACY_STORAGE_KEY], MAX_ITEMS = 500;
   function clean(value, max = 512) { return String(value ?? "").trim().slice(0, max); }
-  function cleanTags(value) { const input = Array.isArray(value) ? value : String(value || "").split(/[;,]/); return [...new Set(input.map((tag) => clean(tag, 48).toLowerCase().replace(/\s+/g, "-")).filter(Boolean))].slice(0, 20); }
+  function cleanTags(value) {
+    const input = Array.isArray(value) ? value : String(value || "").split(/[;,]/);
+    const out = [];
+    const seen = new Set();
+    for (const value of input) {
+      const tag = clean(value, 48).toLowerCase().replace(/\s+/g, "-");
+      if (!tag || seen.has(tag)) continue;
+      seen.add(tag);
+      out.push(tag);
+      if (out.length >= 20) break;
+    }
+    return out;
+  }
   function cleanFolder(value) { const folder = clean(value || "General", 80).replace(/[\\<>:"|?*]/g, "-").replace(/\s+/g, " "); return folder || "General"; }
   function normalizeItem(item = {}, index = 0) { const now = new Date().toISOString(); return { id: clean(item.id || `query-${Date.now().toString(36)}-${index}`, 96), name: clean(item.name || `Query ${index + 1}`, 120), description: clean(item.description || "", 1000), tags: cleanTags(item.tags), folder: cleanFolder(item.folder), favorite: Boolean(item.favorite), query: clean(item.query || "", 4096), level: clean(item.level || "", 32), source: clean(item.source || "", 512), timeRange: clean(item.timeRange || "", 64), sortMode: clean(item.sortMode || "original", 32), useCount: Math.max(0, Math.floor(Number(item.useCount) || 0)), lastUsedAt: clean(item.lastUsedAt || "", 64), createdAt: clean(item.createdAt || now, 64), updatedAt: clean(item.updatedAt || now, 64) }; }
   function normalize(input) { return (Array.isArray(input) ? input : []).slice(0, MAX_ITEMS).map(normalizeItem).sort((a, b) => Number(b.favorite) - Number(a.favorite) || (b.lastUsedAt || "").localeCompare(a.lastUsedAt || "") || b.useCount - a.useCount || a.folder.localeCompare(b.folder) || b.updatedAt.localeCompare(a.updatedAt) || a.name.localeCompare(b.name)); }
