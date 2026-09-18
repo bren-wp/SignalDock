@@ -78,6 +78,10 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/related-context-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/dataset-session-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/case-file-controller.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/src/app/query-navigation-controller.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/website/index.html -o /tmp/signaldock-website.html
+          grep -q 'SignalDock' /tmp/signaldock-website.html
+          curl --fail --silent --show-error http://127.0.0.1:8080/website/styles.css -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/investigation-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/exception-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/trace-explorer-controller.js -o /dev/null
