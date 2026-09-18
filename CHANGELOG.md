@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.8.23 — 2026-09-18
+
+### Dataset Overview application boundary
+- Extracted dataset summary metrics, source sidebar/tab rendering, active-source presentation and the main activity timeline into `src/app/dataset-overview-controller.js`.
+- Kept filter/index ownership in the Dataset Filter controller and kept parser, worker, storage, filesystem, project and network capabilities out of the overview renderer.
+- Improved source-navigation accessibility with synchronized `aria-pressed` state and marked timeline segment cells as decorative while preserving descriptive bar labels.
+- Hardened source-count and empty-timeline rendering against incomplete UI summary data without changing filter semantics.
+
+### Maintainability and verification
+- Added isolated Dataset Overview coverage for metric summaries, source counts/tabs, active-source accessibility state, populated timeline buckets and empty timeline results.
+- Added capability assertions preventing direct parser, worker, workspace, storage, filesystem or network access from the controller.
+- Updated permanent source-layout and HTTP smoke gates while preserving the zero-build local-first runtime.
+
 ## 2.8.22 — 2026-09-18
 
 ### Workspace application boundary

@@ -3,10 +3,8 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.22";
+  const APP_VERSION = "2.8.23";
   const WORKER_THRESHOLD = 25000;
-  const TIMELINE_BUCKETS = 36;
-  const TIMELINE_SEGMENTS = 8;
 
   const state = {
     entries: [],
@@ -83,6 +81,7 @@
   let datasetFilterController = null;
   let tableViewController = null;
   let workspaceController = null;
+  let datasetOverviewController = null;
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
@@ -354,6 +353,20 @@
       nowIso: () => new Date().toISOString()
     });
     workspaceController.bind();
+    if (!window.SignalDockDatasetOverviewController?.create) throw new Error("SignalDock Dataset Overview controller is unavailable.");
+    datasetOverviewController = window.SignalDockDatasetOverviewController.create({
+      state,
+      el,
+      ownerDocument: document,
+      getSources,
+      formatBytes: (value) => utils().formatBytes(value),
+      shortSource: (value) => utils().shortSource(value),
+      formatTimelineTime: (ms) => {
+        const date = new Date(ms);
+        return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+      }
+    });
+    datasetOverviewController.bind();
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -882,137 +895,13 @@
     updateActiveSourceUI();
   }
 
-  function updateStats() {
-    const { total, errors, warnings, sources } = state.summary;
-    el.metricEntries.textContent = total.toLocaleString();
-    el.metricErrors.textContent = errors.toLocaleString();
-    el.metricWarnings.textContent = warnings.toLocaleString();
-    el.metricSources.textContent = sources.length.toLocaleString();
-    el.chipErrors.textContent = errors.toLocaleString();
-    el.chipWarnings.textContent = warnings.toLocaleString();
-    el.navLogCount.textContent = total ? total.toLocaleString() : "0";
-    if (el.serviceMapCount) el.serviceMapCount.textContent = (state.summary.services || []).length.toLocaleString();
-    if (el.serviceMatrixCount) el.serviceMatrixCount.textContent = (state.serviceMatrixData?.rows?.length || 0).toLocaleString();
-    if (el.serviceHeatmapCount) el.serviceHeatmapCount.textContent = (state.serviceHeatmapData?.rows?.length || 0).toLocaleString();
-    if (el.serviceTrendsCount) el.serviceTrendsCount.textContent = (state.serviceTrendsData?.summary?.changed || 0).toLocaleString();
-    if (el.traceExplorerCount) el.traceExplorerCount.textContent = (state.traceExplorerData?.summary?.traces || state.traceExplorerData?.rows?.length || 0).toLocaleString();
-    if (el.traceOutlierCount) el.traceOutlierCount.textContent = (state.traceOutlierData?.rows?.length || 0).toLocaleString();
-    if (el.investigationCount) el.investigationCount.textContent = (state.investigation?.items?.length || 0).toLocaleString();
-    if (el.exceptionGroupCount) el.exceptionGroupCount.textContent = (state.exceptionGroups?.length || 0).toLocaleString();
-    if (el.healthIssueCount) { const health = state.healthData?.summary || {}; el.healthIssueCount.textContent = ((health.critical || 0) + (health.degraded || 0)).toLocaleString(); }
-    el.loadedMeta.textContent = total ? `${state.inputFileCount} file${state.inputFileCount === 1 ? "" : "s"} · ${utils().formatBytes(state.loadedBytes)}` : "No files loaded";
-  }
+  function updateStats() { return datasetOverviewController?.updateStats(); }
 
-  function renderSourceNavigation() {
-    const sources = getSources();
-    el.sourceList.replaceChildren();
-    el.fileTabs.replaceChildren();
+  function renderSourceNavigation() { return datasetOverviewController?.renderSourceNavigation(); }
 
-    const allTab = document.createElement("button");
-    allTab.type = "button";
-    allTab.className = "file-tab";
-    allTab.dataset.source = "";
-    allTab.textContent = "All logs";
-    el.fileTabs.appendChild(allTab);
+  function updateActiveSourceUI() { return datasetOverviewController?.updateActiveSourceUI(); }
 
-    if (!sources.length) {
-      const empty = document.createElement("div");
-      empty.className = "sidebar-empty";
-      empty.textContent = "No files loaded";
-      el.sourceList.appendChild(empty);
-      return;
-    }
-
-    const counts = state.summary.sourceCounts || new Map();
-    sources.forEach((source) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "source-button";
-      button.dataset.source = source;
-      const dot = document.createElement("span"); dot.className = "source-dot";
-      const name = document.createElement("span"); name.textContent = utils().shortSource(source); name.title = source;
-      const count = document.createElement("em"); count.textContent = counts.get(source).toLocaleString();
-      button.append(dot, name, count);
-      el.sourceList.appendChild(button);
-
-      const tab = document.createElement("button");
-      tab.type = "button";
-      tab.className = "file-tab";
-      tab.dataset.source = source;
-      tab.textContent = utils().shortSource(source);
-      tab.title = source;
-      el.fileTabs.appendChild(tab);
-    });
-  }
-
-  function updateActiveSourceUI() {
-    const source = el.sourceFilter.value;
-    document.querySelectorAll(".source-button[data-source], .file-tab[data-source]").forEach((button) => {
-      button.classList.toggle("is-active", button.dataset.source === source);
-    });
-  }
-
-  function renderTimeline() {
-    el.timelineBars.replaceChildren();
-    let timestampedCount = 0;
-    let min = null;
-    let max = null;
-    for (const index of state.filteredIndexes) {
-      const entry = state.entries[index];
-      if (!entry || !Number.isFinite(entry.timestampMs)) continue;
-      timestampedCount += 1;
-      min = min === null ? entry.timestampMs : Math.min(min, entry.timestampMs);
-      max = max === null ? entry.timestampMs : Math.max(max, entry.timestampMs);
-    }
-    if (!timestampedCount || min === null || max === null) {
-      const empty = document.createElement("div");
-      empty.className = "timeline-empty";
-      empty.textContent = state.entries.length ? "No timestamps detected in the current result set." : "Load timestamped logs to see activity over time.";
-      el.timelineBars.appendChild(empty);
-      el.timelineStart.textContent = "—";
-      el.timelineEnd.textContent = "—";
-      el.timelineMeta.textContent = `${state.filteredIndexes.length.toLocaleString()} results · ${state.lastEngine}`;
-      return;
-    }
-
-    const span = Math.max(1, max - min);
-    const buckets = Array.from({ length: TIMELINE_BUCKETS }, () => ({ count: 0, errors: 0, warnings: 0 }));
-    for (const index of state.filteredIndexes) {
-      const entry = state.entries[index];
-      if (!entry || !Number.isFinite(entry.timestampMs)) continue;
-      const bucketIndex = Math.min(TIMELINE_BUCKETS - 1, Math.floor(((entry.timestampMs - min) / span) * TIMELINE_BUCKETS));
-      const bucket = buckets[bucketIndex];
-      bucket.count += 1;
-      if (entry.level === "ERROR" || entry.level === "FATAL") bucket.errors += 1;
-      else if (entry.level === "WARN") bucket.warnings += 1;
-    }
-    const maxCount = Math.max(...buckets.map((bucket) => bucket.count), 1);
-    const fragment = document.createDocumentFragment();
-    buckets.forEach((bucket, index) => {
-      const bar = document.createElement("div");
-      bar.className = `timeline-bar${bucket.errors ? " has-error" : bucket.warnings ? " has-warn" : ""}`;
-      bar.title = `${bucket.count.toLocaleString()} entries${bucket.errors ? ` · ${bucket.errors} errors` : ""}${bucket.warnings ? ` · ${bucket.warnings} warnings` : ""}`;
-      bar.setAttribute("aria-label", bar.title);
-      const activeSegments = bucket.count ? Math.max(1, Math.round((bucket.count / maxCount) * TIMELINE_SEGMENTS)) : 0;
-      for (let segment = 0; segment < TIMELINE_SEGMENTS; segment += 1) {
-        const cell = document.createElement("i");
-        cell.className = `timeline-segment${segment < activeSegments ? " is-on" : ""}`;
-        bar.appendChild(cell);
-      }
-      fragment.appendChild(bar);
-      if (index === TIMELINE_BUCKETS - 1) bar.classList.add("is-last");
-    });
-    el.timelineBars.appendChild(fragment);
-    el.timelineStart.textContent = formatTimelineTime(min);
-    el.timelineEnd.textContent = formatTimelineTime(max);
-    el.timelineTitle.textContent = state.filteredIndexes.length === state.entries.length ? "All activity" : "Filtered activity";
-    el.timelineMeta.textContent = `${timestampedCount.toLocaleString()} timestamped · ${state.filteredIndexes.length.toLocaleString()} results · ${state.lastEngine}`;
-  }
-
-  function formatTimelineTime(ms) {
-    const date = new Date(ms);
-    return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-  }
+  function renderTimeline() { return datasetOverviewController?.renderTimeline(); }
 
   function renderTable() { return tableViewController?.renderTable(); }
 

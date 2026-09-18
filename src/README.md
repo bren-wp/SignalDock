@@ -34,6 +34,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/workspace-controller.js` owns workspace/view snapshots, save/restore orchestration and workspace UI shortcuts while serialization, file I/O, Desktop Bridge/Project handle capabilities and domain normalization remain root-injected callbacks.
 
+`app/dataset-overview-controller.js` owns dataset metrics, source navigation, active-source UI state and timeline rendering while filter/index state, formatting and all privileged capabilities remain outside the controller.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.

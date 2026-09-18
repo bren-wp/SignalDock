@@ -26,6 +26,7 @@ const applicationControllers = [
   "src/app/dataset-filter-controller.js",
   "src/app/table-view-controller.js",
   "src/app/workspace-controller.js",
+  "src/app/dataset-overview-controller.js",
   "src/app/investigation-controller.js",
   "src/app/exception-controller.js",
   "src/app/trace-explorer-controller.js",
