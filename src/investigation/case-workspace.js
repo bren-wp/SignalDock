@@ -286,7 +286,7 @@
 
   function importJson(text) {
     const parsed = JSON.parse(String(text || ""));
-    if (parsed?.schema !== SCHEMA || !LEGACY_VERSIONS.has(Number(parsed?.version))) throw new Error("Unsupported SignalDock case file.");
+    if (parsed?.schema !== SCHEMA || !LEGACY_VERSIONS.has(parsed?.version)) throw new Error("Unsupported SignalDock case file.");
     return normalize(parsed);
   }
 
