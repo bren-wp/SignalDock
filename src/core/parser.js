@@ -101,7 +101,13 @@
 
   function safeStringify(value) {
     if (typeof value === "string") return value;
-    try { return JSON.stringify(value); } catch { return String(value); }
+    if (value === undefined) return "";
+    try {
+      const serialized = JSON.stringify(value);
+      return typeof serialized === "string" ? serialized : "";
+    } catch {
+      return String(value ?? "");
+    }
   }
 
   function normalizeCorrelationValue(value) {
