@@ -65,3 +65,6 @@ app/dataset-session-controller.js owns filtered export and loaded-dataset cleari
 
 
 app/case-file-controller.js owns case JSON/Markdown export, bounded case import and case-summary refresh while storage, domain parsing/normalization and analytics remain injected.
+
+
+app/query-navigation-controller.js owns service/environment/namespace query composition and topology filter translation while filter execution remains injected.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.8.28 — 2026-09-18
+
+### Query navigation + website refresh
+- Extracted service, environment, namespace and topology filter-to-query composition into src/app/query-navigation-controller.js.
+- Unsupported topology scope kinds are now ignored instead of being silently treated as namespaces.
+- Rebuilt the static website landing with current product capabilities, security/privacy architecture, supported formats and v2.8.28 release information.
+- Responsive navigation remains reachable without JavaScript; added skip navigation, visible keyboard focus, reduced-motion handling and stronger metadata for search/social previews.
+- The marketing website remains script-free and keeps connect-src none under its CSP.
+
 ## 2.8.27 — 2026-09-18
 
 ### Case file boundary

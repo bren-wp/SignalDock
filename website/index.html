@@ -3,64 +3,81 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#07111d">
-  <meta name="description" content="SignalDock is a private, local-first log inspection workspace. Explore and filter logs without sending them to a cloud backend.">
+  <meta name="application-name" content="SignalDock">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="description" content="SignalDock is a private, local-first observability workspace for logs, traces, service dependencies and incident evidence. No backend, account or telemetry.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="SignalDock — Private observability on your machine">
+  <meta property="og:description" content="Inspect logs, traces, service relationships and incident evidence locally without sending your data to a cloud backend.">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SignalDock — Private observability on your machine">
+  <meta name="twitter:description" content="Local-first log, trace and incident analysis with no account, backend or telemetry.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; img-src 'self' data:; style-src 'self'; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>SignalDock — Private observability on your machine</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
   <header class="site-header">
     <a class="logo" href="#top" aria-label="SignalDock home">
       <img src="../assets/logo.svg" width="40" height="40" alt="">
       <span><strong>Signal</strong><b>Dock</b></span>
     </a>
-    <nav aria-label="Primary navigation">
+    <nav class="site-nav" aria-label="Primary navigation">
       <a href="#features">Features</a>
-      <a href="#privacy">Privacy</a>
+      <a href="#security">Privacy &amp; security</a>
+      <a href="#formats">Formats</a>
       <a href="#workflow">Workflow</a>
     </nav>
     <a class="header-cta" href="../index.html">Open SignalDock</a>
   </header>
 
-  <main id="top">
-    <section class="hero">
+  <main id="main-content">
+    <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero__copy">
-        <span class="eyebrow">LOCAL LOG ANALYSIS FOR MODERN DEVELOPERS</span>
-        <h1>Private <em>observability</em><br>on your machine.</h1>
-        <p>SignalDock helps you explore, search and understand log files without an ingestion server, account or cloud pipeline. Your data stays where it started: on your device.</p>
+        <div class="release-badge" aria-label="Current release SignalDock version 2.8.28">
+          <strong>v2.8.28</strong>
+          <span>Local-first · zero telemetry · zero backend</span>
+        </div>
+        <span class="eyebrow">PRIVATE OBSERVABILITY FOR REAL DEBUGGING</span>
+        <h1 id="hero-title">Trace the failure.<br><em>Keep the data local.</em></h1>
+        <p>SignalDock turns local logs and traces into a focused investigation workspace — search, service topology, trace analysis, exceptions, health signals and case evidence without an ingestion server or cloud account.</p>
         <div class="hero__actions">
           <a class="button button--primary" href="../index.html">Open local app</a>
-          <a class="button" href="#features">Explore features</a>
+          <a class="button" href="#features">Explore capabilities</a>
         </div>
-        <div class="trust-row">
-          <span>✓ No cloud required</span>
-          <span>✓ No account required</span>
-          <span>✓ No telemetry</span>
-        </div>
+        <ul class="trust-row" aria-label="Privacy guarantees">
+          <li>No cloud required</li>
+          <li>No account required</li>
+          <li>No telemetry</li>
+          <li>Explicit local file access</li>
+        </ul>
       </div>
 
       <div class="hero__visual" aria-label="SignalDock application preview">
         <div class="mock-window">
           <div class="mock-top"><i></i><i></i><i></i><span>SignalDock</span><b>LOCAL</b></div>
           <div class="mock-body">
-            <aside class="mock-sidebar">
+            <aside class="mock-sidebar" aria-hidden="true">
               <strong>SignalDock</strong>
               <span class="active">▣ Logs</span>
               <span>⌕ Search</span>
-              <span>◇ Case workspace</span>
+              <span>◇ Investigation</span>
               <span>≋ Trace explorer</span>
               <span>▦ Service matrix</span>
               <span>♥ Observed health</span>
               <span>⚠ Exceptions</span>
               <span>⌁ Live tail</span>
-              <span>⚙ Settings</span>
               <small>● dev-api</small>
             </aside>
-            <div class="mock-main">
-              <div class="mock-search">⌕ Search logs, messages, or attributes… <kbd>⌘ K</kbd></div>
-              <div class="mock-filters"><span>All services</span><span>All levels</span><span>Last hour</span><b>● Live</b></div>
+            <div class="mock-main" aria-hidden="true">
+              <div class="mock-search">⌕ service:auth level:ERROR <kbd>⌘ K</kbd></div>
+              <div class="mock-filters"><span>auth</span><span>ERROR</span><span>Last hour</span><b>LOCAL</b></div>
               <div class="mock-table">
                 <div class="mock-row"><time>10:24:31</time><em class="info">INFO</em><span>api</span><p>Request completed 200 OK</p></div>
                 <div class="mock-row is-selected"><time>10:24:30</time><em class="error">ERROR</em><span>auth</span><p>Failed to verify token: invalid signature</p></div>
@@ -69,10 +86,10 @@
                 <div class="mock-row"><time>10:24:28</time><em class="info">INFO</em><span>api</span><p>POST /v1/events 201 98ms</p></div>
               </div>
             </div>
-            <aside class="mock-inspector">
+            <aside class="mock-inspector" aria-hidden="true">
               <em class="error">ERROR</em>
               <h3>Invalid signature</h3>
-              <dl><dt>service</dt><dd>auth</dd><dt>host</dt><dd>local</dd><dt>trace</dt><dd>9f3a2c7e</dd></dl>
+              <dl><dt>service</dt><dd>auth</dd><dt>trace</dt><dd>9f3a2c7e</dd><dt>environment</dt><dd>staging</dd></dl>
               <pre>{
   "method": "POST",
   "path": "/v1/auth",
@@ -85,60 +102,99 @@
       </div>
     </section>
 
-    <section class="proof" id="privacy">
-      <article><span>▱</span><div><strong>Private by design</strong><p>Imported log contents are processed locally and never uploaded.</p></div></article>
-      <article><span>ϟ</span><div><strong>Blazing fast workflow</strong><p>Search, filter and inspect without waiting for a remote ingest pipeline.</p></div></article>
-      <article><span>⌁</span><div><strong>Open formats</strong><p>JSON, NDJSON, LOG, TXT and supported ZIP archives.</p></div></article>
-      <article><span>⌘</span><div><strong>Developer focused</strong><p>Dense log table, keyboard search, source filtering and raw inspection.</p></div></article>
+    <section class="proof" aria-label="SignalDock principles">
+      <article><span aria-hidden="true">▱</span><div><strong>Private by design</strong><p>Imported content is processed locally and is not sent to a SignalDock backend.</p></div></article>
+      <article><span aria-hidden="true">ϟ</span><div><strong>Fast investigation loop</strong><p>Filter, correlate and inspect without waiting for a remote ingestion pipeline.</p></div></article>
+      <article><span aria-hidden="true">⌁</span><div><strong>Open local formats</strong><p>Logs, portable workspaces, baselines, case files and explicit exports.</p></div></article>
+      <article><span aria-hidden="true">⌘</span><div><strong>Built for operators</strong><p>Dense data views, keyboard workflows, transparent analysis and explicit limits.</p></div></article>
     </section>
 
-    <section class="features" id="features">
+    <section class="security section-shell" id="security" aria-labelledby="security-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">PRIVACY IS AN ARCHITECTURE, NOT A SLOGAN</span>
+        <h2 id="security-title">Local-first from input to export.</h2>
+        <p>SignalDock keeps privileged browser capabilities at narrow boundaries and keeps analysis modules focused on the data you explicitly load.</p>
+      </div>
+      <div class="security-grid">
+        <article><span>01</span><h3>No remote data path</h3><p>The app CSP keeps <code>connect-src 'none'</code>. There is no telemetry endpoint, account service or analytics beacon in the runtime.</p></article>
+        <article><span>02</span><h3>Explicit file capabilities</h3><p>Local files are opened through user actions. File System Access capabilities stay in platform boundaries rather than leaking into analysis controllers.</p></article>
+        <article><span>03</span><h3>Portable means portable</h3><p>Workspace and case exports carry analysis state, not live file-handle capabilities. Case attachments are metadata-only references.</p></article>
+        <article><span>04</span><h3>Bounded processing</h3><p>Worker messages are authenticated with a per-session token, imports have explicit safety limits, and large export paths avoid one giant in-memory payload.</p></article>
+      </div>
+    </section>
+
+    <section class="features section-shell" id="features" aria-labelledby="features-title">
       <div class="section-head">
-        <span class="eyebrow">BUILT FOR HOW YOU DEBUG</span>
-        <h2>Simple. Powerful. Local.</h2>
-        <p>Useful log inspection without turning every local debugging task into an observability infrastructure project.</p>
+        <span class="eyebrow">ONE LOCAL WORKSPACE, MULTIPLE SIGNALS</span>
+        <h2 id="features-title">From raw lines to an investigation.</h2>
+        <p>SignalDock combines transparent local analysis with an incident workflow you can save, reopen and export.</p>
       </div>
       <div class="feature-grid">
-        <article><span>⌕</span><h3>Disk-backed indexed search</h3><p>Large datasets use a bounded worker 3-gram candidate index. Compatible cold-start restores can fetch only the IndexedDB buckets required by the query instead of rebuilding the entire token map in RAM.</p></article>
-        <article><span>♥</span><h3>Observed service health</h3><p>Compare local error/warning rates, recurring exceptions, trace-duration samples and recent failure deltas per service without pretending the logs are a full uptime monitor.</p></article>
-        <article><span>⚠</span><h3>Exception trends</h3><p>Deterministic recurring-failure groups now show spiking, rising, stable or falling behavior using timestamped occurrences from the loaded dataset.</p></article>
-        <article><span>◇</span><h3>Case + evidence workspace</h3><p>Track status, severity, hypothesis, impact, next steps and confirmed findings. Link findings directly to pinned evidence and carry the case inside workspaces and evidence bundles.</p></article>
-        <article><span>▦</span><h3>Service latency matrix</h3><p>Turn explicit parent-span relationships into service-to-service call counts, error rates and observed median/p95 latency without inventing timings where duration data is missing.</p></article>
-        <article><span>≋</span><h3>Trace Explorer</h3><p>Inventory distributed traces across the dataset, surface incomplete parent coverage and jump directly into waterfall, flame and critical-chain inspection.</p></article>
-        <article><span>⌘</span><h3>Reusable query library</h3><p>Save named smart queries with filter context, descriptions and tags, then export/import the library explicitly as local JSON.</p></article>
-        <article><span>↺</span><h3>Case activity history</h3><p>Keep a bounded local timeline of case status, finding and evidence actions that survives case/workspace/recovery round-trips.</p></article>
-        <article><span>▦</span><h3>Dependency heatmap</h3><p>See when explicit service-to-service parent-span edges concentrate through time, with observed error buckets clearly marked.</p></article>
-        <article><span>⇄</span><h3>Trace comparison</h3><p>Compare two imported trace IDs side-by-side across spans, services, errors, events, observed duration and parent-link coverage.</p></article>
-        <article><span>↗</span><h3>Dependency trends</h3><p>Compare explicit service edges across adjacent real-time windows and inspect observed call, error and p95 changes without forecasting or synthetic dependencies.</p></article>
-        <article><span>⇄</span><h3>Cross-dataset baselines</h3><p>Capture aggregate-only <code>.sdbaseline</code> summaries, load a different dataset and compare observed service, dependency and trace-set deltas without embedding raw logs in the baseline.</p></article>
-        <article><span>↺</span><h3>Case checkpoints</h3><p>Create bounded local investigation waypoints that preserve case state and evidence IDs without duplicating source log contents.</p></article>
-        <article><span>▣</span><h3>Local project metadata</h3><p>Organize named investigations and workspace references locally. Project records keep metadata only — never imported log bytes or attachment contents.</p></article>
-        <article><span>△</span><h3>Trace outliers</h3><p>Rank unusual traces from measured duration deviation, explicit errors and service breadth, with transparent reasons instead of black-box anomaly claims.</p></article>
-        <article><span>⌁</span><h3>Unified case timeline</h3><p>See evidence, milestones and case activity in one chronological local view and navigate back to pinned log evidence.</p></article>
-        <article><span>⌕</span><h3>Query library management</h3><p>Search reusable queries, filter by folder, rename folders and move queries inline — all in local browser state unless explicitly exported.</p></article>
-        <article><span>★</span><h3>Query folders + favorites</h3><p>Organize reusable local queries without accounts or cloud sync, with v1 library migration and explicit JSON import/export.</p></article>
-        <article><span>◇</span><h3>Milestones + local references</h3><p>Add investigation checkpoints and metadata-only references to local files without embedding or uploading attachment contents.</p></article>
-        <article><span>◫</span><h3>Deeper trace quality</h3><p>Inspect parent coverage, orphan spans, timed/error spans, resource sets, instrumentation scopes, critical chain, flame timing and span events without fabricating missing telemetry.</p></article>
-        <article><span>▣</span><h3>Portable local workspace</h3><p>Save <code>.sdsession</code> workspaces, use bounded chunked crash recovery and continue an analysis without uploading its contents to a remote service.</p></article>
+        <article><span aria-hidden="true">⌕</span><h3>Indexed local search</h3><p>Smart queries, source/level/time filters and a bounded worker candidate index keep large local datasets responsive.</p></article>
+        <article><span aria-hidden="true">≋</span><h3>Trace Explorer</h3><p>Inventory traces, inspect parent coverage, waterfall/flame timing, critical chain, span events and resource/scope context.</p></article>
+        <article><span aria-hidden="true">△</span><h3>Trace outliers</h3><p>Rank unusual traces using measured latency, explicit errors and service breadth with visible reasons rather than opaque anomaly labels.</p></article>
+        <article><span aria-hidden="true">▦</span><h3>Dependency analysis</h3><p>Explore service maps, latency matrices, time heatmaps and adjacent-window dependency trends from explicit span relationships.</p></article>
+        <article><span aria-hidden="true">♥</span><h3>Observed health</h3><p>Compare local error/warning rates, recurring exceptions and available trace-duration samples without pretending logs are a full uptime monitor.</p></article>
+        <article><span aria-hidden="true">⚠</span><h3>Exception trends</h3><p>Group recurring failure signatures and distinguish spiking, rising, stable and falling patterns in the loaded timestamps.</p></article>
+        <article><span aria-hidden="true">◇</span><h3>Case + evidence workspace</h3><p>Track hypothesis, impact, findings, milestones, evidence links and a unified local case timeline. Attachments remain metadata-only.</p></article>
+        <article><span aria-hidden="true">↺</span><h3>Case checkpoints</h3><p>Create bounded local waypoints that preserve case state and evidence IDs without duplicating source log contents.</p></article>
+        <article><span aria-hidden="true">⇄</span><h3>Cross-dataset baselines</h3><p>Capture aggregate-only snapshots and compare a later dataset without embedding raw logs in the baseline.</p></article>
+        <article><span aria-hidden="true">⌘</span><h3>Reusable query library</h3><p>Save named smart queries with folders, favorites and explicit local JSON import/export.</p></article>
+        <article><span aria-hidden="true">⌁</span><h3>Live tail</h3><p>Follow a local file as it grows in supported browsers while keeping processing on the device.</p></article>
+        <article><span aria-hidden="true">▣</span><h3>Portable workspaces</h3><p>Save <code>.sdsession</code> analysis state and bounded crash-recovery snapshots without a remote session service.</p></article>
       </div>
     </section>
 
-    <section class="workflow" id="workflow">
+    <section class="formats section-shell" id="formats" aria-labelledby="formats-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">OPEN INPUTS, EXPLICIT OUTPUTS</span>
+        <h2 id="formats-title">Bring files you already have.</h2>
+        <p>No agent install is required for ordinary local inspection. Import supported files directly, then save only the analysis artifacts you choose.</p>
+      </div>
+      <div class="format-groups">
+        <article>
+          <h3>Logs &amp; archives</h3>
+          <div class="format-list"><code>.json</code><code>.jsonl</code><code>.ndjson</code><code>.log</code><code>.txt</code><code>.zip</code></div>
+          <p>Structured and text logs, including supported local ZIP archives.</p>
+        </article>
+        <article>
+          <h3>Analysis artifacts</h3>
+          <div class="format-list"><code>.sdsession</code><code>.sdcase</code><code>.sdbaseline</code><code>.sdbundle</code><code>.sdprojects</code></div>
+          <p>Portable workspaces, case files, aggregate baselines, evidence bundles and local project metadata.</p>
+        </article>
+      </div>
+      <p class="format-note"><strong>Safety:</strong> Case imports are bounded to 32 MB before file contents are read. Large filtered exports automatically use chunked NDJSON to reduce memory pressure.</p>
+    </section>
+
+    <section class="workflow" id="workflow" aria-labelledby="workflow-title">
       <div>
         <span class="eyebrow">ZERO INGESTION PIPELINE</span>
-        <h2>Open. Inspect. Find the signal.</h2>
-        <p>Drag in one or more local files, narrow the noise with source and severity filters, inspect the exact payload, then export what matters.</p>
+        <h2 id="workflow-title">Open. Narrow. Explain. Preserve.</h2>
+        <p>Move from local evidence to a portable investigation without changing tools or shipping the source data to a hosted observability backend.</p>
       </div>
       <ol>
-        <li><b>01</b><span><strong>Import locally</strong><small>Files are read on the device.</small></span></li>
-        <li><b>02</b><span><strong>Filter aggressively</strong><small>Use level, source, service, correlation IDs, time range, exclusions, text and optional regex.</small></span></li>
-        <li><b>03</b><span><strong>Inspect context</strong><small>See parsed fields, recurring exception trends, observed service health, correlations, OTLP resource/scope context, trace quality + critical chain + flame timing, service topology and raw data locally.</small></span></li>
-        <li><b>04</b><span><strong>Build the case</strong><small>Pin bounded evidence, record hypothesis/impact/findings, link findings to evidence, export a case report or evidence bundle, and save the complete analysis as a portable SignalDock workspace.</small></span></li>
+        <li><b>01</b><span><strong>Import locally</strong><small>Choose files or drag them into the app. Access starts with an explicit user action.</small></span></li>
+        <li><b>02</b><span><strong>Narrow the signal</strong><small>Filter by source, severity, service, environment, namespace, correlation IDs, time and smart-query terms.</small></span></li>
+        <li><b>03</b><span><strong>Connect the context</strong><small>Inspect traces, dependency edges, exceptions, health summaries and raw payloads without fabricating missing telemetry.</small></span></li>
+        <li><b>04</b><span><strong>Preserve the case</strong><small>Pin evidence, record findings and milestones, save a workspace, or export a bounded case/report explicitly.</small></span></li>
       </ol>
     </section>
 
+    <section class="release-strip" aria-labelledby="release-title">
+      <div>
+        <span class="eyebrow">CURRENT RELEASE</span>
+        <h2 id="release-title">SignalDock v2.8.28</h2>
+      </div>
+      <ul>
+        <li>Cleaner query/topology filter orchestration</li>
+        <li>Bounded case import and explicit export cancellation</li>
+        <li>Authenticated local worker routing with stale-response guards</li>
+        <li>Responsive, keyboard-accessible static website with no marketing scripts</li>
+      </ul>
+    </section>
+
     <section class="cta">
-      <div><span class="eyebrow">OBSERVE LOCALLY. BUILD FREELY.</span><h2>Take control of your logs.</h2><p>No signup. No upload. No remote analytics dependency.</p></div>
+      <div><span class="eyebrow">OBSERVE LOCALLY. BUILD FREELY.</span><h2>Take control of the debugging loop.</h2><p>No signup. No upload. No telemetry dependency.</p></div>
       <a class="button button--primary" href="../index.html">Launch SignalDock</a>
     </section>
   </main>
@@ -146,7 +202,7 @@
   <footer>
     <a class="logo" href="#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
     <span>Private observability on your machine.</span>
-    <span>A smaller data footprint for a clearer debugging workflow.</span>
+    <span>v2.8.28 · local-first · zero telemetry</span>
   </footer>
 </body>
 </html>

@@ -30,6 +30,7 @@ const applicationControllers = [
   "src/app/filter-worker-controller.js",
   "src/app/related-context-controller.js",
   "src/app/dataset-session-controller.js",
+  "src/app/query-navigation-controller.js",
   "src/app/investigation-controller.js",
   "src/app/exception-controller.js",
   "src/app/trace-explorer-controller.js",

@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.27";
+  const APP_VERSION = "2.8.28";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -85,6 +85,7 @@
   let filterWorkerController = null;
   let relatedContextController = null;
   let datasetSessionController = null;
+  let queryNavigationController = null;
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
@@ -465,6 +466,12 @@
     });
     queryLibraryController.bind();
     queryLibraryController.render();
+    if (!window.SignalDockQueryNavigationController?.create) throw new Error("SignalDock Query Navigation controller is unavailable.");
+    queryNavigationController = window.SignalDockQueryNavigationController.create({
+      el,
+      applyFilters: (resetPage) => applyFilters(resetPage),
+      toast
+    });
     state.baselineHistory = window.SignalDockBaselineManager?.loadHistory?.() || [];
     if (!window.SignalDockBaselineController?.create) throw new Error("SignalDock Baseline controller is unavailable.");
     baselineController = window.SignalDockBaselineController.create({
@@ -945,52 +952,13 @@
 
   function entryRowIntoView(globalIndex) { return tableViewController?.entryRowIntoView(globalIndex); }
 
-  function filterByServiceValue(service) {
-    if (!service) return;
-    const cleanQuery = el.queryInput.value.replace(/(?:^|\s)service:(?:"[^"]+"|[^\s]+)/gi, " ").trim();
-    el.queryInput.value = `${cleanQuery}${cleanQuery ? " " : ""}service:${quoteIfNeeded(service)}`;
-    applyFilters(true);
-    toast(`Filtered to service ${service}.`);
-  }
+  function filterByServiceValue(service) { return queryNavigationController?.filterByServiceValue(service) || false; }
 
-  function filterByDimension(kind, value) {
-    if (!kind || !value) return;
-    const operator = kind === "environment" ? "env" : kind === "namespace" ? "namespace" : "service";
-    const matcher = operator === "env" ? /(?:^|\s)(?:env|environment):(?:"[^"]+"|[^\s]+)/gi : operator === "namespace" ? /(?:^|\s)(?:ns|namespace):(?:"[^"]+"|[^\s]+)/gi : /(?:^|\s)service:(?:"[^"]+"|[^\s]+)/gi;
-    const cleanQuery = el.queryInput.value.replace(matcher, " ").trim();
-    el.queryInput.value = `${cleanQuery}${cleanQuery ? " " : ""}${operator}:${quoteIfNeeded(value)}`;
-    applyFilters(true);
-    toast(`Filtered to ${kind} ${value}.`);
-  }
+  function filterByDimension(kind, value) { return queryNavigationController?.filterByDimension(kind, value) || false; }
 
-  function applyTopologyFilter({ kind = "service", value = "", scopeKind = "", scopeValue = "" } = {}) {
-    kind = String(kind || "service");
-    value = String(value || "").trim();
-    scopeKind = String(scopeKind || "");
-    scopeValue = String(scopeValue || "").trim();
-    if (!value) return;
-    const operator = kind === "environment" ? "env" : kind === "namespace" ? "namespace" : "service";
-    const patterns = {
-      service: /(?:^|\s)service:(?:"[^"]+"|[^\s]+)/gi,
-      env: /(?:^|\s)(?:env|environment):(?:"[^"]+"|[^\s]+)/gi,
-      namespace: /(?:^|\s)(?:ns|namespace):(?:"[^"]+"|[^\s]+)/gi
-    };
-    let cleanQuery = el.queryInput.value.replace(patterns[operator], " ").trim();
-    cleanQuery = `${cleanQuery}${cleanQuery ? " " : ""}${operator}:${quoteIfNeeded(value)}`;
-    if (scopeKind && scopeValue) {
-      const scopeOperator = scopeKind === "environment" ? "env" : "namespace";
-      cleanQuery = cleanQuery.replace(patterns[scopeOperator], " ").trim();
-      cleanQuery += ` ${scopeOperator}:${quoteIfNeeded(scopeValue)}`;
-    }
-    el.queryInput.value = cleanQuery.trim();
-    applyFilters(true);
-    toast(`Applied topology filter: ${el.queryInput.value}.`);
-  }
+  function applyTopologyFilter(options = {}) { return queryNavigationController?.applyTopologyFilter(options) || false; }
 
-  function quoteIfNeeded(value) {
-    const text = String(value || "");
-    return /\s/.test(text) ? `"${text.replace(/"/g, "")}"` : text;
-  }
+  function quoteIfNeeded(value) { return queryNavigationController?.quoteIfNeeded(value) || String(value || ""); }
 
   function exportFiltered() { return datasetSessionController?.exportFiltered(); }
 

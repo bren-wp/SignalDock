@@ -30,3 +30,6 @@ No bundler or package-install step is introduced by this layout.
 
 
 Case file application boundary: src/app/case-file-controller.js owns bounded Case import/export and report orchestration. Storage and domain capabilities remain injected.
+
+
+Query navigation application boundary: src/app/query-navigation-controller.js owns UI query composition for service, environment, namespace and topology navigation without direct Query Engine or storage capabilities.
