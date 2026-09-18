@@ -11,6 +11,12 @@
   const CHUNK_BYTES = 4 * 1024 * 1024;
   const MAX_AUTO_ENTRIES = 500000;
   const MAX_ESTIMATED_BYTES = 350 * 1024 * 1024;
+  const MAX_CHUNKS = Math.ceil(MAX_ESTIMATED_BYTES / CHUNK_BYTES);
+
+  function validChunkCount(value) {
+    const count = Number(value);
+    return Number.isInteger(count) && count >= 1 && count <= MAX_CHUNKS ? count : 0;
+  }
 
   function estimateEntryBytes(entry) {
     let size = 160;
@@ -159,7 +165,9 @@
     let metadata = null;
 
     if (manifest?.chunkCount) {
-      const keys = Array.from({ length: manifest.chunkCount }, (_, index) => `${CHUNK_PREFIX}${index}`);
+      const chunkCount = validChunkCount(manifest.chunkCount);
+      if (!chunkCount) throw new Error("Recovery snapshot manifest has an invalid chunk count.");
+      const keys = Array.from({ length: chunkCount }, (_, index) => `${CHUNK_PREFIX}${index}`);
       const chunks = await getRecords(keys);
       if (chunks.some((chunk) => !chunk?.blob)) throw new Error("Recovery snapshot is incomplete or corrupted.");
       blob = new Blob(chunks.map((chunk) => chunk.blob), { type: "application/json" });
@@ -196,7 +204,7 @@
       store.delete(MANIFEST_KEY);
       store.delete(LEGACY_DATASET_KEY);
       store.delete(VIEW_KEY);
-      const chunkCount = Number(manifest?.chunkCount) || 0;
+      const chunkCount = validChunkCount(manifest?.chunkCount);
       for (let index = 0; index < chunkCount; index += 1) store.delete(`${CHUNK_PREFIX}${index}`);
     });
   }
@@ -206,6 +214,8 @@
     CHUNK_BYTES,
     MAX_AUTO_ENTRIES,
     MAX_ESTIMATED_BYTES,
+    MAX_CHUNKS,
+    validChunkCount,
     estimateSnapshotBytes,
     autosaveEligibility,
     saveDataset,
