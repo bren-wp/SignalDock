@@ -113,7 +113,7 @@
     };
   }
   function normalize(input) {
-    if (!input || typeof input !== "object" || input.schema !== SCHEMA || Number(input.version) !== VERSION) throw new Error("Unsupported or invalid SignalDock baseline.");
+    if (!input || typeof input !== "object" || input.schema !== SCHEMA || input.version !== VERSION) throw new Error("Unsupported or invalid SignalDock baseline.");
     return {
       schema: SCHEMA, version: VERSION, appVersion: clean(input.appVersion, 32), id: clean(input.id, 96),
       name: clean(input.name || "SignalDock baseline", 120), capturedAt: clean(input.capturedAt, 64),
@@ -206,7 +206,7 @@
   function exportHistory(list) { return JSON.stringify({ schema: HISTORY_SCHEMA, version: HISTORY_VERSION, exportedAt: new Date().toISOString(), items: normalizeHistory(list) }, null, 2); }
   function importHistory(text, mergeWith = []) {
     const parsed = JSON.parse(String(text || ""));
-    if (parsed?.schema !== HISTORY_SCHEMA || Number(parsed.version) !== HISTORY_VERSION || !Array.isArray(parsed.items)) throw new Error("Unsupported or invalid SignalDock baseline history.");
+    if (parsed?.schema !== HISTORY_SCHEMA || parsed.version !== HISTORY_VERSION || !Array.isArray(parsed.items)) throw new Error("Unsupported or invalid SignalDock baseline history.");
     const byId = new Map(normalizeHistory(mergeWith).map((item) => [item.id, item]));
     normalizeHistory(parsed.items).forEach((item) => byId.set(item.id, item)); return saveHistory([...byId.values()].slice(-MAX_BASELINES));
   }
