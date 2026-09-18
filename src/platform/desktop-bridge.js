@@ -29,8 +29,8 @@
     if (!record || typeof record !== "object") throw new Error("Desktop bridge returned an invalid file record.");
     const file = record.file;
     const fileSize = file?.size;
-    if (!file || typeof file.name !== "string" || fileSize === null || fileSize === undefined || fileSize === "" || !Number.isFinite(Number(fileSize)) || Number(fileSize) < 0) throw new Error("Desktop bridge file record is missing a File-like object.");
-    return { file, handle: record.handle || null, handleRef: clean(record.handleRef), reference: record.reference || storage()?.reference?.(file) || { name: file.name, size: Number(file.size) || 0 } };
+    if (!file || typeof file.name !== "string" || typeof fileSize !== "number" || !Number.isFinite(fileSize) || fileSize < 0) throw new Error("Desktop bridge file record is missing a File-like object.");
+    return { file, handle: record.handle || null, handleRef: clean(record.handleRef), reference: record.reference || storage()?.reference?.(file) || { name: file.name, size: fileSize } };
   }
 
   function pickOptions(options = {}) {
