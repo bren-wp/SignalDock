@@ -23,9 +23,14 @@
 
   function analyze(entries, options = {}) {
     const source = Array.isArray(entries) ? entries : [];
-    const times = source.map(timestamp).filter(Number.isFinite);
-    const latest = times.length ? Math.max(...times) : null;
-    const earliest = times.length ? Math.min(...times) : null;
+    let latest = null;
+    let earliest = null;
+    for (const entry of source) {
+      const ts = timestamp(entry);
+      if (ts === null) continue;
+      if (latest === null || ts > latest) latest = ts;
+      if (earliest === null || ts < earliest) earliest = ts;
+    }
     const span = latest !== null && earliest !== null ? Math.max(1, latest - earliest) : 0;
     const windowMs = Math.max(60_000, Number(options.windowMs) || Math.min(6 * 60 * 60 * 1000, Math.max(15 * 60 * 1000, Math.floor(span / 4) || 60 * 60 * 1000)));
     const recentStart = latest === null ? null : latest - windowMs;
