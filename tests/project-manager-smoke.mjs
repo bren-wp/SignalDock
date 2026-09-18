@@ -83,4 +83,8 @@ const legacy = JSON.stringify({
 const migrated = api.importJson(legacy);
 assert.equal(migrated.projects[0].recentDatasets[0].handleRef, "", "legacy import must strip local capability references");
 
+const oversizedProjects = Array.from({ length: 5000 }, (_, index) => ({ id: `bulk-${index}`, name: `Bulk ${index}` }));
+const boundedImport = api.importJson(JSON.stringify({ schema: "signaldock.projects", version: 4, projects: oversizedProjects }));
+assert.equal(boundedImport.projects.length, api.MAX, "project import must normalize only the bounded project window");
+
 console.log("project-manager-smoke PASS");
