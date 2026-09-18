@@ -21,6 +21,10 @@ vm.runInContext(
 
 const api = context.self.SignalDockProjectManager;
 assert.equal(api.VERSION, 4);
+const source = fs.readFileSync(new URL("../src/investigation/project-manager.js", import.meta.url), "utf8");
+assert.ok(source.includes("function prependUniqueById("), "Project Manager must centralize repeated prepend/dedupe history logic");
+assert.equal((source.match(/\.filter\(\(candidate\) => candidate\.id !==/g) || []).length, 1, "Project Manager should keep one shared history dedupe filter");
+
 
 const created = api.create([], { name: "Payments", tags: ["prod"] });
 const manyTags = [...Array.from({ length: 5000 }, () => "dup"), ...Array.from({ length: 25 }, (_, index) => `tag-${index}`)];
@@ -44,9 +48,23 @@ projects = api.touchWorkspace(projects, created.project.id, {
 });
 
 assert.equal(projects[0].recentDatasets[0].reopenable, true);
+projects = api.touchDataset(projects, created.project.id, { id: "d2", name: "next.ndjson", size: 789 });
+assert.deepEqual(Array.from(projects[0].recentDatasets, (item) => item.id), ["d2", "d1"], "new dataset history item must be prepended");
+projects = api.touchDataset(projects, created.project.id, { id: "d1", name: "prod-new.ndjson", size: 999 });
+assert.deepEqual(Array.from(projects[0].recentDatasets, (item) => item.id), ["d1", "d2"], "duplicate dataset history id must move to the front without duplication");
+assert.equal(projects[0].recentDatasets.filter((item) => item.id === "d1").length, 1);
 projects = api.markHistoryReopened(projects, created.project.id, "recentDatasets", "d1");
 assert.equal(projects[0].recentDatasets[0].reopenCount, 1);
 assert.ok(projects[0].recentDatasets[0].lastReopenedAt);
+
+projects = api.attachBaseline(projects, created.project.id, { id: "b1", name: "Before" });
+projects = api.attachBaseline(projects, created.project.id, { id: "b1", name: "After" });
+assert.equal(projects[0].baselines.length, 1, "baseline replacement must not duplicate ids");
+assert.equal(projects[0].baselines[0].name, "After");
+projects = api.attachCase(projects, created.project.id, { id: "c1", title: "Case one", status: "open" });
+projects = api.attachCase(projects, created.project.id, { id: "c1", title: "Case updated", status: "resolved" });
+assert.equal(projects[0].cases.length, 1, "case replacement must not duplicate ids");
+assert.equal(projects[0].cases[0].title, "Case updated");
 
 projects = api.unlinkHistoryHandle(projects, created.project.id, "recentDatasets", "d1");
 assert.equal(projects[0].recentDatasets[0].reopenable, false);
