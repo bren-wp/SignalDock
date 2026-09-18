@@ -64,7 +64,11 @@ const entries = [
 ];
 const workspace = { loadedBytes: 42, inputFileCount: 1, view: { query: "level:error" }, settings: { autosave: true, parserProfile: "auto" }, investigation: { schema: "signaldock.investigation", version: 1, title: "Recovery case", summary: "local", items: [{ id: "ev-1", entryId: "sd-0", globalIndex: 0, source: "api.log", service: "api", level: "ERROR", timestamp: "2026-09-12T20:00:00Z", message: "boom", note: "preserve me", tags: ["recovery"] }] }, caseFile: { schema:'signaldock.case', version:1, title:'Recovery case', status:'monitoring', severity:'sev3', findings:[{id:'f1',title:'Finding',body:'Recovered',state:'confirmed',tags:[],evidenceIds:['ev-1']}] } };
 
+const staleLastChunkKey = `dataset-chunk:${globalThis.SignalDockPersistence.MAX_CHUNKS - 1}`;
+records.set("dataset-manifest", { key: "dataset-manifest", chunkCount: "corrupt" });
+records.set(staleLastChunkKey, { key: staleLastChunkKey, blob: new Blob(["stale-orphan"]) });
 const saved = await globalThis.SignalDockPersistence.saveDataset(entries, workspace, "1.9.0");
+assert(!records.has(staleLastChunkKey), "successful recovery save must sweep stale chunks when the previous manifest is corrupt");
 assert(saved.allowed, "dataset autosave failed");
 await globalThis.SignalDockPersistence.saveView({ query: "trace:t-1", inspectorTab: "trace" }, { autosave: true, parserProfile: "auto" });
 const info = await globalThis.SignalDockPersistence.recoveryInfo();
