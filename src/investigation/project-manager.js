@@ -43,6 +43,15 @@
   function baselineList(value) { return (Array.isArray(value) ? value : []).slice(0, MAX_HISTORY).map((item, index) => ({ id: clean(item?.id || `baseline-${index + 1}`, 96), name: clean(item?.name || `Baseline ${index + 1}`, 120), capturedAt: clean(item?.capturedAt || new Date().toISOString(), 64), tags: tags(item?.tags) })); }
   function caseList(value) { return (Array.isArray(value) ? value : []).slice(0, MAX_HISTORY).map((item, index) => ({ id: clean(item?.id || `case-${index + 1}`, 96), title: clean(item?.title || `Case ${index + 1}`, 160), status: clean(item?.status || "open", 40), updatedAt: clean(item?.updatedAt || new Date().toISOString(), 64) })); }
 
+  function prependUniqueById(list, item, normalizeList) {
+    const current = Array.isArray(list) ? list : [];
+    return normalizeList([item, ...current.filter((candidate) => candidate.id !== item.id)]);
+  }
+
+  function historyKind(field) {
+    return field === "recentWorkspaces" ? "workspace" : "dataset";
+  }
+
   function normalize(project, index = 0) {
     const source = project && typeof project === "object" ? project : {};
     const now = new Date().toISOString();
@@ -105,7 +114,7 @@
     const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out);
     const now = new Date().toISOString();
     const item = { ...value, id: clean(value?.id || `${field}-${Date.now().toString(36)}`, 96), openedAt: now };
-    project[field] = historyList([item, ...(project[field] || []).filter((candidate) => candidate.id !== item.id)], field === "recentWorkspaces" ? "workspace" : "dataset");
+    project[field] = prependUniqueById(project[field], item, (items) => historyList(items, historyKind(field)));
     project.lastOpenedAt = now; project.updatedAt = now;
     if (field === "recentWorkspaces") project.lastWorkspace = clean(item.name || item.filename, 240);
     return persist(out);
@@ -137,14 +146,14 @@
     if (!item) return persist(out);
     const now = new Date().toISOString();
     const updated = { ...item, openedAt: now, lastReopenedAt: now, reopenCount: Math.max(0, Number(item.reopenCount) || 0) + 1 };
-    project[field] = historyList([updated, ...(project[field] || []).filter((candidate) => candidate.id !== updated.id)], field === "recentWorkspaces" ? "workspace" : "dataset");
+    project[field] = prependUniqueById(project[field], updated, (items) => historyList(items, historyKind(field)));
     project.lastOpenedAt = now; project.updatedAt = now;
     if (field === "recentWorkspaces") project.lastWorkspace = updated.name;
     return persist(out);
   }
 
-  function attachBaseline(list, id, value = {}) { const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out); const baseline = baselineList([value])[0]; project.baselines = baselineList([baseline, ...(project.baselines || []).filter((item) => item.id !== baseline.id)]); project.baselineName = baseline.name; project.updatedAt = new Date().toISOString(); return persist(out); }
-  function attachCase(list, id, value = {}) { const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out); const caseMeta = caseList([value])[0]; project.cases = caseList([caseMeta, ...(project.cases || []).filter((item) => item.id !== caseMeta.id)]); project.updatedAt = new Date().toISOString(); return persist(out); }
+  function attachBaseline(list, id, value = {}) { const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out); const baseline = baselineList([value])[0]; project.baselines = prependUniqueById(project.baselines, baseline, baselineList); project.baselineName = baseline.name; project.updatedAt = new Date().toISOString(); return persist(out); }
+  function attachCase(list, id, value = {}) { const out = loadOr(list); const project = out.find((item) => item.id === id); if (!project) return persist(out); const caseMeta = caseList([value])[0]; project.cases = prependUniqueById(project.cases, caseMeta, caseList); project.updatedAt = new Date().toISOString(); return persist(out); }
   function archive(list, id, archived = true) { return update(list, id, { archived }); }
 
   function portableProject(project) {
