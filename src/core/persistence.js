@@ -197,14 +197,11 @@
 
   async function clearRecovery() {
     if (!root.indexedDB) return;
-    let manifest = null;
-    try { [manifest] = await getRecords([MANIFEST_KEY]); } catch { /* ignored */ }
     await withStore("readwrite", (store) => {
       store.delete(MANIFEST_KEY);
       store.delete(LEGACY_DATASET_KEY);
       store.delete(VIEW_KEY);
-      const chunkCount = validChunkCount(manifest?.chunkCount);
-      for (let index = 0; index < chunkCount; index += 1) store.delete(`${CHUNK_PREFIX}${index}`);
+      for (let index = 0; index < MAX_CHUNKS; index += 1) store.delete(`${CHUNK_PREFIX}${index}`);
     });
   }
 
