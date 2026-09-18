@@ -17,6 +17,7 @@
 
   function clean(value, max = 200) { return String(value ?? "").trim().slice(0, max); }
   function clamp(value, min, max, fallback) { if (value === null || value === undefined || value === "") return fallback; const number = Number(value); return Number.isFinite(number) ? Math.min(max, Math.max(min, Math.floor(number))) : fallback; }
+  function byteLimit(value, fallback = DEFAULT_MAX_BYTES) { const number = Number(value); return Number.isFinite(number) && number > 0 ? Math.floor(number) : fallback; }
 
   function capabilities() {
     return {
@@ -173,7 +174,7 @@
     if (typeof root.showOpenFilePicker !== "function") throw new Error("Native local file picker is unavailable in this browser.");
     const multiple = Boolean(options.multiple);
     const maxFiles = clamp(options.maxFiles, 1, 128, multiple ? 64 : 1);
-    const maxBytes = Math.max(1, Number(options.maxBytes) || DEFAULT_MAX_BYTES);
+    const maxBytes = byteLimit(options.maxBytes);
     const types = Array.isArray(options.types) && options.types.length ? options.types : DEFAULT_PICK_TYPES;
     let handles;
     try { handles = await root.showOpenFilePicker({ multiple, types }); }
@@ -231,7 +232,7 @@
     if (!file || typeof file.text !== "function") throw new Error("A readable local file is required.");
     const size = file.size;
     if (typeof size !== "number" || !Number.isFinite(size) || size < 0) throw new Error("A readable local file must report a valid non-negative size.");
-    const limit = Math.max(1, Number(maxBytes) || DEFAULT_MAX_BYTES);
+    const limit = byteLimit(maxBytes);
     if (size > limit) throw new Error(`Local file exceeds the ${Math.round(limit / 1024 / 1024)} MB safety limit.`);
     return { text: await file.text(), reference: reference(file), file };
   }
@@ -240,7 +241,7 @@
     const records = await pickFiles({ ...options, multiple: false, maxFiles: 1 });
     if (!records.length) return null;
     const record = records[0];
-    const result = await readTextFile(record.file, Number(options.maxBytes) || DEFAULT_MAX_BYTES);
+    const result = await readTextFile(record.file, options.maxBytes);
     return { ...result, handle: record.handle, handleRef: record.handleRef || "" };
   }
 
