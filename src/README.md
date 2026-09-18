@@ -32,6 +32,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/table-view-controller.js` owns paged/windowed rendering, pagination, virtual spacers, row DOM and table listeners while viewport calculation, formatting, selection and performance timing remain root-injected callbacks.
 
+`app/workspace-controller.js` owns workspace/view snapshots, save/restore orchestration and workspace UI shortcuts while serialization, file I/O, Desktop Bridge/Project handle capabilities and domain normalization remain root-injected callbacks.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.

@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.21";
+  const APP_VERSION = "2.8.22";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -82,6 +82,7 @@
   let importLiveTailController = null;
   let datasetFilterController = null;
   let tableViewController = null;
+  let workspaceController = null;
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
@@ -254,6 +255,105 @@
       selectEntry
     });
     tableViewController.bind();
+    if (!window.SignalDockWorkspaceController?.create) throw new Error("SignalDock Workspace controller is unavailable.");
+    workspaceController = window.SignalDockWorkspaceController.create({
+      state,
+      el,
+      appVersion: APP_VERSION,
+      ownerDocument: document,
+      prepareWorkspaceArchive: (entries, workspace, version) => {
+        const parts = window.SignalDockWorkspace.serializeParts(entries, workspace, version);
+        const size = parts.reduce((sum, part) => sum + new Blob([part]).size, 0);
+        return { parts, size };
+      },
+      persistWorkspaceArchive: async ({ filename, parts, size }) => {
+        let saved = null;
+        if (window.SignalDockDesktopBridge?.saveParts) {
+          saved = await window.SignalDockDesktopBridge.saveParts({
+            name: filename,
+            mime: "application/json;charset=utf-8",
+            parts,
+            persistHandle: Boolean(state.activeProjectId),
+            projectId: state.activeProjectId,
+            id: filename,
+            note: "SignalDock project workspace"
+          });
+        } else {
+          utils().downloadParts(filename, parts, "application/json;charset=utf-8");
+          saved = { mode: "download", name: filename, handleRef: "" };
+        }
+        if (saved?.mode !== "cancelled" && state.activeProjectId && window.SignalDockProjectManager) {
+          if (window.SignalDockProjectManager.touchWorkspace) {
+            state.projects = window.SignalDockProjectManager.touchWorkspace(state.projects, state.activeProjectId, {
+              id: filename,
+              name: saved?.name || filename,
+              size,
+              handleRef: saved?.handleRef || "",
+              handleKind: saved?.handleRef ? "file" : ""
+            });
+          }
+          if (state.baselineSnapshot && window.SignalDockProjectManager.attachBaseline) {
+            state.projects = window.SignalDockProjectManager.attachBaseline(state.projects, state.activeProjectId, {
+              id: state.baselineSnapshot.id,
+              name: state.baselineSnapshot.name,
+              capturedAt: state.baselineSnapshot.capturedAt
+            });
+          }
+          if (state.caseFile && window.SignalDockProjectManager.attachCase) {
+            state.projects = window.SignalDockProjectManager.attachCase(state.projects, state.activeProjectId, {
+              id: state.caseFile.id || "active-case",
+              title: state.caseFile.title || state.investigation?.title || "Investigation",
+              status: state.caseFile.status || "open",
+              updatedAt: state.caseFile.updatedAt || new Date().toISOString()
+            });
+          }
+          projectController?.render();
+        }
+        return { mode: saved?.mode || "saved", name: saved?.name || filename, reopenLinked: Boolean(saved?.handleRef) };
+      },
+      readAndParseWorkspace: async (file) => window.SignalDockWorkspace.parse(await file.text()),
+      normalizeWorkspaceSnapshot: (snapshot) => ({
+        ...snapshot,
+        investigation: window.SignalDockInvestigation?.normalize?.(snapshot.investigation) || snapshot.investigation,
+        caseFile: window.SignalDockCaseWorkspace?.normalize?.(snapshot.caseFile) || snapshot.caseFile,
+        caseCheckpoints: window.SignalDockCaseCheckpoints?.normalizeList?.(snapshot.caseCheckpoints) || snapshot.caseCheckpoints
+      }),
+      normalizeWorkspaceDomain: (workspace) => {
+        const investigationSource = workspace?.investigation || window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
+        const investigation = window.SignalDockInvestigation?.normalize?.(investigationSource) || investigationSource;
+        const caseSource = workspace?.caseFile || window.SignalDockCaseWorkspace?.empty?.(investigation?.title || "Investigation") || { title: investigation?.title || "Investigation", status: "open", severity: "none", findings: [] };
+        const caseFile = window.SignalDockCaseWorkspace?.normalize?.(caseSource) || caseSource;
+        const caseCheckpoints = window.SignalDockCaseCheckpoints?.normalizeList?.(workspace?.caseCheckpoints || []) || [];
+        let baselineSnapshot = state.baselineSnapshot;
+        try { baselineSnapshot = workspace?.baselineSnapshot ? window.SignalDockBaselineManager?.normalize?.(workspace.baselineSnapshot) : state.baselineSnapshot; }
+        catch { baselineSnapshot = null; }
+        return {
+          investigation,
+          caseFile,
+          caseCheckpoints,
+          baselineSnapshot,
+          activeProjectId: String(workspace?.activeProjectId || state.activeProjectId || "")
+        };
+      },
+      persistActiveProjectId: (projectId) => utils().saveJson("signaldock-active-project-v1", projectId),
+      isServiceMapGroupMode: (mode) => Boolean(window.SignalDockServiceMap?.GROUP_MODES?.includes(mode)),
+      getSelectedEntry: selectedEntry,
+      stopLiveTail,
+      appendParsedEntries,
+      applySettings,
+      rebuildFilterIndex,
+      refreshFilters,
+      setControlsEnabled,
+      syncWorkerIndex,
+      syncLevelChips,
+      applyFilters,
+      selectEntry,
+      markDatasetForAutosave,
+      setProcessing,
+      toast,
+      nowIso: () => new Date().toISOString()
+    });
+    workspaceController.bind();
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -613,7 +713,6 @@
   function bindEvents() {
 
     el.exportButton.addEventListener("click", exportFiltered);
-    el.workspaceSaveButton.addEventListener("click", saveWorkspace);
     el.clearAllButton.addEventListener("click", clearAll);
 
 
@@ -632,10 +731,6 @@
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
         event.preventDefault();
         if (!el.queryInput.disabled) el.queryInput.focus();
-      }
-      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === "s" && state.entries.length) {
-        event.preventDefault();
-        saveWorkspace();
       }
       if (event.key === "/" && !typing) {
         event.preventDefault();
@@ -1156,43 +1251,9 @@
   }
 
 
-  async function saveWorkspace() {
-  if (!state.entries.length) return;
-  const workspace = currentWorkspaceState(); const parts = window.SignalDockWorkspace.serializeParts(state.entries, workspace, APP_VERSION); const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19); const filename = `signaldock-${stamp}.sdsession`;
-  const size = parts.reduce((sum, part) => sum + new Blob([part]).size, 0);
-  let saved = null;
-  try {
-    if (window.SignalDockDesktopBridge?.saveParts) saved = await window.SignalDockDesktopBridge.saveParts({ name: filename, mime: "application/json;charset=utf-8", parts, persistHandle: Boolean(state.activeProjectId), projectId: state.activeProjectId, id: filename, note: "SignalDock project workspace" });
-    else { utils().downloadParts(filename, parts, "application/json;charset=utf-8"); saved = { mode: "download", name: filename, handleRef: "" }; }
-  } catch (error) { toast(`Could not save workspace: ${error.message || error}`, "error", 7500); return; }
-  if (saved?.mode === "cancelled") { toast("Workspace save cancelled."); return; }
-  if (state.activeProjectId && window.SignalDockProjectManager) {
-    if (window.SignalDockProjectManager.touchWorkspace) state.projects = window.SignalDockProjectManager.touchWorkspace(state.projects, state.activeProjectId, { id: filename, name: saved?.name || filename, size, handleRef: saved?.handleRef || "", handleKind: saved?.handleRef ? "file" : "" });
-    if (state.baselineSnapshot && window.SignalDockProjectManager.attachBaseline) state.projects = window.SignalDockProjectManager.attachBaseline(state.projects, state.activeProjectId, { id: state.baselineSnapshot.id, name: state.baselineSnapshot.name, capturedAt: state.baselineSnapshot.capturedAt });
-    if (state.caseFile && window.SignalDockProjectManager.attachCase) state.projects = window.SignalDockProjectManager.attachCase(state.projects, state.activeProjectId, { id: state.caseFile.id || "active-case", title: state.caseFile.title || state.investigation?.title || "Investigation", status: state.caseFile.status || "open", updatedAt: state.caseFile.updatedAt || new Date().toISOString() });
-    projectController?.render();
-  }
-  toast(`Workspace saved with ${state.entries.length.toLocaleString()} entries${saved?.handleRef ? " · reopen link stored locally" : ""}.`);
-}
+  async function saveWorkspace() { return workspaceController?.saveWorkspace(); }
 
-  async function restoreWorkspace(file) {
-    const maxWorkspaceBytes = 500 * 1024 * 1024;
-    if (file.size > maxWorkspaceBytes) {
-      toast("Workspace is larger than the 500 MB session safety limit.", "error", 7000);
-      return;
-    }
-    setProcessing(true, "Opening workspace…", file.name);
-    try {
-      const payload = window.SignalDockWorkspace.parse(await file.text());
-      await restoreWorkspacePayload(payload, file.name);
-      markDatasetForAutosave();
-      toast(`Workspace restored · ${state.entries.length.toLocaleString()} entries.`);
-    } catch (error) {
-      toast(`Could not open workspace: ${error.message || error}`, "error", 7500);
-    } finally {
-      setProcessing(false);
-    }
-  }
+  async function restoreWorkspace(file) { return workspaceController?.restoreWorkspace(file); }
 
   function clearAll() {
     if (!state.entries.length) return;
@@ -1301,35 +1362,9 @@
 
   function updateCustomParserVisibility() { settingsController?.updateCustomParserVisibility(); }
 
-  function currentViewState() {
-    const selected = selectedEntry();
-    return {
-      query: el.queryInput.value,
-      level: el.levelFilter.value,
-      source: el.sourceFilter.value,
-      timeRange: el.timeFilter.value,
-      sortMode: el.sortFilter.value,
-      pageSize: state.pageSize,
-      renderMode: state.renderMode,
-      serviceMapGroupBy: state.serviceMapGroupBy,
-      selectedGlobalIndex: selected?.globalIndex ?? null,
-      inspectorTab: state.inspectorTab
-    };
-  }
+  function currentViewState() { return workspaceController?.currentViewState() || {}; }
 
-  function currentWorkspaceState() {
-    return {
-      loadedBytes: state.loadedBytes,
-      inputFileCount: state.inputFileCount,
-      view: currentViewState(),
-      settings: state.settings,
-      investigation: window.SignalDockInvestigation?.normalize?.(state.investigation) || state.investigation,
-      caseFile: window.SignalDockCaseWorkspace?.normalize?.(state.caseFile) || state.caseFile,
-      caseCheckpoints: window.SignalDockCaseCheckpoints?.normalizeList?.(state.caseCheckpoints) || state.caseCheckpoints,
-      baselineSnapshot: state.baselineSnapshot,
-      activeProjectId: state.activeProjectId
-    };
-  }
+  function currentWorkspaceState() { return workspaceController?.currentWorkspaceState() || {}; }
 
   function markDatasetForAutosave() { recoveryDiagnosticsController?.markDatasetForAutosave(); }
 
@@ -1341,53 +1376,7 @@
 
   function hideRecoveryBanner() { recoveryDiagnosticsController?.hideRecoveryBanner(); }
 
-  async function restoreWorkspacePayload(payload, label = "workspace") {
-    stopLiveTail();
-    state.entries = [];
-    state.filterEntries = [];
-    state.filteredIndexes = [];
-    state.selectedId = null;
-    state.correlatedIndexes = [];
-    state.traceIndexes = [];
-    appendParsedEntries(payload.entries || []);
-    state.loadedBytes = Number(payload.workspace?.loadedBytes) || 0;
-    state.inputFileCount = Number(payload.workspace?.inputFileCount) || 1;
-    state.settings = Object.assign(state.settings, payload.workspace?.settings || {});
-    const restoredInvestigation = payload.workspace?.investigation || window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
-    state.investigation = window.SignalDockInvestigation?.normalize?.(restoredInvestigation) || restoredInvestigation;
-    const restoredCase = payload.workspace?.caseFile || window.SignalDockCaseWorkspace?.empty?.(state.investigation?.title || "Investigation") || { title: state.investigation?.title || "Investigation", status: "open", severity: "none", findings: [] };
-    state.caseFile = window.SignalDockCaseWorkspace?.normalize?.(restoredCase) || restoredCase;
-    state.caseCheckpoints = window.SignalDockCaseCheckpoints?.normalizeList?.(payload.workspace?.caseCheckpoints || []) || [];
-    try { state.baselineSnapshot = payload.workspace?.baselineSnapshot ? window.SignalDockBaselineManager?.normalize?.(payload.workspace.baselineSnapshot) : state.baselineSnapshot; } catch { state.baselineSnapshot = null; }
-    state.activeProjectId = String(payload.workspace?.activeProjectId || state.activeProjectId || "");
-    if (state.activeProjectId) utils().saveJson("signaldock-active-project-v1", state.activeProjectId);
-    applySettings();
-    rebuildFilterIndex();
-    refreshFilters();
-    setControlsEnabled(true);
-    syncWorkerIndex();
-
-    const view = payload.workspace?.view || {};
-    el.queryInput.value = String(view.query || "");
-    el.levelFilter.value = Array.from(el.levelFilter.options).some((option) => option.value === view.level) ? view.level : "";
-    el.sourceFilter.value = Array.from(el.sourceFilter.options).some((option) => option.value === view.source) ? view.source : "";
-    el.timeFilter.value = Array.from(el.timeFilter.options).some((option) => option.value === view.timeRange) ? view.timeRange : "";
-    el.sortFilter.value = Array.from(el.sortFilter.options).some((option) => option.value === view.sortMode) ? view.sortMode : "original";
-    state.pageSize = [50, 100, 250, 500, 1000].includes(Number(view.pageSize)) ? Number(view.pageSize) : 100;
-    el.pageSize.value = String(state.pageSize);
-    state.renderMode = view.renderMode === "virtual" ? "virtual" : "paged";
-    if (el.renderMode) el.renderMode.value = state.renderMode;
-    state.serviceMapGroupBy = window.SignalDockServiceMap?.GROUP_MODES?.includes(view.serviceMapGroupBy) ? view.serviceMapGroupBy : "service";
-    if (el.serviceMapGroupBy) el.serviceMapGroupBy.value = state.serviceMapGroupBy;
-    state.inspectorTab = ["details", "context", "correlations", "trace", "raw", "json"].includes(view.inspectorTab) ? view.inspectorTab : "details";
-    syncLevelChips(el.levelFilter.value);
-    applyFilters(true);
-    if (Number.isInteger(view.selectedGlobalIndex) && state.entries[view.selectedGlobalIndex]) selectEntry(`sd-${view.selectedGlobalIndex}`);
-    state.recovery.datasetDirty = false;
-    if (label) el.loadedMeta.title = label;
-  }
-
-
+  async function restoreWorkspacePayload(payload, label = "workspace") { return workspaceController?.restoreWorkspacePayload(payload, label); }
 
   function updateDiagnostics() { recoveryDiagnosticsController?.updateDiagnostics(); }
 

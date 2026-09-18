@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.22 — 2026-09-18
+
+### Workspace application boundary
+- Extracted workspace/view snapshot construction, save/restore orchestration, restore-state application and workspace save/keyboard listener ownership into `src/app/workspace-controller.js`.
+- Kept session serialization/parsing, file reads, Desktop Bridge save actions, browser download fallback, Project Manager handle metadata and domain normalization in the root/platform boundary behind narrow callbacks.
+- Preserved the 500 MB restore safety limit, portable workspace payload semantics, active-project restoration, view/filter restoration and recovery autosave handoff.
+
+### Maintainability and verification
+- Added isolated Workspace controller coverage for normalized portable snapshots, save orchestration, restore state, selected-entry restoration, size-limit rejection and idempotent listener cleanup.
+- Added capability assertions preventing direct storage, filesystem, Desktop Bridge, Project Manager, handle-reference or network access from the controller.
+- Updated permanent source-layout and HTTP smoke gates while preserving the zero-build local-first runtime.
+
 ## 2.8.21 — 2026-09-18
 
 ### Table View application boundary
