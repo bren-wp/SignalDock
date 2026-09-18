@@ -21,3 +21,18 @@ assert(result.maxDepth === 1, `expected depth 1, got ${result.maxDepth}`);
 assert(result.bars.find((bar) => bar.id === "db")?.depth === 1, "child span depth should be preserved");
 assert(result.totalMs === 100, `expected 100ms total range, got ${result.totalMs}`);
 console.log("PASS trace flame layout + duration honesty guard");
+
+const largeTrace = Array.from({ length: 200000 }, (_, index) => ({
+  id: `large-${index}`,
+  level: "INFO",
+  service: "api",
+  timestampMs: base + index,
+  correlations: { span: `span-${index}` },
+  traceMeta: { parentSpan: "", durationMs: 1, name: "large-span" }
+}));
+const largeLayout = SignalDockTraceFlame.layout(largeTrace, { maxBars: 50 });
+assert(largeLayout.available, "large trace flame layout should remain available");
+assert(largeLayout.minStart === base, "large flame minimum timestamp mismatch");
+assert(largeLayout.maxEnd === base + 200000, "large flame maximum end mismatch");
+assert(largeLayout.bars.length === 50 && largeLayout.omitted === 199950, "large flame render bound mismatch");
+console.log("PASS large trace flame range scan");
