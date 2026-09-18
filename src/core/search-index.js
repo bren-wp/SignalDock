@@ -139,7 +139,7 @@
   }
 
   function unionSorted(arrays) {
-    let current = (Array.isArray(arrays) ? arrays : []).filter(Array.isArray).map((array) => array.slice());
+    let current = (Array.isArray(arrays) ? arrays : []).filter(Array.isArray);
     if (!current.length) return [];
     while (current.length > 1) {
       const next = [];
