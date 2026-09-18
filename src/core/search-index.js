@@ -139,9 +139,16 @@
   }
 
   function unionSorted(arrays) {
-    let current = [];
-    for (const array of arrays) current = mergeSortedUnique(current, array);
-    return current;
+    let current = (Array.isArray(arrays) ? arrays : []).filter(Array.isArray).map((array) => array.slice());
+    if (!current.length) return [];
+    while (current.length > 1) {
+      const next = [];
+      for (let index = 0; index < current.length; index += 2) {
+        next.push(index + 1 < current.length ? mergeSortedUnique(current[index], current[index + 1]) : current[index]);
+      }
+      current = next;
+    }
+    return current[0];
   }
 
   function exactPosting(map, value) {
