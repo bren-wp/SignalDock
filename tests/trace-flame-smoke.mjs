@@ -35,4 +35,18 @@ assert(largeLayout.available, "large trace flame layout should remain available"
 assert(largeLayout.minStart === base, "large flame minimum timestamp mismatch");
 assert(largeLayout.maxEnd === base + 200000, "large flame maximum end mismatch");
 assert(largeLayout.bars.length === 50 && largeLayout.omitted === 199950, "large flame render bound mismatch");
+assert(largeLayout.bars[0]?.id === "large-0" && largeLayout.bars[49]?.id === "large-49", "bounded flame selection changed chronological ordering");
 console.log("PASS large trace flame range scan");
+
+const tieEntries = Array.from({ length: 80 }, (_, index) => ({
+  id: `tie-${index}`,
+  level: "INFO",
+  service: "api",
+  timestampMs: base,
+  correlations: { span: `tie-span-${index}` },
+  traceMeta: { parentSpan: "", durationMs: index + 1, name: "tie-span" }
+}));
+const tieLayout = SignalDockTraceFlame.layout(tieEntries, { maxBars: 50 });
+assert(tieLayout.bars.length === 50, "tie flame selection size mismatch");
+assert(tieLayout.bars[0]?.id === "tie-79" && tieLayout.bars[49]?.id === "tie-30", "tie flame selection must preserve longer-duration-first ordering");
+console.log("PASS bounded trace flame tie ordering");
