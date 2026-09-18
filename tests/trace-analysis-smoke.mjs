@@ -43,4 +43,31 @@ assert(largeResult.available, "large trace analysis should remain available");
 assert(largeResult.traceStart === base, "large trace minimum timestamp mismatch");
 assert(largeResult.traceEnd === base + 200000, "large trace maximum end mismatch");
 console.log("PASS large trace range scan");
+
+const deepEntries = [{
+  id: "deep-root",
+  timestampMs: base,
+  correlations: { span: "deep-root" },
+  traceMeta: { parentSpan: "", durationMs: 1 }
+}];
+const depth = 12000;
+for (const prefix of ["a", "b"]) {
+  let parentSpan = "deep-root";
+  const offset = prefix === "a" ? 1000 : 50000;
+  for (let index = 0; index < depth; index += 1) {
+    const span = `${prefix}-${index}`;
+    deepEntries.push({
+      id: span,
+      timestampMs: base + offset + index,
+      correlations: { span },
+      traceMeta: { parentSpan, durationMs: 1 }
+    });
+    parentSpan = span;
+  }
+}
+const deepResult = globalThis.SignalDockTraceAnalysis.analyze(deepEntries);
+assert(deepResult.available, "deep branching trace should remain analyzable");
+assert(deepResult.chain[1]?.id === "b-0", "critical chain should choose the later-ending deep branch");
+assert(deepResult.chain.length === depth + 1, "deep critical chain length mismatch");
+console.log("PASS iterative deep trace subtree scan");
 console.log("SignalDock trace analysis smoke test passed.");
