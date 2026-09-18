@@ -14,8 +14,7 @@
   const MAX_CHUNKS = Math.ceil(MAX_ESTIMATED_BYTES / CHUNK_BYTES);
 
   function validChunkCount(value) {
-    const count = Number(value);
-    return Number.isInteger(count) && count >= 1 && count <= MAX_CHUNKS ? count : 0;
+    return Number.isInteger(value) && value >= 1 && value <= MAX_CHUNKS ? value : 0;
   }
 
   function estimateEntryBytes(entry) {
