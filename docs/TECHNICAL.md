@@ -688,3 +688,6 @@ Startup State controller: src/app/startup-state-controller.js owns phased initia
 
 
 Dataset View composition: src/app/dataset-view-composition.js lazily creates Saved Views, Dataset Filter, Table View, Dataset Overview and View Orchestrator controllers from explicit modules, services, actions and late-bound getters. Root init keeps the original create/bind ordering. Worker, Inspector and trace-controller dependencies remain getter-injected; platform-heavy Import/Live Tail and Workspace orchestration intentionally remain outside this composition boundary.
+
+
+Analysis View composition staging: `src/app/analysis-view-composition.js` centralizes the dependency wiring contract for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health. The module is intentionally staged and tested independently while `app.js` still owns the live factory calls. This keeps the current v2.8.33 runtime unchanged until the root migration can land atomically; privileged storage, persistence, File System Access, worker construction, network and native bridge capabilities are excluded from the composition contract.
