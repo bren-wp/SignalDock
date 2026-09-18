@@ -32,6 +32,8 @@ assert(persistenceSource.includes("const oldCount = validChunkCount(previousMani
 assert(!persistenceSource.includes("const oldCount = Number(previousManifest?.chunkCount) || 0;"), "stale recovery cleanup must not trust coerced chunk metadata");
 assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(manifest.chunkCount) : (legacy ? 1 : 0)"), "recovery info must normalize manifest chunk count");
 assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(metadata.chunkCount) : 1"), "restored recovery metadata must normalize manifest chunk count");
+assert(persistenceSource.includes("for (let index = 0; index < MAX_CHUNKS; index += 1)"), "recovery clear must sweep the full bounded chunk key space");
+assert(!persistenceSource.includes("for (let index = 0; index < chunkCount; index += 1) store.delete"), "recovery clear must not trust manifest chunk count for cleanup");
 console.log("PASS bounded stale recovery cleanup");
 console.log("PASS recovery size estimation");
 console.log("PASS recovery autosave eligibility guards");
