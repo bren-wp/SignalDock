@@ -59,3 +59,6 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 `app/case-checkpoint-controller.js` owns Case Checkpoint UI rendering and create/remove/restore event coordination.
 
 `app/case-workspace-controller.js` owns findings, milestones and metadata-only attachment UI coordination.
+
+
+app/dataset-session-controller.js owns filtered export and loaded-dataset clearing while download, recovery, worker synchronization and domain factories remain injected.

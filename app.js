@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.25";
+  const APP_VERSION = "2.8.26";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -84,6 +84,7 @@
   let datasetOverviewController = null;
   let filterWorkerController = null;
   let relatedContextController = null;
+  let datasetSessionController = null;
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
@@ -396,6 +397,22 @@
       now: () => performance.now(),
       recordPerformance: (name, elapsed, meta) => profiler()?.record?.(name, elapsed, meta)
     });
+    if (!window.SignalDockDatasetSessionController?.create) throw new Error("SignalDock Dataset Session controller is unavailable.");
+    datasetSessionController = window.SignalDockDatasetSessionController.create({
+      state, el, ownerDocument: document,
+      todayStamp: () => new Date().toISOString().slice(0, 10),
+      downloadJson: (name, payload) => utils().downloadJson(name, payload),
+      downloadParts: (name, parts, mime) => utils().downloadParts(name, parts, mime),
+      confirmClear: () => window.confirm("Clear all loaded logs from this SignalDock session?"),
+      stopLiveTail,
+      createEmptyInvestigation: () => window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] },
+      createEmptyCase: () => window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] },
+      syncLevelChips, syncWorkerIndex, renderEverything,
+      clearRecoverySnapshot: () => recoveryDiagnosticsController?.clearRecoverySnapshot({ silent: true }) || Promise.resolve(),
+      hideRecoveryBanner: () => recoveryDiagnosticsController?.hideRecoveryBanner(),
+      toast
+    });
+    datasetSessionController.bind();
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -754,9 +771,6 @@
 
   function bindEvents() {
 
-    el.exportButton.addEventListener("click", exportFiltered);
-    el.clearAllButton.addEventListener("click", clearAll);
-
 
     el.exportCaseMarkdownButton?.addEventListener("click", exportCaseMarkdown);
     el.exportCaseJsonButton?.addEventListener("click", exportCaseJson);
@@ -992,88 +1006,15 @@
     return /\s/.test(text) ? `"${text.replace(/"/g, "")}"` : text;
   }
 
-  function exportFiltered() {
-    if (!state.filteredIndexes.length) return;
-    const day = new Date().toISOString().slice(0, 10);
-    const normalize = (entry) => ({
-      timestamp: entry.timestamp,
-      level: entry.level,
-      service: entry.service,
-      source: entry.source,
-      message: entry.message,
-      correlations: entry.correlations || {},
-      traceMeta: entry.traceMeta || {},
-      dimensions: entry.dimensions || {},
-      raw: entry.raw
-    });
-
-    if (state.filteredIndexes.length > 50000) {
-      const parts = [];
-      const chunkSize = 2000;
-      for (let offset = 0; offset < state.filteredIndexes.length; offset += chunkSize) {
-        const lines = [];
-        const end = Math.min(offset + chunkSize, state.filteredIndexes.length);
-        for (let i = offset; i < end; i += 1) {
-          const entry = state.entries[state.filteredIndexes[i]];
-          if (entry) lines.push(JSON.stringify(normalize(entry)));
-        }
-        if (lines.length) parts.push(lines.join("\n") + "\n");
-      }
-      utils().downloadParts(`signaldock-export-${day}.ndjson`, parts, "application/x-ndjson;charset=utf-8");
-      toast(`Exported ${state.filteredIndexes.length.toLocaleString()} entries as NDJSON for lower memory overhead.`);
-      return;
-    }
-
-    const payload = state.filteredIndexes.map((index) => state.entries[index]).filter(Boolean).map(normalize);
-    utils().downloadJson(`signaldock-export-${day}.json`, payload);
-    toast(`Exported ${payload.length.toLocaleString()} entries.`);
-  }
-
+  function exportFiltered() { return datasetSessionController?.exportFiltered(); }
 
   async function saveWorkspace() { return workspaceController?.saveWorkspace(); }
 
   async function restoreWorkspace(file) { return workspaceController?.restoreWorkspace(file); }
 
-  function clearAll() {
-    if (!state.entries.length) return;
-    if (!window.confirm("Clear all loaded logs from this SignalDock session?")) return;
-    stopLiveTail();
-    state.entries = [];
-    state.filterEntries = [];
-    state.filteredIndexes = [];
-    state.loadedBytes = 0;
-    state.inputFileCount = 0;
-    state.latestTimestampMs = null;
-    state.summary = { total: 0, errors: 0, warnings: 0, sources: [], sourceCounts: new Map(), services: [], serviceCounts: new Map() };
-    state.page = 1;
-    state.selectedId = null;
-    state.correlatedIndexes = [];
-    state.traceIndexes = [];
-    state.correlationEngine = "idle";
-    state.traceEngine = "idle";
-    state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
-    state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
-    state.caseCheckpoints = [];
-    state.exceptionGroups = [];
-    state.exceptionTrends = null;
-    state.healthData = null;
-    state.exceptionViewFingerprint = "";
-    resetFiltersWithoutRender();
-    syncWorkerIndex();
-    renderEverything();
-    window.SignalDockPersistence?.clearRecovery().catch(() => {});
-    hideRecoveryBanner();
-    toast("All loaded logs cleared.");
-  }
+  function clearAll() { return datasetSessionController?.clearAll(); }
 
-  function resetFiltersWithoutRender() {
-    el.queryInput.value = "";
-    el.levelFilter.value = "";
-    el.sourceFilter.value = "";
-    el.timeFilter.value = "";
-    el.sortFilter.value = "original";
-    syncLevelChips("");
-  }
+  function resetFiltersWithoutRender() { return datasetSessionController?.resetFiltersWithoutRender(); }
 
   function saveCurrentView() { savedViewsController?.saveCurrentView(); }
 

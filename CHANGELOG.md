@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.8.26 — 2026-09-18
+
+### Dataset session lifecycle
+- Extracted filtered export and Clear-all lifecycle into src/app/dataset-session-controller.js.
+- Clear-all now invalidates in-flight filter/correlation/trace requests and clears stale service, trace, exception, health and search-index derived state before rerendering.
+- Kept downloads, recovery cleanup, worker sync and investigation/case factories behind injected callbacks.
+
 ## 2.8.25 — 2026-09-18
 
 ### Related Context application boundary
