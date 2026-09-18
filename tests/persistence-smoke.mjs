@@ -19,6 +19,14 @@ const eligible = globalThis.SignalDockPersistence.autosaveEligibility(small);
 assert(eligible.allowed, "small recovery snapshot should be eligible");
 const tooMany = globalThis.SignalDockPersistence.autosaveEligibility(new Array(globalThis.SignalDockPersistence.MAX_AUTO_ENTRIES + 1));
 assert(!tooMany.allowed && /limited/i.test(tooMany.reason), "oversized entry count should disable autosave");
+
+const persistence = globalThis.SignalDockPersistence;
+assert(persistence.validChunkCount(1) === 1, "single recovery chunk should be valid");
+assert(persistence.validChunkCount(persistence.MAX_CHUNKS) === persistence.MAX_CHUNKS, "maximum recovery chunk count should be valid");
+for (const invalid of [0, -1, 1.5, NaN, Infinity, persistence.MAX_CHUNKS + 1, "999999"]) {
+  assert(persistence.validChunkCount(invalid) === 0, `invalid recovery chunk count must be rejected: ${String(invalid)}`);
+}
+console.log("PASS bounded recovery manifest chunks");
 console.log("PASS recovery size estimation");
 console.log("PASS recovery autosave eligibility guards");
 console.log("SignalDock persistence smoke test passed.");
