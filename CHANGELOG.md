@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.19 — 2026-09-18
+
+### Import and Live Tail application boundary
+- Extracted file-input and drag/drop listener ownership, multi-file import orchestration, parsed-entry append state, Project dataset metadata coordination and local Live Tail lifecycle into `src/app/import-live-tail-controller.js`.
+- Kept parser execution, File System Access picker/handle reads and Project Manager mutation in the root/platform boundary behind narrow injected callbacks.
+- Preserved .sdsession routing, parse progress reporting, current parser-profile semantics, project history IDs, local tail truncation recovery and 1.4 second polling behavior.
+
+### Maintainability and verification
+- Added isolated import/Live Tail lifecycle coverage plus capability-boundary assertions forbidding parser, filesystem, storage, worker and network access from the controller.
+- Updated permanent source-layout and HTTP smoke gates for the new controller.
+- Preserved the zero-build, local-first, no-backend, no-telemetry and `connect-src 'none'` architecture.
+
 ## 2.8.18 — 2026-09-18
 
 ### Saved Views application boundary

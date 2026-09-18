@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.18";
+  const APP_VERSION = "2.8.19";
   const WORKER_THRESHOLD = 25000;
   const TIMELINE_BUCKETS = 36;
   const TIMELINE_SEGMENTS = 8;
@@ -80,6 +80,7 @@
 
   let recoveryDiagnosticsController = null;
   let savedViewsController = null;
+  let importLiveTailController = null;
   let virtualSpacerRules = null;
   let queryLibraryController = null;
   let baselineController = null;
@@ -162,6 +163,47 @@
     });
     savedViewsController.bind();
     state.settings = Object.assign(state.settings, utils().loadJson("signaldock-settings-v1", {}), utils().loadJson("signaldock-settings-v2", {}), utils().loadJson("signaldock-settings-v3", {}), utils().loadJson("signaldock-settings-v5", {}), utils().loadJson("signaldock-settings-v6", {}), utils().loadJson("signaldock-settings-v8", {}), utils().loadJson(STORAGE_SETTINGS, {}));
+    if (!window.SignalDockImportLiveTailController?.create) throw new Error("SignalDock Import/Live Tail controller is unavailable.");
+    importLiveTailController = window.SignalDockImportLiveTailController.create({
+      state,
+      el,
+      parseFile: (file, onProgress) => window.SignalDockParser.parseFile(file, onProgress, { profile: state.settings.parserProfile || "auto", customProfile: currentCustomParserProfile() }),
+      parseText: (text, source) => window.SignalDockParser.parseText(text, source, state.settings.parserProfile || "auto", currentCustomParserProfile()),
+      restoreWorkspaceFile: (file) => restoreWorkspace(file),
+      startParseProfile: (file) => profiler()?.start?.("parse", { file: file.name, bytes: file.size }) || null,
+      touchProjectDatasets: (projectFiles) => {
+        if (!state.activeProjectId || !window.SignalDockProjectManager?.touchDataset) return;
+        for (const fileMeta of projectFiles) state.projects = window.SignalDockProjectManager.touchDataset(state.projects, state.activeProjectId, fileMeta);
+        projectController?.render();
+      },
+      setProcessing,
+      nextFrame,
+      toast,
+      rebuildFilterIndex,
+      refreshFilters,
+      setControlsEnabled,
+      syncWorkerIndex,
+      applyFilters,
+      markDatasetForAutosave,
+      renderEverything,
+      canUseLiveTail: () => typeof window.showOpenFilePicker === "function",
+      pickLiveTailFile: async () => {
+        const [handle] = await window.showOpenFilePicker({
+          multiple: false,
+          types: [{ description: "Log files", accept: { "text/plain": [".log", ".txt", ".jsonl", ".ndjson"] } }]
+        });
+        const file = await handle.getFile();
+        return { handle, file };
+      },
+      readLiveTailDelta: async (handle, offset) => {
+        const file = await handle.getFile();
+        const truncated = file.size < offset;
+        const start = truncated ? 0 : offset;
+        const text = file.size > start ? await file.slice(start, file.size).text() : "";
+        return { name: file.name, size: file.size, start, text, truncated };
+      }
+    });
+    importLiveTailController.bind();
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -519,32 +561,6 @@
   }
 
   function bindEvents() {
-    el.importButton.addEventListener("click", () => el.fileInput.click());
-    el.fileInput.addEventListener("change", (event) => handleFiles(event.target.files));
-
-    let dragDepth = 0;
-    document.addEventListener("dragenter", (event) => {
-      if (!hasFileDrag(event)) return;
-      event.preventDefault();
-      dragDepth += 1;
-      el.dragOverlay.hidden = false;
-    });
-    document.addEventListener("dragover", (event) => {
-      if (!hasFileDrag(event)) return;
-      event.preventDefault();
-    });
-    document.addEventListener("dragleave", (event) => {
-      if (!hasFileDrag(event)) return;
-      dragDepth = Math.max(0, dragDepth - 1);
-      if (!dragDepth) el.dragOverlay.hidden = true;
-    });
-    document.addEventListener("drop", (event) => {
-      if (!hasFileDrag(event)) return;
-      event.preventDefault();
-      dragDepth = 0;
-      el.dragOverlay.hidden = true;
-      handleFiles(event.dataTransfer.files);
-    });
 
     const debouncedFilter = utils().debounce(() => applyFilters(true), 80);
     el.queryInput.addEventListener("input", debouncedFilter);
@@ -741,168 +757,15 @@
     }
   }
 
-  async function startLiveTail() {
-    if (state.tail.active) {
-      stopLiveTail();
-      toast("Live tail stopped.");
-      return;
-    }
-    if (typeof window.showOpenFilePicker !== "function") {
-      toast("Live tail is not available in this browser. You can still import updated files manually.", "error", 6500);
-      return;
-    }
-    try {
-      const [handle] = await window.showOpenFilePicker({
-        multiple: false,
-        types: [{ description: "Log files", accept: { "text/plain": [".log", ".txt", ".jsonl", ".ndjson"] } }]
-      });
-      const file = await handle.getFile();
-      await handleFiles([file]);
-      state.tail = { active: true, handle, offset: file.size, timer: null, carry: "", source: file.name };
-      updateLiveTailNav();
-      toast(`Live tail started for ${file.name}.`);
-      scheduleTailPoll();
-    } catch (error) {
-      if (error?.name !== "AbortError") toast(`Could not start live tail: ${error.message || error}`, "error", 6500);
-    }
-  }
+  async function startLiveTail() { return importLiveTailController?.startLiveTail(); }
 
-  function stopLiveTail() {
-    if (state.tail.timer) clearTimeout(state.tail.timer);
-    state.tail.active = false;
-    state.tail.timer = null;
-    updateLiveTailNav();
-  }
+  function stopLiveTail() { return importLiveTailController?.stopLiveTail(); }
 
-  function updateLiveTailNav() {
-    const button = document.querySelector('[data-nav="live"]');
-    if (!button) return;
-    button.classList.toggle("is-live", state.tail.active);
-    const label = button.querySelector("span");
-    if (label) label.textContent = state.tail.active ? "Stop live tail" : "Live tail";
-  }
+  function projectDatasetId(file) { return importLiveTailController?.projectDatasetId(file) || ""; }
 
-  function scheduleTailPoll() {
-    if (!state.tail.active) return;
-    state.tail.timer = setTimeout(pollLiveTail, 1400);
-  }
+  async function handleFiles(fileList, options = {}) { return importLiveTailController?.handleFiles(fileList, options); }
 
-  async function pollLiveTail() {
-    if (!state.tail.active || !state.tail.handle) return;
-    try {
-      const file = await state.tail.handle.getFile();
-      if (file.size < state.tail.offset) {
-        state.tail.offset = 0;
-        state.tail.carry = "";
-        toast(`${file.name} was truncated; live tail restarted from the beginning.`);
-      }
-      if (file.size > state.tail.offset) {
-        const start = state.tail.offset;
-        const chunk = await file.slice(start, file.size).text();
-        state.tail.offset = file.size;
-        const combined = state.tail.carry + chunk;
-        const lines = combined.split(/\r?\n/);
-        state.tail.carry = lines.pop() || "";
-        const complete = lines.join("\n");
-        if (complete.trim()) {
-          const parsed = window.SignalDockParser.parseText(complete, state.tail.source, state.settings.parserProfile || "auto", currentCustomParserProfile());
-          appendParsedEntries(parsed);
-          state.loadedBytes += file.size - start;
-          rebuildFilterIndex();
-          refreshFilters();
-          syncWorkerIndex();
-          applyFilters(false);
-          markDatasetForAutosave();
-        }
-      }
-    } catch (error) {
-      stopLiveTail();
-      toast(`Live tail stopped: ${error.message || error}`, "error", 6500);
-      return;
-    }
-    scheduleTailPoll();
-  }
-
-  function appendParsedEntries(parsed) {
-    state.baselineComparison = null;
-    if (el.baselineChangeCount) el.baselineChangeCount.textContent = "0";
-    const base = state.entries.length;
-    parsed.forEach((entry, offset) => {
-      entry.globalIndex = base + offset;
-      entry.id = `sd-${entry.globalIndex}`;
-    });
-    state.entries.push(...parsed);
-  }
-
-  function hasFileDrag(event) {
-    return Array.from(event.dataTransfer?.types || []).includes("Files");
-  }
-
-  function projectDatasetId(file) { return `${file?.name || "dataset"}-${Math.max(0, Number(file?.size) || 0)}-${Math.max(0, Number(file?.lastModified) || 0)}`; }
-
-  async function handleFiles(fileList, options = {}) {
-    const files = Array.from(fileList || []);
-    if (!files.length) return { added: 0, failed: 0, loadedIds: [] };
-    const projectLinks = new Map((Array.isArray(options.projectItems) ? options.projectItems : []).filter((item) => item?.file).map((item) => [item.file, item]));
-    const loadedProjectIds = [];
-    const sessionFiles = files.filter((file) => file.name.toLowerCase().endsWith(".sdsession"));
-    if (sessionFiles.length) {
-      if (files.length !== 1) {
-        toast("Open a .sdsession workspace by itself; do not mix it with log imports.", "error", 6500);
-        el.fileInput.value = "";
-        return;
-      }
-      await restoreWorkspace(sessionFiles[0]);
-      el.fileInput.value = "";
-      return;
-    }
-
-    setProcessing(true, "Processing logs…", `${files.length} file${files.length === 1 ? "" : "s"} selected`);
-    let added = 0;
-    let failed = 0;
-    const projectFiles = [];
-
-    try {
-      for (let index = 0; index < files.length; index += 1) {
-        const file = files[index];
-        try {
-          const finishParseProfile = profiler()?.start?.("parse", { file: file.name, bytes: file.size });
-          const parsed = await window.SignalDockParser.parseFile(file, (progress) => {
-            const percent = Math.max(0, Math.min(100, Math.round(progress * 100)));
-            setProcessing(true, "Processing logs…", `${index + 1}/${files.length} · ${file.name} · ${percent}%`);
-          }, { profile: state.settings.parserProfile || "auto", customProfile: currentCustomParserProfile() });
-          finishParseProfile?.({ entries: parsed.length, profile: state.settings.parserProfile || "auto" });
-          appendParsedEntries(parsed);
-          state.loadedBytes += file.size;
-          state.inputFileCount += 1;
-          added += parsed.length;
-          const linked = projectLinks.get(file) || {}; const historyId = linked.historyId || projectDatasetId(file); projectFiles.push({ id: historyId, name: file.name, size: file.size, handleRef: linked.handleRef || "", handleKind: linked.handleRef ? "file" : "" }); loadedProjectIds.push(historyId);
-        } catch (error) {
-          failed += 1;
-          toast(`${file.name}: ${error.message || error}`, "error", 7000);
-        }
-        await nextFrame();
-      }
-    } finally {
-      setProcessing(false);
-      el.fileInput.value = "";
-    }
-
-    if (added) {
-      if (state.activeProjectId && window.SignalDockProjectManager?.touchDataset) { for (const fileMeta of projectFiles) state.projects = window.SignalDockProjectManager.touchDataset(state.projects, state.activeProjectId, fileMeta); projectController?.render(); }
-      rebuildFilterIndex();
-      refreshFilters();
-      setControlsEnabled(true);
-      syncWorkerIndex();
-      applyFilters(true);
-      const profileLabel = state.settings.parserProfile && state.settings.parserProfile !== "auto" ? ` · ${state.settings.parserProfile} profile` : "";
-      toast(`Loaded ${added.toLocaleString()} log entries${profileLabel}${failed ? ` · ${failed} file(s) skipped` : ""}.`);
-      markDatasetForAutosave();
-    } else if (!state.entries.length) {
-      renderEverything();
-    }
-    return { added, failed, loadedIds: loadedProjectIds };
-  }
+  function appendParsedEntries(parsed) { return importLiveTailController?.appendParsedEntries(parsed) || 0; }
 
   function rebuildFilterIndex() {
     let latest = null;

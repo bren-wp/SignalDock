@@ -26,6 +26,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/saved-views-controller.js` owns quick Saved Views naming, rendering, apply/delete behavior and UI listeners while JSON persistence, prompt/ID generation and filter execution remain root-injected callbacks.
 
+`app/import-live-tail-controller.js` owns file import/drag-drop UI orchestration, parsed-entry append state and Live Tail lifecycle while parser, File System Access, Project Manager, worker and recovery capabilities remain root-injected callbacks.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.

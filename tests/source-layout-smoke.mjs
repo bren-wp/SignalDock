@@ -22,6 +22,7 @@ const applicationControllers = [
   "src/app/command-navigation-controller.js",
   "src/app/recovery-diagnostics-controller.js",
   "src/app/saved-views-controller.js",
+  "src/app/import-live-tail-controller.js",
   "src/app/investigation-controller.js",
   "src/app/exception-controller.js",
   "src/app/trace-explorer-controller.js",
