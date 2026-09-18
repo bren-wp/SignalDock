@@ -26,25 +26,46 @@ for (const [name, html] of [["index.html", home], ["privacy.html", privacy], ["s
 
 for (const token of [
   '<meta name="application-name" content="SignalDock">',
+  'id="capabilities"',
+  'id="runtime"',
   'id="security"',
   'id="formats"',
+  'id="workflow"',
   'id="faq"',
   'SignalDock v2.8.33',
+  '../docs/images/app-screenshot.png',
+  'ACTUAL APPLICATION UI',
+  'Current stable runtime',
+  'Native installers',
+  'Hosted backend / account sync',
+  'Current main hardening',
   'href="privacy.html"',
   'href="security.html"'
 ]) assert.ok(home.includes(token), "homepage token missing: " + token);
 
-assert.ok((home.match(/<details>/g) || []).length >= 6, "FAQ should expose at least six script-free questions");
+assert.ok(!home.includes('class="mock-window"'), "homepage must use the real application screenshot instead of a hand-built UI mock");
+
+assert.ok((home.match(/<details>/g) || []).length >= 10, "FAQ should expose at least ten script-free questions");
 assert.ok(home.includes("Does SignalDock upload my logs?"));
 assert.ok(privacy.includes("No telemetry endpoint"));
 assert.ok(privacy.includes("Explicit exports"));
+assert.ok(privacy.includes("Recovery snapshots"));
+assert.ok(privacy.includes("Search cache"));
+assert.ok(privacy.includes("File handles"));
 assert.ok(security.includes("Authenticated worker protocol"));
 assert.ok(security.includes("No generic native bridge"));
+assert.ok(security.includes("CodeQL"));
+assert.ok(security.includes("Trace Explorer"));
+assert.ok(security.includes("Trace Outliers"));
 
 for (const token of [
   ".skip-link", ":focus-visible", "overflow-x:auto",
-  "@media (prefers-reduced-motion: reduce)", ".faq-grid", ".faq-grid details", ".faq-grid summary"
+  "@media (prefers-reduced-motion: reduce)", ".faq-grid", ".faq-grid details", ".faq-grid summary",
+  ".product-shot", ".runtime-grid", ".status--on", ".status--conditional", ".status--off",
+  ".hardening-note", ".format-groups--three"
 ]) assert.ok(css.includes(token), "website CSS token missing: " + token);
+
+assert.ok(!css.includes(".mock-window"), "obsolete mock application CSS must be removed");
 
 assert.ok(!/\.site-header nav\s*\{[^}]*display\s*:\s*none/is.test(css), "responsive website nav must remain reachable");
 console.log("website-production-smoke PASS");
