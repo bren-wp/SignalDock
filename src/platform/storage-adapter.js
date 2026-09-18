@@ -184,7 +184,8 @@
     for (const handle of handles) {
       if (!handle || handle.kind !== "file" || typeof handle.getFile !== "function") throw new Error("The picker returned an unsupported file handle.");
       const file = await handle.getFile();
-      if (Math.max(0, Number(file.size) || 0) > maxBytes) throw new Error(`${file.name || "Local file"} exceeds the ${Math.round(maxBytes / 1024 / 1024)} MB safety limit.`);
+      if (typeof file?.size !== "number" || !Number.isFinite(file.size) || file.size < 0) throw new Error("The selected local file must report a valid non-negative size.");
+      if (file.size > maxBytes) throw new Error(`${file.name || "Local file"} exceeds the ${Math.round(maxBytes / 1024 / 1024)} MB safety limit.`);
       records.push({ file, handle, reference: reference(file), handleRef: "" });
     }
     if (options.persistHandle) {
@@ -228,8 +229,8 @@
 
   async function readTextFile(file, maxBytes = DEFAULT_MAX_BYTES) {
     if (!file || typeof file.text !== "function") throw new Error("A readable local file is required.");
-    const size = Number(file.size);
-    if (!Number.isFinite(size) || size < 0) throw new Error("A readable local file must report a valid non-negative size.");
+    const size = file.size;
+    if (typeof size !== "number" || !Number.isFinite(size) || size < 0) throw new Error("A readable local file must report a valid non-negative size.");
     const limit = Math.max(1, Number(maxBytes) || DEFAULT_MAX_BYTES);
     if (size > limit) throw new Error(`Local file exceeds the ${Math.round(limit / 1024 / 1024)} MB safety limit.`);
     return { text: await file.text(), reference: reference(file), file };
