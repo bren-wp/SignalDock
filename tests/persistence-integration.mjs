@@ -78,8 +78,14 @@ assert(recovery.parsed.workspace.caseFile?.status === 'monitoring' && recovery.p
 records.set("dataset-manifest", { key: "dataset-manifest", chunkCount: "corrupt" });
 records.set("dataset-chunk:0", { key: "dataset-chunk:0", blob: new Blob(["orphan-0"]) });
 records.set(`dataset-chunk:${globalThis.SignalDockPersistence.MAX_CHUNKS - 1}`, { key: `dataset-chunk:${globalThis.SignalDockPersistence.MAX_CHUNKS - 1}`, blob: new Blob(["orphan-last"]) });
+records.set("dataset-manifest", { key: "dataset-manifest", chunkCount: "corrupt" });
+records.set("dataset-chunk:0", { key: "dataset-chunk:0", blob: new Blob(["orphan-0"]) });
+const lastChunkKey = `dataset-chunk:${globalThis.SignalDockPersistence.MAX_CHUNKS - 1}`;
+records.set(lastChunkKey, { key: lastChunkKey, blob: new Blob(["orphan-last"]) });
 await globalThis.SignalDockPersistence.clearRecovery();
 assert(await globalThis.SignalDockPersistence.recoveryInfo() === null, "recovery clear failed");
+assert(!records.has("dataset-chunk:0"), "recovery clear must remove orphan first chunk");
+assert(!records.has(lastChunkKey), "recovery clear must remove orphan last bounded chunk");
 assert(!records.has("dataset-chunk:0"), "recovery clear must remove orphan first chunk");
 assert(!records.has(`dataset-chunk:${globalThis.SignalDockPersistence.MAX_CHUNKS - 1}`), "recovery clear must remove orphan last bounded chunk");
 console.log("PASS IndexedDB chunked recovery dataset save/load");
