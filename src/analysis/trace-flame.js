@@ -12,8 +12,7 @@
     return a.timestampMs - b.timestampMs || duration(b) - duration(a);
   }
 
-  function selectEarliestSpans(spans, limit) {
-    if (spans.length <= limit) return spans.slice().sort(compareSpanOrder);
+  function createEarliestSpanSelector(limit) {
     const heap = [];
 
     function swap(left, right) {
@@ -44,33 +43,44 @@
       }
     }
 
-    for (const span of spans) {
-      if (heap.length < limit) {
-        heap.push(span);
-        siftUp(heap.length - 1);
-        continue;
+    return {
+      add(span) {
+        if (heap.length < limit) {
+          heap.push(span);
+          siftUp(heap.length - 1);
+          return;
+        }
+        if (compareSpanOrder(span, heap[0]) >= 0) return;
+        heap[0] = span;
+        siftDown(0);
+      },
+      rows() {
+        return heap.sort(compareSpanOrder);
       }
-      if (compareSpanOrder(span, heap[0]) >= 0) continue;
-      heap[0] = span;
-      siftDown(0);
-    }
-    return heap.sort(compareSpanOrder);
+    };
   }
 
   function layout(entries, options = {}) {
     const maxBars = Math.max(50, Math.min(1000, Number(options.maxBars) || 400));
-    const spans = (entries || []).filter((entry) => Number.isFinite(entry?.timestampMs) && duration(entry) !== null && entry?.correlations?.span);
-    if (!spans.length) return { available: false, bars: [], minStart: null, maxEnd: null, totalMs: 0, maxDepth: 0, omitted: 0, note: "No timed spans with duration metadata." };
-
+    const source = Array.isArray(entries) ? entries : [];
     const bySpan = new Map();
+    const selector = createEarliestSpanSelector(maxBars);
+    let spanCount = 0;
     let minStart = Infinity;
     let maxEnd = -Infinity;
-    for (const entry of spans) {
+
+    for (const entry of source) {
+      const spanDuration = duration(entry);
+      if (!Number.isFinite(entry?.timestampMs) || spanDuration === null || !entry?.correlations?.span) continue;
+      spanCount += 1;
       bySpan.set(String(entry.correlations.span), entry);
+      selector.add(entry);
       if (entry.timestampMs < minStart) minStart = entry.timestampMs;
-      const end = entry.timestampMs + duration(entry);
+      const end = entry.timestampMs + spanDuration;
       if (end > maxEnd) maxEnd = end;
     }
+
+    if (!spanCount) return { available: false, bars: [], minStart: null, maxEnd: null, totalMs: 0, maxDepth: 0, omitted: 0, note: "No timed spans with duration metadata." };
 
     function depthOf(entry) {
       let depth = 0;
@@ -85,7 +95,7 @@
     }
 
     const totalMs = Math.max(0.001, maxEnd - minStart);
-    const selected = selectEarliestSpans(spans, maxBars);
+    const selected = selector.rows();
     const bars = selected.map((entry) => {
       const depth = depthOf(entry);
       const startPct = ((entry.timestampMs - minStart) / totalMs) * 100;
@@ -110,8 +120,8 @@
       maxEnd,
       totalMs,
       maxDepth: bars.reduce((max, bar) => Math.max(max, bar.depth), 0),
-      omitted: Math.max(0, spans.length - bars.length),
-      note: spans.length > bars.length ? `Showing ${bars.length} of ${spans.length} timed spans.` : `${spans.length} timed spans.`
+      omitted: Math.max(0, spanCount - bars.length),
+      note: spanCount > bars.length ? `Showing ${bars.length} of ${spanCount} timed spans.` : `${spanCount} timed spans.`
     };
   }
 
