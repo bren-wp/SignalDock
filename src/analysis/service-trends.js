@@ -91,7 +91,8 @@
       if (timestampMs > max) max = timestampMs;
     }
     if (timedEntries < 2) return { rows: [], windows: null, summary: { edges: 0, changed: 0, newEdges: 0, disappearedEdges: 0 } };
-    const splitMs = Number.isFinite(Number(options.splitMs)) ? Math.min(max, Math.max(min, Number(options.splitMs))) : min + ((max - min) / 2);
+    const hasSplit = options.splitMs !== null && options.splitMs !== undefined && options.splitMs !== "" && Number.isFinite(Number(options.splitMs));
+    const splitMs = hasSplit ? Math.min(max, Math.max(min, Number(options.splitMs))) : min + ((max - min) / 2);
     if (splitMs <= min || splitMs >= max) return { rows: [], windows: null, summary: { edges: 0, changed: 0, newEdges: 0, disappearedEdges: 0 } };
     const before = periodEdges(source, selected, min, splitMs);
     const after = periodEdges(source, selected, splitMs, max + 1);
