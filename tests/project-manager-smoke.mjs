@@ -23,6 +23,11 @@ const api = context.self.SignalDockProjectManager;
 assert.equal(api.VERSION, 4);
 
 const created = api.create([], { name: "Payments", tags: ["prod"] });
+const manyTags = [...Array.from({ length: 5000 }, () => "dup"), ...Array.from({ length: 25 }, (_, index) => `tag-${index}`)];
+const taggedProject = api.create([], { name: "Tagged", tags: manyTags }).project;
+assert.equal(taggedProject.tags.length, 20, "project tag cap mismatch");
+assert.equal(taggedProject.tags[0], "dup");
+assert.equal(taggedProject.tags[19], "tag-18", "bounded project tag normalization changed ordering");
 let projects = api.touchDataset(created.projects, created.project.id, {
   id: "d1",
   name: "prod.ndjson",
