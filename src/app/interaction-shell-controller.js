@@ -79,12 +79,14 @@
       const commandKey = Boolean(event.ctrlKey || event.metaKey);
 
       if (commandKey && key === "o") {
+        if (hasOpenDialog()) return false;
         event.preventDefault();
         importLogs();
         return true;
       }
 
       if (commandKey && key === "f") {
+        if (hasOpenDialog()) return false;
         event.preventDefault();
         if (canFocusSearch()) focusSearch();
         return true;
