@@ -7,7 +7,7 @@
     const source = Array.isArray(entries) ? entries : [];
     const indexes = Array.isArray(filteredIndexes) ? filteredIndexes : [];
     const filtered = Boolean(useFiltered) && indexes.length < source.length;
-    return { indexes: filtered ? [...indexes] : null, filtered };
+    return { indexes: filtered ? indexes : null, filtered };
   }
 
   function create(options = {}) {
