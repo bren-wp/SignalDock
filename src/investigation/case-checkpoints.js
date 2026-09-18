@@ -2,10 +2,21 @@
   "use strict";
   const SCHEMA = "signaldock.case-checkpoints", VERSION = 1, MAX = 40;
   function clean(value, max = 4000) { return String(value ?? "").trim().slice(0, max); }
-  function evidenceIds(investigation) { return (Array.isArray(investigation?.items) ? investigation.items : []).map((item) => clean(item.id, 96)).filter(Boolean).slice(0, 5000); }
+  function cleanEvidenceIds(input) {
+    const source = Array.isArray(input) ? input : [];
+    const out = [];
+    for (const value of source) {
+      const id = clean(value, 96);
+      if (!id) continue;
+      out.push(id);
+      if (out.length >= 5000) break;
+    }
+    return out;
+  }
+  function evidenceIds(investigation) { return cleanEvidenceIds((Array.isArray(investigation?.items) ? investigation.items : []).map((item) => item?.id)); }
   function normalizeOne(checkpoint, index = 0) {
     const source = checkpoint && typeof checkpoint === "object" ? checkpoint : {};
-    return { id: clean(source.id || `checkpoint-${index + 1}`, 96), label: clean(source.label || `Checkpoint ${index + 1}`, 160), note: clean(source.note || "", 3000), createdAt: clean(source.createdAt || new Date().toISOString(), 64), caseFile: source.caseFile && typeof source.caseFile === "object" ? source.caseFile : {}, evidenceIds: Array.isArray(source.evidenceIds) ? source.evidenceIds.map((id) => clean(id, 96)).filter(Boolean).slice(0, 5000) : [] };
+    return { id: clean(source.id || `checkpoint-${index + 1}`, 96), label: clean(source.label || `Checkpoint ${index + 1}`, 160), note: clean(source.note || "", 3000), createdAt: clean(source.createdAt || new Date().toISOString(), 64), caseFile: source.caseFile && typeof source.caseFile === "object" ? source.caseFile : {}, evidenceIds: cleanEvidenceIds(source.evidenceIds) };
   }
   function normalizeList(input) { return (Array.isArray(input) ? input : []).slice(-MAX).map(normalizeOne); }
   function snapshotCase(caseFile) {
