@@ -50,6 +50,7 @@ assert.ok(home.includes(`SignalDock v${version}`), "homepage release copy must m
 assert.ok(home.includes(`<strong>v${version}</strong>`), "homepage release badge must match VERSION");
 
 const runtimeClaims = [
+  ["src/core/query-engine.js", "SMART QUERY LANGUAGE"],
   ["src/core/query-library.js", "Query Library"],
   ["src/core/search-cache.js", "search-cache"],
   ["src/analysis/trace-explorer.js", "Trace Explorer"],
@@ -86,7 +87,7 @@ for (const token of [
   ".skip-link", ":focus-visible", "overflow-x:auto",
   "@media (prefers-reduced-motion: reduce)", ".faq-grid", ".faq-grid details", ".faq-grid summary",
   ".product-shot", ".runtime-grid", ".status--on", ".status--conditional", ".status--off",
-  ".hardening-note", ".format-groups--three"
+  ".hardening-note", ".format-groups--three", ".query-shell", ".query-code", ".query-operators"
 ]) assert.ok(css.includes(token), "website CSS token missing: " + token);
 
 assert.ok(!css.includes(".mock-window"), "obsolete mock application CSS must be removed");
