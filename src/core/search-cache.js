@@ -218,8 +218,10 @@
   }
 
   async function info() {
-    if (!available()) return null; const [meta] = await getRecords([META_KEY]); if (!meta) return null;
-    return { datasetKey: meta.datasetKey || "", savedAt: meta.savedAt || "", estimatedBytes: Number(meta.estimatedBytes) || 0, segmentCount: Array.isArray(meta.bucketIds) ? meta.bucketIds.length : 0, bucketCount: Array.isArray(meta.bucketIds) ? meta.bucketIds.length : 0, entries: Number(meta.stats?.entries) || 0, format: "bucketed-v3" };
+    if (!available()) return null;
+    const [meta] = await getRecords([META_KEY]);
+    if (!meta || meta.version !== VERSION || !meta.datasetKey || !meta.stats || !validBucketIds(meta.bucketIds)) return null;
+    return { datasetKey: meta.datasetKey, savedAt: meta.savedAt || "", estimatedBytes: Number(meta.estimatedBytes) || 0, segmentCount: meta.bucketIds.length, bucketCount: meta.bucketIds.length, entries: Number(meta.stats.entries) || 0, format: "bucketed-v3" };
   }
 
   async function clear() {
