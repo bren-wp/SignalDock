@@ -36,7 +36,7 @@
 
     function scopeIndexes() {
       if (!scopeFiltered) return null;
-      return Array.isArray(state.filteredIndexes) ? [...state.filteredIndexes] : [];
+      return Array.isArray(state.filteredIndexes) ? state.filteredIndexes : [];
     }
 
     function appendSummary(document, graph) {
