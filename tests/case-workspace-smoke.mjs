@@ -2,6 +2,7 @@ import fs from 'node:fs'; import vm from 'node:vm';
 const context={self:{},window:{}}; context.self=context; context.window=context; vm.createContext(context);
 vm.runInContext(fs.readFileSync(new URL('../src/investigation/case-workspace.js',import.meta.url),'utf8'),context);
 const api=context.SignalDockCaseWorkspace; const assert=(ok,msg)=>{if(!ok)throw new Error(msg)};
+const source=fs.readFileSync(new URL('../src/investigation/case-workspace.js',import.meta.url),'utf8');assert(source.includes('function removeCollectionItem('),'case workspace must centralize collection removal');assert((source.match(/\.filter\(\(item\) => item\.id !== id\)/g)||[]).length===1,'case workspace should keep one shared remove filter');
 let c=api.empty('Auth incident'); assert(c.version===3&&c.activity.length===1,'v3 case should start with activity history');
 c=api.updateMeta(c,{status:'investigating',severity:'sev2',hypothesis:'token regression'});
 let finding=api.addFinding(c,{title:'Auth failures cluster',body:'Recurring invalid_signature',evidenceIds:['ev-1'],tags:['auth']}); c=finding.caseFile;
@@ -10,6 +11,10 @@ let attachment=api.addAttachmentMetadata(c,{name:'support-screenshot.png',type:'
 assert(attachment.added&&c.attachments[0].metadataOnly===true,'attachment metadata add failed');
 const duplicate=api.addAttachmentMetadata(c,{name:'support-screenshot.png',type:'image/png',size:12345,lastModified:1000}); assert(!duplicate.added,'attachment duplicate guard failed');
 const summary=api.summarize(c,[{id:'ev-1'}]); assert(summary.milestones===1&&summary.reachedMilestones===1&&summary.attachments===1,'case v3 summary mismatch');
+const removedFinding=api.removeFinding(c,finding.finding.id);assert(removedFinding.findings.length===0,'finding removal failed');
+const removedMilestone=api.removeMilestone(c,milestone.milestone.id);assert(removedMilestone.milestones.length===0,'milestone removal failed');
+const removedAttachment=api.removeAttachment(c,attachment.attachment.id);assert(removedAttachment.attachments.length===0,'attachment removal failed');
+const missingRemoval=api.removeFinding(c,'missing-id');assert(missingRemoval.findings.length===c.findings.length,'missing remove must preserve collection contents');
 const imported=api.importJson(api.exportJson(c)); assert(imported.milestones[0].title==='Rollback deployed'&&imported.attachments[0].name==='support-screenshot.png','case v3 round trip failed');
 let badVersion=false;try{api.importJson(JSON.stringify({schema:'signaldock.case',version:'3'}))}catch{badVersion=true}assert(badVersion,'string case version must be rejected');
 const legacy=JSON.stringify({schema:'signaldock.case',version:2,id:'legacy',title:'Legacy',status:'open',severity:'none',findings:[],activity:[]}); assert(api.importJson(legacy).milestones.length===0,'legacy v2 case migration failed');
