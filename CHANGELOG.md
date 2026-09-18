@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.8.30 — 2026-09-18
+
+### View orchestration + settings capability hardening
+- Extracted full-view/data-view render sequencing and level-chip synchronization into src/app/view-orchestrator-controller.js.
+- Removed unused root glue for parser-profile actions, Command Palette wrappers, a dead UI button factory and the obsolete Case import delegate.
+- Parser-profile imports now enforce a 4 MB safety limit before read and receive file text through the root-injected Storage Adapter instead of calling file.text() in Settings.
+- Custom parser profile normalization is owned by Settings while parser callbacks retain a thin root delegate.
+- Restored 100dvh semantics on mobile and added safe-area handling for the topbar, Inspector and toast region plus larger key touch targets on coarse pointers.
+
 ## 2.8.29 — 2026-09-18
 
 ### Interaction shell + website assurance

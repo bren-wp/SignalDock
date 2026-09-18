@@ -1045,3 +1045,17 @@ html[data-input-modality="keyboard"] :where(button, a, input, select, textarea, 
   .project-toolbar, .baseline-toolbar { grid-template-columns: 1fr; }
   .project-toolbar label, .baseline-toolbar label { grid-column: auto; }
 }
+
+
+/* mobile viewport, safe-area and touch hardening */
+@media (max-width: 760px) {
+  .app-frame { min-height: 100dvh; grid-template-rows: calc(58px + env(safe-area-inset-top)) auto; }
+  .topbar { padding-top: env(safe-area-inset-top); padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .sidebar { padding-left: max(10px, env(safe-area-inset-left)); padding-right: max(10px, env(safe-area-inset-right)); }
+  .inspector { left: max(8px, env(safe-area-inset-left)); right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); max-height: min(78dvh, calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); }
+  .toast-region { right: max(8px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); }
+}
+@media (pointer: coarse) {
+  :where(button, [role="button"], summary) { touch-action: manipulation; }
+  .query-actions .button, .command-button, .pagination .icon-button { min-width: 44px; min-height: 44px; }
+}

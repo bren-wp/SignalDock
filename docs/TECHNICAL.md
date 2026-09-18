@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.29**.
+Current version: **2.8.30**.
 
 ## Highlights
 
@@ -672,3 +672,10 @@ Website: the static website/ landing is script-free, responsive without hiding n
 Interaction Shell controller: root-level file/search shortcuts, Escape behavior and generic dialog exclusivity are isolated under src/app/interaction-shell-controller.js. It ignores already-prevented events and does not leak global shortcuts into open dialogs or contenteditable fields. Command Palette ownership remains in command-navigation-controller.js.
 
 Website assurance: website/privacy.html and website/security.html are script-free static surfaces. The static audit now checks every website HTML file for inline code, external runtime resources and broken local references. The homepage includes a native-details FAQ with no JavaScript dependency.
+
+
+View Orchestrator controller: high-level full-view and data-view render sequencing plus level-chip UI synchronization are isolated under src/app/view-orchestrator-controller.js. Domain analysis and rendering remain owned by their existing controllers through injected callbacks.
+
+Settings capability hardening: parser-profile imports no longer call file.text() inside Settings. A 4 MB pre-read guard is enforced and text is supplied through a root-injected Storage Adapter callback. Custom parser profile normalization is now owned by Settings with a thin root delegate for parser callbacks.
+
+Mobile hardening: the application keeps dynamic viewport height at mobile breakpoints, honors iOS safe-area insets for topbar/Inspector/toasts and increases key coarse-pointer action targets without changing desktop density.

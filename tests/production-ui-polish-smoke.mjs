@@ -23,6 +23,7 @@ assert.ok(css.includes("--border: var(--line);"));
 assert.ok(css.includes("--surface-soft: rgba(13,23,36,.72);"));
 assert.ok(css.includes(".query-library-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto}"));
 assert.ok(!css.includes(".nav-list { display: none; }"), "mobile navigation must remain reachable");
+for (const token of ["min-height: 100dvh", "env(safe-area-inset-top)", "env(safe-area-inset-bottom)", "@media (pointer: coarse)", "touch-action: manipulation"]) assert.ok(css.includes(token), "mobile production token missing: " + token);
 assert.match(app, /function setActiveNav\(target\)/);
 assert.match(commandNavigationController, /setAttribute\("aria-current", "page"\)/);
 assert.ok(!/\/\*\s*(?:SignalDock\s+)?v\d+\.\d+/.test(css), "release-number CSS comments should not ship in production styles");

@@ -36,3 +36,6 @@ Query navigation application boundary: src/app/query-navigation-controller.js ow
 
 
 Interaction shell application boundary: src/app/interaction-shell-controller.js owns global keyboard shortcuts and dialog exclusivity without direct storage, worker, filesystem or network capabilities.
+
+
+View orchestration application boundary: src/app/view-orchestrator-controller.js coordinates full/data render passes and level-chip UI synchronization without direct parser, storage, worker, filesystem or network capabilities.

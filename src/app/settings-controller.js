@@ -17,11 +17,21 @@
     const closeCompetingDialogs = options.closeCompetingDialogs || (() => {});
     const showDialogSafely = options.showDialogSafely || (() => false);
     const scheduleViewAutosave = options.scheduleViewAutosave || (() => {});
+    const readParserProfilesText = options.readParserProfilesText;
+    const maxParserProfilesImportBytes = Math.max(1024, Number(options.maxParserProfilesImportBytes) || (4 * 1024 * 1024));
     const document = el.settingsDialog?.ownerDocument || root.document;
     let bound = false;
 
     if (!state || typeof state !== "object") throw new Error("Settings controller requires application state.");
     if (!document) throw new Error("Settings controller requires a document context.");
+    if (typeof readParserProfilesText !== "function") throw new Error("Settings controller requires readParserProfilesText().");
+
+    function currentCustomParserProfile() {
+      return {
+        pattern: String(state.settings.customParserPattern || "").trim(),
+        flags: String(state.settings.customParserFlags || "i").replace(/[^imsu]/g, "")
+      };
+    }
 
     function updateCustomParserVisibility() {
       if (!el.customParserFields || !el.parserProfile) return;
@@ -146,18 +156,26 @@
     async function importParserProfiles(event) {
       const profilesApi = getParserProfiles();
       const file = event?.target?.files?.[0];
-      if (!file || !profilesApi) return;
+      if (!file || !profilesApi) return false;
+      const size = Math.max(0, Number(file.size) || 0);
+      if (size > maxParserProfilesImportBytes) {
+        toast("Parser profile file exceeds the 4 MB safety limit.", "error", 6500);
+        if (event?.target) event.target.value = "";
+        return false;
+      }
       try {
-        const profiles = profilesApi.importJson(await file.text());
+        const text = await readParserProfilesText(file, maxParserProfilesImportBytes);
+        const profiles = profilesApi.importJson(text);
         refreshSavedParserProfiles();
-        toast(`Imported ${profiles.length} parser profile${profiles.length === 1 ? "" : "s"}.`);
+        toast("Imported " + profiles.length + " parser profile" + (profiles.length === 1 ? "" : "s") + ".");
+        return true;
       } catch (error) {
-        toast(`Could not import parser profiles: ${error?.message || error}`, "error", 6500);
+        toast("Could not import parser profiles: " + (error?.message || error), "error", 6500);
+        return false;
       } finally {
         if (event?.target) event.target.value = "";
       }
     }
-
     function onSettingControl(event) {
       persistFromForm();
       if (event?.currentTarget === el.parserProfile) updateCustomParserVisibility();
@@ -199,6 +217,8 @@
       persistFromForm,
       updateCustomParserVisibility,
       refreshSavedParserProfiles,
+      currentCustomParserProfile,
+      importParserProfiles,
       bind,
       destroy
     });

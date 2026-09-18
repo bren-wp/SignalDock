@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.29";
+  const APP_VERSION = "2.8.30";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -102,6 +102,7 @@
   let settingsController = null;
   let commandNavigationController = null;
   let interactionShellController = null;
+  let viewOrchestratorController = null;
   let caseWorkspaceController = null;
   let caseFileController = null;
   let caseCheckpointController = null;
@@ -433,6 +434,21 @@
       applyFilters: (resetPage) => applyFilters(resetPage)
     });
     interactionShellController.bind();
+    if (!window.SignalDockViewOrchestratorController?.create) throw new Error("SignalDock View Orchestrator controller is unavailable.");
+    viewOrchestratorController = window.SignalDockViewOrchestratorController.create({
+      state,
+      ownerDocument: document,
+      rebuildFilterIndex: () => datasetFilterController?.rebuildFilterIndex(),
+      updateStats: () => datasetOverviewController?.updateStats(),
+      refreshFilters: () => datasetFilterController?.refreshFilters(),
+      renderSavedViews: () => savedViewsController?.render(),
+      setControlsEnabled: (enabled) => datasetFilterController?.setControlsEnabled(enabled),
+      applyFilters: (resetPage) => datasetFilterController?.applyFilters(resetPage),
+      renderTimeline: () => datasetOverviewController?.renderTimeline(),
+      renderTable: () => tableViewController?.renderTable(),
+      renderInspector: () => inspectorController?.render(),
+      updateActiveSourceUI: () => datasetOverviewController?.updateActiveSourceUI()
+    });
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -562,7 +578,13 @@
       updateDiagnostics,
       closeCompetingDialogs,
       showDialogSafely,
-      scheduleViewAutosave: () => scheduleViewAutosave()
+      scheduleViewAutosave: () => scheduleViewAutosave(),
+      maxParserProfilesImportBytes: 4 * 1024 * 1024,
+      readParserProfilesText: async (file, maxBytes) => {
+        if (!window.SignalDockStorageAdapter?.readTextFile) throw new Error("Local parser-profile reader is unavailable.");
+        const result = await window.SignalDockStorageAdapter.readTextFile(file, maxBytes);
+        return result.text;
+      }
     });
     settingsController.bind();
     const navigationFeatureCallbacks = {
@@ -578,7 +600,7 @@
       investigation: () => investigationController?.open(),
       exceptions: () => exceptionController?.open(),
       projects: () => projectController?.open(),
-      settings: openSettings,
+      settings: () => settingsController?.open(),
       live: startLiveTail,
       saved: () => queryLibraryController?.open()
     };
@@ -816,8 +838,8 @@
     caseCheckpointController.bind();
     caseFileController.bind();
     projectController.render();
-    applySettings();
-    refreshSavedParserProfiles();
+    settingsController?.apply();
+    settingsController?.refreshSavedParserProfiles();
     profiler()?.observeLongTasks?.();
     setActiveNav("logs");
     filterWorkerController.init();
@@ -855,21 +877,9 @@
 
   function getSources() { return datasetFilterController?.getSources() || []; }
 
-  function renderEverything() {
-    if (state.entries.length && !state.filterEntries.length) rebuildFilterIndex();
-    updateStats();
-    refreshFilters();
-    renderSavedViews();
-    setControlsEnabled(Boolean(state.entries.length));
-    applyFilters(false);
-  }
+  function renderEverything() { return viewOrchestratorController?.renderEverything(); }
 
-  function renderDataViews() {
-    renderTimeline();
-    renderTable();
-    renderInspector();
-    updateActiveSourceUI();
-  }
+  function renderDataViews() { return viewOrchestratorController?.renderDataViews(); }
 
   function updateStats() { return datasetOverviewController?.updateStats(); }
 
@@ -915,28 +925,11 @@
 
   function filterByCorrelation(kind, value) { inspectorController?.filterByCorrelation(kind, value); }
 
-  function makeUiButton(id, label, className = "button button--ghost button--small") {
-    const button = document.createElement("button"); button.type = "button"; button.id = id; button.className = className; button.textContent = label; return button;
-  }
-
-
-
-
-
-
-
-
   function renderCaseWorkspace(rebuild = true) { return caseFileController?.renderCaseWorkspace(rebuild); }
 
   async function exportCaseJson() { return caseFileController?.exportCaseJson(); }
 
   async function exportCaseMarkdown() { return caseFileController?.exportCaseMarkdown(); }
-
-  async function importCaseJson(event) {
-    const file = event?.target?.files?.[0];
-    try { if (file) return await caseFileController?.importCaseFile(file); }
-    finally { if (event?.target) event.target.value = ""; }
-  }
 
   function entryRowIntoView(globalIndex) { return tableViewController?.entryRowIntoView(globalIndex); }
 
@@ -964,48 +957,18 @@
 
   function renderSavedViews() { savedViewsController?.render(); }
 
-  function syncLevelChips(level) {
-    document.querySelectorAll("[data-level]").forEach((button) => button.classList.toggle("is-active", button.dataset.level === level));
-  }
-
-  function refreshSavedParserProfiles(selectedId = "") { settingsController?.refreshSavedParserProfiles(selectedId); }
-
-  function applySavedParserProfile() { settingsController?.applySavedParserProfile?.(); }
-
-  function saveParserProfileFromForm() { settingsController?.saveParserProfileFromForm?.(); }
-
-  function deleteSelectedParserProfile() { settingsController?.deleteSelectedParserProfile?.(); }
-
-  function exportParserProfiles() { settingsController?.exportParserProfiles?.(); }
-
-  async function importParserProfiles(event) { await settingsController?.importParserProfiles?.(event); }
+  function syncLevelChips(level) { return viewOrchestratorController?.syncLevelChips(level); }
 
   function closeCompetingDialogs(exceptId = "") { return interactionShellController?.closeCompetingDialogs(exceptId) || 0; }
 
   function showDialogSafely(dialog) { return interactionShellController?.showDialogSafely(dialog) || false; }
 
-  function openCommandPalette() { commandNavigationController?.open(); }
-
-  function closeCommandPalette() { commandNavigationController?.close(); }
-
-  function renderCommandPalette() { commandNavigationController?.render(); }
-
-  function runCommand(id) { commandNavigationController?.run(id); }
-
-  function openSettings() { settingsController?.open(); }
-
-  function persistSettingsFromForm() { settingsController?.persistFromForm(); }
-
-  function applySettings() { settingsController?.apply(); }
-
   function currentCustomParserProfile() {
-    return {
+    return settingsController?.currentCustomParserProfile?.() || {
       pattern: String(state.settings.customParserPattern || "").trim(),
       flags: String(state.settings.customParserFlags || "i").replace(/[^imsu]/g, "")
     };
   }
-
-  function updateCustomParserVisibility() { settingsController?.updateCustomParserVisibility(); }
 
   function currentViewState() { return workspaceController?.currentViewState() || {}; }
 

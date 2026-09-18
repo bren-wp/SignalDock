@@ -71,3 +71,6 @@ app/query-navigation-controller.js owns service/environment/namespace query comp
 
 
 app/interaction-shell-controller.js owns global keyboard shortcuts and generic dialog exclusivity while feature-specific navigation and Command Palette state remain separate.
+
+
+app/view-orchestrator-controller.js owns high-level render sequencing and level-chip synchronization. Settings parser-profile file reads are injected from the platform boundary rather than performed directly inside app/settings-controller.js.
