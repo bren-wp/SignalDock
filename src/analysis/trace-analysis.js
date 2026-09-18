@@ -85,10 +85,13 @@
       return memo.get(rootId) ?? (endTime(span) ?? span.timestampMs);
     }
 
-    const root = [...roots].sort((a, b) => {
-      const endDiff = subtreeEnd(b) - subtreeEnd(a);
-      return endDiff || a.timestampMs - b.timestampMs;
-    })[0] || spans[0];
+    let root = roots[0] || spans[0];
+    for (let index = 1; index < roots.length; index += 1) {
+      const candidate = roots[index];
+      const candidateEnd = subtreeEnd(candidate);
+      const rootEnd = subtreeEnd(root);
+      if (candidateEnd > rootEnd || (candidateEnd === rootEnd && candidate.timestampMs < root.timestampMs)) root = candidate;
+    }
 
     const chain = [];
     let current = root;
@@ -98,12 +101,24 @@
       chain.push(current);
       const direct = children.get(String(current.correlations.span)) || [];
       if (!direct.length) break;
-      current = [...direct].sort((a, b) => subtreeEnd(b) - subtreeEnd(a) || (b.traceMeta?.durationMs || 0) - (a.traceMeta?.durationMs || 0))[0];
+      let next = direct[0];
+      for (let index = 1; index < direct.length; index += 1) {
+        const candidate = direct[index];
+        const candidateEnd = subtreeEnd(candidate);
+        const nextEnd = subtreeEnd(next);
+        const candidateDuration = Number(candidate.traceMeta?.durationMs) || 0;
+        const nextDuration = Number(next.traceMeta?.durationMs) || 0;
+        if (candidateEnd > nextEnd || (candidateEnd === nextEnd && candidateDuration > nextDuration)) next = candidate;
+      }
+      current = next;
     }
 
     const measured = spans.filter((entry) => Number.isFinite(entry.traceMeta?.durationMs));
     const chainMeasured = chain.filter((entry) => Number.isFinite(entry.traceMeta?.durationMs));
-    const bottleneck = [...chainMeasured].sort((a, b) => b.traceMeta.durationMs - a.traceMeta.durationMs)[0] || null;
+    let bottleneck = null;
+    for (const entry of chainMeasured) {
+      if (!bottleneck || entry.traceMeta.durationMs > bottleneck.traceMeta.durationMs) bottleneck = entry;
+    }
     const coverage = declaredParents ? linkedParents / declaredParents : 1;
     const completeParents = missingParents === 0;
 
