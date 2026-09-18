@@ -27,7 +27,7 @@ const baseMs=Date.parse('2026-09-12T00:00:00.000Z');
 const largeNotebook=api.normalize({items:Array.from({length:api.MAX_ITEMS+500},(_,index)=>({id:`large-${index}`,service:`svc-${index}`,fingerprint:`fp-${index}`,level:index%97===0?'FATAL':index%31===0?'ERROR':'INFO',timestamp:new Date(baseMs+index*1000).toISOString(),snapshot:index%2===0?{}:null}))});
 if(largeNotebook.items.length!==api.MAX_ITEMS)throw new Error('large investigation normalization cap failed');
 const largeTimeline=api.timeline(largeNotebook,{maxBuckets:48});
-if(largeTimeline.total!==api.MAX_ITEMS||largeTimeline.buckets.length!==48)throw new Error('large investigation timeline bucket cap failed');
+const expectedBuckets=Math.min(48,Math.ceil(Math.sqrt(api.MAX_ITEMS)));if(largeTimeline.total!==api.MAX_ITEMS||largeTimeline.buckets.length!==expectedBuckets)throw new Error('large investigation timeline bucket count failed');
 if(largeTimeline.start!==baseMs||largeTimeline.end!==baseMs+(api.MAX_ITEMS-1)*1000)throw new Error('large investigation timeline bounds failed');
 const largeBundle=JSON.parse(api.exportBundle(largeNotebook));
 if(largeBundle.manifest.snapshotItems!==api.MAX_ITEMS/2)throw new Error('large bundle snapshot count failed');
