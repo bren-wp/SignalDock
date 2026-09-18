@@ -1,19 +1,12 @@
 :root {
   --bg:#07111d;
   --deep:#040a12;
-  --panel:#0b1724;
-  --panel-2:#0f1f30;
   --line:#1b3146;
-  --line-strong:#29445e;
   --text:#edf7fb;
   --muted:#91a4b8;
-  --muted-2:#6f879b;
   --cyan:#15d8f2;
   --cyan-soft:rgba(21,216,242,.10);
-  --blue:#2a8cff;
   --green:#18c99a;
-  --red:#ef5d68;
-  --amber:#f5ad42;
   --shadow:0 24px 70px rgba(0,0,0,.32);
 }
 
