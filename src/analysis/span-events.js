@@ -88,11 +88,6 @@
     return list.slice(0, MAX_EVENTS_PER_SPAN).map(normalizeEvent).filter(Boolean);
   }
 
-  function attrValue(attributes, key) {
-    const map = normalizeAttributes(attributes);
-    return map[key] || "";
-  }
-
   function otlpTime(value) {
     const ms = timestampMs(value);
     return Number.isFinite(ms) ? new Date(ms).toISOString() : "";
