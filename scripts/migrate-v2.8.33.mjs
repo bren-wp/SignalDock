@@ -189,6 +189,21 @@ let websiteTest = read("tests/website-production-smoke.mjs")
   .replace("SignalDock v2.8.32", "SignalDock v2.8.33");
 write("tests/website-production-smoke.mjs", websiteTest);
 
+let traceExplorerTest = read("tests/trace-explorer-controller-smoke.mjs");
+traceExplorerTest = r1(
+  traceExplorerTest,
+  'const app = read("app.js");\n',
+  'const app = read("app.js");\nconst compositionSource = read("src/app/dataset-view-composition.js");\n',
+  "Trace Explorer composition source"
+);
+traceExplorerTest = r1(
+  traceExplorerTest,
+  '  "traceExplorerController?.reconcileSelection(state.traceExplorerData)"\n]) assert.ok(app.includes(token), `Trace Explorer app integration token missing: ${token}`);',
+  ']) assert.ok(app.includes(token), `Trace Explorer app integration token missing: ${token}`);\nassert.ok(compositionSource.includes("getTraceExplorerController"), "Dataset View composition must late-bind the Trace Explorer controller");\nassert.ok(compositionSource.includes("reconcileSelection"), "Dataset View composition must preserve trace selection reconciliation");',
+  "Trace Explorer reconciliation ownership"
+);
+write("tests/trace-explorer-controller-smoke.mjs", traceExplorerTest);
+
 let technical = read("docs/TECHNICAL.md").replace("Current version: **2.8.32**.", "Current version: **2.8.33**.");
 technical += "\n\nDataset View composition: src/app/dataset-view-composition.js lazily creates Saved Views, Dataset Filter, Table View, Dataset Overview and View Orchestrator controllers from explicit modules, services, actions and late-bound getters. Root init keeps the original create/bind ordering. Worker, Inspector and trace-controller dependencies remain getter-injected; platform-heavy Import/Live Tail and Workspace orchestration intentionally remain outside this composition boundary.\n";
 write("docs/TECHNICAL.md", technical);
