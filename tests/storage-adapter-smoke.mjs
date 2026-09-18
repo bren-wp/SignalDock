@@ -8,6 +8,7 @@ assert(ref.name==='dump.log'&&ref.size===42&&ref.note==='evidence','local file r
 const caps=api.capabilities(); assert(caps.filePicker===false&&caps.savePicker===false,'unexpected picker capability in vm');
 const read=await api.readTextFile({name:'x.json',type:'application/json',size:2,lastModified:1,text:async()=>'{\"x\":1}'},1024);assert(read.reference.name==='x.json'&&read.text.includes('x'),'readTextFile mismatch');
 let blocked=false;try{await api.readTextFile({name:'huge',size:2048,text:async()=>''},1024)}catch{blocked=true}assert(blocked,'readTextFile size guard missing');
+let infiniteLimitBlocked=false;try{await api.readTextFile({name:'huge-default',size:600*1024*1024,text:async()=>''},Infinity)}catch{infiniteLimitBlocked=true}assert(infiniteLimitBlocked,'non-finite read limit must fall back to the default safety limit');
 for(const badSize of [undefined,null,'2',-1,NaN,Infinity]){let invalid=false;try{await api.readTextFile({name:'bad',size:badSize,text:async()=>''},1024)}catch{invalid=true}assert(invalid,`invalid file size must be rejected: ${String(badSize)}`);}
 let pickerOptions=null;
 const handles=[0,1].map(i=>({kind:'file',name:`f${i}.log`,getFile:async()=>({name:`f${i}.log`,type:'text/plain',size:0,lastModified:1,text:async()=>''})}));
@@ -16,4 +17,6 @@ const picked=await api.pickFiles({multiple:true,maxFiles:null,maxBytes:1024});
 assert(picked.length===2&&pickerOptions.multiple===true,'null maxFiles must preserve the multi-file default');
 context.showOpenFilePicker=async()=>[{kind:'file',name:'bad.log',getFile:async()=>({name:'bad.log',type:'text/plain',size:null,lastModified:1,text:async()=>''})}];
 let badPicked=false;try{await api.pickFiles({multiple:false,maxBytes:1024})}catch{badPicked=true}assert(badPicked,'picker must reject invalid file size metadata');
+context.showOpenFilePicker=async()=>[{kind:'file',name:'huge.log',getFile:async()=>({name:'huge.log',type:'text/plain',size:600*1024*1024,lastModified:1,text:async()=>''})}];
+let infinitePickerBlocked=false;try{await api.pickFiles({multiple:false,maxBytes:Infinity})}catch{infinitePickerBlocked=true}assert(infinitePickerBlocked,'non-finite picker limit must fall back to the default safety limit');
 console.log('storage-adapter-smoke: ok');
