@@ -44,6 +44,10 @@ const state = {
 };
 const controller = api.create({ state, el: {}, getUtils: () => ({ safeStringify: JSON.stringify, shortSource: (value) => value, formatTime: (value) => value || "—", copyText: async () => {} }) });
 assert.equal(controller.selectedEntry()?.id, "sd-0");
+assert.equal(controller.formatDuration(null), "—");
+assert.equal(controller.formatDuration(undefined), "—");
+assert.equal(controller.formatDuration(""), "—");
+assert.equal(controller.formatDuration(0), "0 µs");
 assert.equal(controller.formatDuration(0.5), "500 µs");
 assert.equal(controller.formatDuration(12), "12.0 ms");
 controller.bind();
