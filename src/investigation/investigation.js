@@ -160,16 +160,25 @@
   function timeline(notebook, options = {}) {
     const target = normalize(notebook);
     const maxBuckets = Math.max(4, Math.min(48, Number(options.maxBuckets) || 12));
-    const timed = target.items.map((item) => ({ item, ms: Date.parse(item.timestamp || item.addedAt || "") })).filter((row) => Number.isFinite(row.ms));
-    if (!timed.length) return { buckets: [], start: null, end: null, total: target.items.length };
-    const start = Math.min(...timed.map((row) => row.ms));
-    const end = Math.max(...timed.map((row) => row.ms));
+    let timedCount = 0;
+    let start = Infinity;
+    let end = -Infinity;
+    for (const item of target.items) {
+      const ms = Date.parse(item.timestamp || item.addedAt || "");
+      if (!Number.isFinite(ms)) continue;
+      timedCount += 1;
+      if (ms < start) start = ms;
+      if (ms > end) end = ms;
+    }
+    if (!timedCount) return { buckets: [], start: null, end: null, total: target.items.length };
     const span = Math.max(1, end - start);
-    const bucketCount = Math.min(maxBuckets, Math.max(1, Math.ceil(Math.sqrt(timed.length))));
+    const bucketCount = Math.min(maxBuckets, Math.max(1, Math.ceil(Math.sqrt(timedCount))));
     const buckets = Array.from({ length: bucketCount }, (_, index) => ({ index, startMs: start + span * index / bucketCount, endMs: start + span * (index + 1) / bucketCount, count: 0, errors: 0, fatal: 0, items: [] }));
-    for (const row of timed) {
-      const bucketIndex = Math.min(bucketCount - 1, Math.floor(((row.ms - start) / span) * bucketCount));
-      const bucket = buckets[bucketIndex]; bucket.count += 1; if (row.item.level === "ERROR") bucket.errors += 1; if (row.item.level === "FATAL") bucket.fatal += 1; if (bucket.items.length < 8) bucket.items.push(row.item.id);
+    for (const item of target.items) {
+      const ms = Date.parse(item.timestamp || item.addedAt || "");
+      if (!Number.isFinite(ms)) continue;
+      const bucketIndex = Math.min(bucketCount - 1, Math.floor(((ms - start) / span) * bucketCount));
+      const bucket = buckets[bucketIndex]; bucket.count += 1; if (item.level === "ERROR") bucket.errors += 1; if (item.level === "FATAL") bucket.fatal += 1; if (bucket.items.length < 8) bucket.items.push(item.id);
     }
     return { buckets, start, end, total: target.items.length };
   }
@@ -209,6 +218,14 @@
 
   function exportBundle(notebook, metadata = {}) {
     const target = normalize(notebook);
+    let snapshotItems = 0;
+    const services = new Set();
+    const fingerprints = new Set();
+    for (const item of target.items) {
+      if (item.snapshot) snapshotItems += 1;
+      if (item.service && services.size < 256) services.add(item.service);
+      if (item.fingerprint && fingerprints.size < 512) fingerprints.add(item.fingerprint);
+    }
     const payload = {
       schema: BUNDLE_SCHEMA,
       version: BUNDLE_VERSION,
@@ -219,9 +236,9 @@
       caseFile: cloneCaseFile(metadata.caseFile),
       manifest: {
         evidenceItems: target.items.length,
-        snapshotItems: target.items.filter((item) => item.snapshot).length,
-        services: [...new Set(target.items.map((item) => item.service).filter(Boolean))].slice(0, 256),
-        fingerprints: [...new Set(target.items.map((item) => item.fingerprint).filter(Boolean))].slice(0, 512)
+        snapshotItems,
+        services: [...services],
+        fingerprints: [...fingerprints]
       }
     };
     return JSON.stringify(payload, null, 2);
