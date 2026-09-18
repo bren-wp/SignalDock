@@ -40,6 +40,7 @@ const applicationControllers = [
   "src/app/service-trends-controller.js",
   "src/app/health-controller.js",
   "src/app/case-workspace-controller.js",
+  "src/app/case-file-controller.js",
   "src/app/case-checkpoint-controller.js"
 ];
 for (const ref of applicationControllers) {

@@ -10,6 +10,7 @@ const version = read("VERSION").trim();
 const app = read("app.js");
 const html = read("index.html");
 const controller = read("src/app/investigation-controller.js");
+const caseFileController = read("src/app/case-file-controller.js");
 
 assert.match(version, /^\d+\.\d+\.\d+$/, "VERSION must remain semantic");
 assert.ok(app.includes(`const APP_VERSION = "${version}";`), "APP_VERSION must follow VERSION");
@@ -25,8 +26,9 @@ for (const token of [
   "investigationController.bind()",
   "investigationController?.renderCaseSurfaces()",
   "investigationController?.pinEvidence",
-  "investigationController?.recordActivity(\"case.imported\""
+  "investigationController?.recordActivity"
 ]) assert.ok(app.includes(token), `Investigation app integration token missing: ${token}`);
+assert.ok(caseFileController.includes('recordCaseActivity("case.imported", "Case file imported"'), "Case import activity ownership must live in Case File controller.");
 
 for (const token of [
   "function openInvestigation()",

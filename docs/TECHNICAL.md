@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.26**.
+Current version: **2.8.27**.
 
 ## Highlights
 
@@ -659,3 +659,6 @@ The **Trace Comparison** workflow allows exactly two explicit trace IDs from the
 
 
 Dataset Session controller: filtered export, Clear-all state reset and export/clear button lifecycle are isolated under src/app/dataset-session-controller.js. Downloads, recovery cleanup, worker synchronization and domain factories remain injected callbacks. Clear-all invalidates active requests and clears derived analysis/search-index caches before rerendering.
+
+
+Case File controller: JSON/Markdown export, case import, report assembly and Case Workspace summary refresh are isolated under src/app/case-file-controller.js. Storage Adapter reads/writes, Case Workspace domain operations, Investigation normalization and Service Health analysis remain root-injected callbacks. Case import is rejected above 32 MB before content is read.

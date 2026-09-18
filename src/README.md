@@ -62,3 +62,6 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 
 app/dataset-session-controller.js owns filtered export and loaded-dataset clearing while download, recovery, worker synchronization and domain factories remain injected.
+
+
+app/case-file-controller.js owns case JSON/Markdown export, bounded case import and case-summary refresh while storage, domain parsing/normalization and analytics remain injected.

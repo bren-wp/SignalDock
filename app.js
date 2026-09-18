@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.26";
+  const APP_VERSION = "2.8.27";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -101,6 +101,7 @@
   let settingsController = null;
   let commandNavigationController = null;
   let caseWorkspaceController = null;
+  let caseFileController = null;
   let caseCheckpointController = null;
 
   const el = {};
@@ -748,6 +749,36 @@
       scheduleDatasetAutosave: () => scheduleDatasetAutosave()
     });
     caseWorkspaceController.bind();
+    if (!window.SignalDockCaseFileController?.create) throw new Error("SignalDock Case File controller is unavailable.");
+    caseFileController = window.SignalDockCaseFileController.create({
+      state, el, ownerDocument: document,
+      pruneEvidenceLinks: (caseFile, evidence) => window.SignalDockCaseWorkspace.pruneEvidenceLinks(caseFile, evidence),
+      summarizeCase: (caseFile, evidence) => window.SignalDockCaseWorkspace.summarize(caseFile, evidence),
+      exportCaseJsonText: (caseFile) => window.SignalDockCaseWorkspace.exportJson(caseFile),
+      exportCaseMarkdownText: (caseFile, investigation) => window.SignalDockCaseWorkspace.exportMarkdown(caseFile, investigation),
+      importCaseJsonText: (text) => window.SignalDockCaseWorkspace.importJson(text),
+      normalizeInvestigation: (value) => window.SignalDockInvestigation?.normalize?.(value) || value,
+      analyzeServiceHealth: (entries) => window.SignalDockServiceHealth?.analyze?.(entries) || null,
+      saveTextExport: async (request) => {
+        if (window.SignalDockStorageAdapter?.saveText) return window.SignalDockStorageAdapter.saveText(request);
+        utils().downloadParts(request.name, [request.text], request.mime);
+        return { mode: "download", name: request.name };
+      },
+      readCaseText: async (file, maxBytes) => {
+        if (!window.SignalDockStorageAdapter?.readTextFile) throw new Error("Local case-file reader is unavailable.");
+        const result = await window.SignalDockStorageAdapter.readTextFile(file, maxBytes);
+        return result.text;
+      },
+      renderCaseSurfaces: () => investigationController?.renderCaseSurfaces(),
+      renderWorkspace: (rebuild = true) => caseWorkspaceController?.render({ rebuildFindings: rebuild }),
+      renderCheckpoints: () => caseCheckpointController?.render(),
+      recordCaseActivity: (...args) => investigationController?.recordActivity(...args),
+      scheduleViewAutosave: () => scheduleViewAutosave(),
+      scheduleDatasetAutosave: () => scheduleDatasetAutosave(),
+      formatDuration,
+      todayStamp: () => new Date().toISOString().slice(0, 10),
+      toast
+    });
     state.caseCheckpoints = window.SignalDockCaseCheckpoints?.normalizeList?.([]) || [];
     if (!window.SignalDockCaseCheckpointController?.create) throw new Error("SignalDock Case Checkpoint controller is unavailable.");
     caseCheckpointController = window.SignalDockCaseCheckpointController.create({
@@ -758,6 +789,7 @@
       scheduleDatasetAutosave: () => scheduleDatasetAutosave()
     });
     caseCheckpointController.bind();
+    caseFileController.bind();
     projectController.render();
     applySettings();
     refreshSavedParserProfiles();
@@ -772,10 +804,6 @@
   function bindEvents() {
 
 
-    el.exportCaseMarkdownButton?.addEventListener("click", exportCaseMarkdown);
-    el.exportCaseJsonButton?.addEventListener("click", exportCaseJson);
-    el.importCaseJsonButton?.addEventListener("click", () => el.caseFileInput?.click());
-    el.caseFileInput?.addEventListener("change", importCaseJson);
 
     document.addEventListener("keydown", (event) => {
       const tag = document.activeElement?.tagName;
@@ -903,58 +931,16 @@
 
 
 
-  function renderCaseWorkspace(rebuild = true) {
-    if (!window.SignalDockCaseWorkspace || !el.caseFindings) return;
-    state.caseFile = window.SignalDockCaseWorkspace.pruneEvidenceLinks(state.caseFile, state.investigation?.items || []);
-    const summary = window.SignalDockCaseWorkspace.summarize(state.caseFile, state.investigation?.items || []);
-    if (el.caseWorkspaceStats) el.caseWorkspaceStats.textContent = `${summary.findings} findings · ${summary.confirmed} confirmed · ${summary.linkedEvidence} linked evidence`;
-    investigationController?.renderCaseSurfaces();
-    caseWorkspaceController?.render({ rebuildFindings: rebuild });
-    caseCheckpointController?.render();
-  }
+  function renderCaseWorkspace(rebuild = true) { return caseFileController?.renderCaseWorkspace(rebuild); }
 
-  async function exportCaseJson() {
-    if (!window.SignalDockCaseWorkspace) return;
-    const name=`signaldock-case-${new Date().toISOString().slice(0,10)}.sdcase`; const text=window.SignalDockCaseWorkspace.exportJson(state.caseFile);
-    if(window.SignalDockStorageAdapter?.saveText) await window.SignalDockStorageAdapter.saveText({name,text,mime:"application/json;charset=utf-8"}); else utils().downloadParts(name,[text],"application/json;charset=utf-8");
-    toast("Case workspace exported.");
-  }
+  async function exportCaseJson() { return caseFileController?.exportCaseJson(); }
 
-  function exportCaseMarkdown() {
-    if (!window.SignalDockCaseWorkspace) return;
-    let report = window.SignalDockCaseWorkspace.exportMarkdown(state.caseFile, state.investigation);
-    const health = state.healthData || window.SignalDockServiceHealth?.analyze?.(state.entries);
-    const trend = state.exceptionTrends;
-    report += `\n\n## Observed dataset context\n\n- Entries: ${state.entries.length.toLocaleString()}\n- Services: ${(state.summary.services || []).length.toLocaleString()}\n- Error/Fatal entries: ${state.summary.errors.toLocaleString()}\n- Warning entries: ${state.summary.warnings.toLocaleString()}\n- Exception fingerprints: ${(state.exceptionGroups || []).length.toLocaleString()}\n`;
-    const concerning = (health?.rows || []).filter((row) => row.status === "critical" || row.status === "degraded").slice(0, 12);
-    if (concerning.length) { report += `\n### Observed service concerns\n\n`; concerning.forEach((row) => { report += `- **${row.service}** — ${row.status}; ${(row.errorRate * 100).toFixed(1)}% error rate; ${row.exceptionGroups} exception groups${row.p95DurationMs === null ? "" : `; p95 span ${formatDuration(row.p95DurationMs)}`}\n`; }); }
-    const spiking = [...(trend?.groups?.values?.() || [])].filter((row) => row.trend === "spiking").sort((a,b) => b.recent - a.recent).slice(0, 12);
-    if (spiking.length) { report += `\n### Spiking exception fingerprints\n\n`; spiking.forEach((row) => { report += `- \`${row.fingerprint}\` — ${row.recent} recent vs ${row.previous} previous-window occurrences\n`; }); }
-    report += `\n> Observed health and trend sections are derived only from the logs included in this local SignalDock dataset.\n`;
-    const name=`signaldock-case-${new Date().toISOString().slice(0,10)}.md`;
-    if(window.SignalDockStorageAdapter?.saveText) window.SignalDockStorageAdapter.saveText({name,text:report,mime:"text/markdown;charset=utf-8"}); else utils().downloadParts(name,[report],"text/markdown;charset=utf-8");
-    toast("Case report exported as Markdown.");
-  }
+  async function exportCaseMarkdown() { return caseFileController?.exportCaseMarkdown(); }
 
   async function importCaseJson(event) {
-    const file = event.target.files?.[0];
-    if (!file || !window.SignalDockCaseWorkspace) return;
-    try {
-      state.caseFile = window.SignalDockCaseWorkspace.importJson(await file.text());
-      state.caseFile = window.SignalDockCaseWorkspace.pruneEvidenceLinks(state.caseFile, state.investigation?.items || []);
-      investigationController?.recordActivity("case.imported", "Case file imported", file.name || "Imported case");
-      if (window.SignalDockInvestigation) state.investigation = window.SignalDockInvestigation.normalize(Object.assign({}, state.investigation, { title: state.caseFile.title || state.investigation?.title || "Investigation", summary: state.caseFile.summary || state.investigation?.summary || "" }));
-      if (el.investigationTitle) el.investigationTitle.value = state.investigation.title;
-      if (el.investigationSummary) el.investigationSummary.value = state.investigation.summary;
-      if (el.caseStatus) el.caseStatus.value = state.caseFile.status;
-      if (el.caseSeverity) el.caseSeverity.value = state.caseFile.severity;
-      if (el.caseHypothesis) el.caseHypothesis.value = state.caseFile.hypothesis;
-      if (el.caseImpact) el.caseImpact.value = state.caseFile.impact;
-      if (el.caseNextSteps) el.caseNextSteps.value = state.caseFile.nextSteps;
-      renderCaseWorkspace(); scheduleViewAutosave(); if (state.settings.autosave !== false) scheduleDatasetAutosave();
-      toast(`Imported case with ${state.caseFile.findings.length} finding${state.caseFile.findings.length === 1 ? "" : "s"}.`);
-    } catch (error) { toast(`Could not import case: ${error.message || error}`, "error", 6500); }
-    finally { event.target.value = ""; }
+    const file = event?.target?.files?.[0];
+    try { if (file) return await caseFileController?.importCaseFile(file); }
+    finally { if (event?.target) event.target.value = ""; }
   }
 
   function entryRowIntoView(globalIndex) { return tableViewController?.entryRowIntoView(globalIndex); }

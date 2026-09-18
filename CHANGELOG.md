@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.27 — 2026-09-18
+
+### Case file boundary
+- Extracted Case JSON/Markdown export, import orchestration, observed-dataset report assembly and Case Workspace summary refresh into src/app/case-file-controller.js.
+- Added a 32 MB case-import safety limit before local file contents are read.
+- Export cancellation is now surfaced as cancelled instead of incorrectly reporting success.
+- Kept Storage Adapter I/O, Case Workspace domain parsing/normalization, Investigation normalization and Service Health analysis behind injected callbacks.
+
 ## 2.8.26 — 2026-09-18
 
 ### Dataset session lifecycle
