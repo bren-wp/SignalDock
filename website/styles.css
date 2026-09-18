@@ -83,6 +83,7 @@ a:focus-visible,.button:focus-visible { outline:2px solid var(--cyan); outline-o
 }
 .site-nav a { white-space:nowrap; transition:color .15s ease; }
 .site-nav a:hover { color:#fff; }
+.site-nav a[aria-current="page"] { color:#e9fbff; text-decoration:underline; text-decoration-color:var(--cyan); text-underline-offset:6px; }
 .header-cta,.button {
   display:inline-flex;
   min-height:42px;
