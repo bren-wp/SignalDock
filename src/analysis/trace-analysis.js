@@ -42,12 +42,47 @@
     });
     const memo = new Map();
     function subtreeEnd(span) {
-      const id = String(span.correlations.span);
-      if (memo.has(id)) return memo.get(id);
-      let latest = endTime(span) ?? span.timestampMs;
-      for (const child of children.get(id) || []) latest = Math.max(latest, subtreeEnd(child));
-      memo.set(id, latest);
-      return latest;
+      const rootId = String(span.correlations.span);
+      if (memo.has(rootId)) return memo.get(rootId);
+
+      const stack = [{ span, expanded: false }];
+      const visiting = new Set();
+      while (stack.length) {
+        const frame = stack.pop();
+        const current = frame.span;
+        const id = String(current.correlations.span);
+        if (memo.has(id)) {
+          visiting.delete(id);
+          continue;
+        }
+
+        if (frame.expanded) {
+          let latest = endTime(current) ?? current.timestampMs;
+          for (const child of children.get(id) || []) {
+            const childId = String(child.correlations.span);
+            const childEnd = memo.get(childId);
+            latest = Math.max(latest, Number.isFinite(childEnd) ? childEnd : (endTime(child) ?? child.timestampMs));
+          }
+          memo.set(id, latest);
+          visiting.delete(id);
+          continue;
+        }
+
+        if (visiting.has(id)) {
+          memo.set(id, endTime(current) ?? current.timestampMs);
+          continue;
+        }
+
+        visiting.add(id);
+        stack.push({ span: current, expanded: true });
+        const direct = children.get(id) || [];
+        for (let index = direct.length - 1; index >= 0; index -= 1) {
+          const child = direct[index];
+          const childId = String(child.correlations.span);
+          if (!memo.has(childId) && !visiting.has(childId)) stack.push({ span: child, expanded: false });
+        }
+      }
+      return memo.get(rootId) ?? (endTime(span) ?? span.timestampMs);
     }
 
     const root = [...roots].sort((a, b) => {
