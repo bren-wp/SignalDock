@@ -26,23 +26,38 @@
 
   function analyze(entries, options = {}) {
     const source = Array.isArray(entries) ? entries : [];
+    const indexes = Array.isArray(options.indexes) ? options.indexes : null;
+    const each = (callback) => {
+      if (indexes) {
+        for (const index of indexes) {
+          const entry = source[index];
+          if (entry) callback(entry, index);
+        }
+        return;
+      }
+      for (let index = 0; index < source.length; index += 1) {
+        const entry = source[index];
+        if (entry) callback(entry, index);
+      }
+    };
+
     let latest = null;
     let earliest = null;
-    for (const entry of source) {
+    each((entry) => {
       const ts = timestamp(entry);
-      if (ts === null) continue;
+      if (ts === null) return;
       if (latest === null || ts > latest) latest = ts;
       if (earliest === null || ts < earliest) earliest = ts;
-    }
+    });
     const span = latest !== null && earliest !== null ? Math.max(1, latest - earliest) : 0;
     const windowMs = Math.max(60_000, Number(options.windowMs) || Math.min(6 * 60 * 60 * 1000, Math.max(15 * 60 * 1000, Math.floor(span / 4) || 60 * 60 * 1000)));
     const recentStart = latest === null ? null : latest - windowMs;
     const previousStart = recentStart === null ? null : recentStart - windowMs;
     const groups = new Map();
 
-    for (const entry of source) {
+    each((entry) => {
       const service = String(entry?.service || "—").trim() || "—";
-      if (service === "—" && options.includeUnknown !== true) continue;
+      if (service === "—" && options.includeUnknown !== true) return;
       if (!groups.has(service)) groups.set(service, { service, total: 0, errors: 0, fatal: 0, warnings: 0, traces: new Set(), environments: new Set(), namespaces: new Set(), exceptionFingerprints: new Set(), durations: [], recentErrors: 0, previousErrors: 0, sources: new Set() });
       const row = groups.get(service);
       row.total += 1;
@@ -62,7 +77,7 @@
         if (ts > recentStart) row.recentErrors += 1;
         else if (ts > previousStart) row.previousErrors += 1;
       }
-    }
+    });
 
     const rows = [...groups.values()].map((row) => {
       row.durations.sort((a, b) => a - b);
