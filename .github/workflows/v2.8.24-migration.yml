@@ -121,7 +121,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add VERSION app.js index.html README.md CHANGELOG.md docs/TECHNICAL.md docs/SOURCE-LAYOUT.md src/README.md src/app/dataset-filter-controller.js tests/source-layout-smoke.mjs tests/filter-worker-controller-smoke.mjs tests/v27-worker-integration-smoke.mjs
+          git add VERSION app.js index.html README.md CHANGELOG.md docs/TECHNICAL.md docs/SOURCE-LAYOUT.md src/README.md src/app/dataset-filter-controller.js tests/source-layout-smoke.mjs tests/filter-worker-controller-smoke.mjs tests/v27-worker-integration-smoke.mjs tests/v27-final-gate.mjs
           if git diff --cached --quiet; then
             echo 'Migration produced no release changes.' >&2
             exit 1
