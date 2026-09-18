@@ -75,9 +75,17 @@
   function compare(entries, indexes = null, options = {}) {
     const source = Array.isArray(entries) ? entries : [];
     const selected = Array.isArray(indexes) ? indexes : source.map((_, index) => index);
-    const times = selected.map((index) => Number(source[index]?.timestampMs)).filter(Number.isFinite);
-    if (times.length < 2) return { rows: [], windows: null, summary: { edges: 0, changed: 0, newEdges: 0, disappearedEdges: 0 } };
-    const min = Math.min(...times); const max = Math.max(...times);
+    let min = Infinity;
+    let max = -Infinity;
+    let timedEntries = 0;
+    for (const index of selected) {
+      const timestampMs = Number(source[index]?.timestampMs);
+      if (!Number.isFinite(timestampMs)) continue;
+      timedEntries += 1;
+      if (timestampMs < min) min = timestampMs;
+      if (timestampMs > max) max = timestampMs;
+    }
+    if (timedEntries < 2) return { rows: [], windows: null, summary: { edges: 0, changed: 0, newEdges: 0, disappearedEdges: 0 } };
     const splitMs = Number.isFinite(Number(options.splitMs)) ? Math.min(max, Math.max(min, Number(options.splitMs))) : min + ((max - min) / 2);
     if (splitMs <= min || splitMs >= max) return { rows: [], windows: null, summary: { edges: 0, changed: 0, newEdges: 0, disappearedEdges: 0 } };
     const before = periodEdges(source, selected, min, splitMs);
