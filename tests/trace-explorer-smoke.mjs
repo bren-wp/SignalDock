@@ -28,4 +28,6 @@ assert(windowed.rows.map(r=>r.traceId).join('|')===full.rows.slice(0,1000).map(r
 const offsetWindow=globalThis.SignalDockTraceExplorer.buildWindow(largeEntries,null,{offset:250,limit:300});
 assert(offsetWindow.rows.map(r=>r.traceId).join('|')===full.rows.slice(250,550).map(r=>r.traceId).join('|'),'bounded trace offset ranking mismatch');
 assert(windowed.summary.traces===12000&&windowed.summary.returned===1000&&windowed.summary.truncated===true,'large trace window summary mismatch');
+const source=fs.readFileSync(path.join(root,'src/analysis/trace-explorer.js'),'utf8');
+assert((source.match(/allRows\.filter\(/g)||[]).length===0,'Trace Explorer summary must not rescan all trace rows with filter()');
 console.log('trace-explorer-smoke: ok');
