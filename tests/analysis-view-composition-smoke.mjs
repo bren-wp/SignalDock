@@ -74,4 +74,13 @@ for (const name of ["serviceMatrix", "serviceHeatmap", "serviceTrends", "health"
   assert.equal(optionsByName[name].filterByServiceValue, actions.filterByServiceValue);
 }
 
+assert.throws(
+  () => api.create({ state: {}, el: {}, modules: {}, actions }),
+  /modules\.traceExplorer\.create/
+);
+assert.throws(
+  () => api.create({ state: {}, el: {}, modules, actions: { ...actions, toast: null } }),
+  /actions\.toast/
+);
+
 console.log("analysis-view-composition-smoke PASS");
