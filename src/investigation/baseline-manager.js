@@ -113,6 +113,43 @@
     }
     for (let index = 0; index < source.length; index += 1) callback(source[index], index);
   }
+  function selectTop(values, limit, compare) {
+    const count = Math.max(0, Math.floor(Number(limit) || 0));
+    if (!count) return [];
+    const heap = [];
+    const swap = (a, b) => { const value = heap[a]; heap[a] = heap[b]; heap[b] = value; };
+    const siftUp = (index) => {
+      while (index > 0) {
+        const parent = Math.floor((index - 1) / 2);
+        if (compare(heap[parent], heap[index]) >= 0) break;
+        swap(parent, index);
+        index = parent;
+      }
+    };
+    const siftDown = (index) => {
+      while (true) {
+        const left = index * 2 + 1;
+        const right = left + 1;
+        let worst = index;
+        if (left < heap.length && compare(heap[left], heap[worst]) > 0) worst = left;
+        if (right < heap.length && compare(heap[right], heap[worst]) > 0) worst = right;
+        if (worst === index) break;
+        swap(index, worst);
+        index = worst;
+      }
+    };
+    for (const value of values) {
+      if (heap.length < count) {
+        heap.push(value);
+        siftUp(heap.length - 1);
+        continue;
+      }
+      if (compare(value, heap[0]) >= 0) continue;
+      heap[0] = value;
+      siftDown(0);
+    }
+    return heap.sort(compare);
+  }
   function selectedCount(entries, indexes) {
     const source = Array.isArray(entries) ? entries : [];
     if (!Array.isArray(indexes)) return source.length;
@@ -132,13 +169,14 @@
       if (Number.isFinite(duration) && duration >= 0) row.durations.push(duration);
       map.set(service, row);
     });
-    return [...map.values()].map((row) => {
+    const retained = selectTop(map.values(), MAX_ROWS, (a, b) => b.entries - a.entries || a.service.localeCompare(b.service));
+    return retained.map((row) => {
       row.durations.sort((a, b) => a - b);
       return {
         service: row.service, entries: row.entries, errors: row.errors, warnings: row.warnings,
         errorRate: row.entries ? row.errors / row.entries : 0, p95Ms: percentileSorted(row.durations, .95)
       };
-    }).sort((a, b) => b.entries - a.entries || a.service.localeCompare(b.service)).slice(0, MAX_ROWS);
+    });
   }
   function dependencyRows(entries, indexes) {
     if (!root.SignalDockServiceMatrix?.build) return [];
@@ -162,7 +200,8 @@
       if (Number.isFinite(trace.spans)) row.spans.push(trace.spans);
       map.set(signature, row);
     }
-    return [...map.values()].map((row) => {
+    const retained = selectTop(map.values(), MAX_ROWS, (a, b) => b.traces - a.traces || a.signature.localeCompare(b.signature));
+    return retained.map((row) => {
       row.durations.sort((a, b) => a - b);
       row.spans.sort((a, b) => a - b);
       return {
@@ -171,7 +210,7 @@
         medianDurationMs: percentileSorted(row.durations, .5), p95DurationMs: percentileSorted(row.durations, .95),
         medianSpans: percentileSorted(row.spans, .5)
       };
-    }).sort((a, b) => b.traces - a.traces || a.signature.localeCompare(b.signature)).slice(0, MAX_ROWS);
+    });
   }
   function snapshot(entries, indexes = null, options = {}) {
     const source = Array.isArray(entries) ? entries : [];
