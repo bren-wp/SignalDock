@@ -112,6 +112,21 @@ v27Gate = replaceOnce(
 );
 write("tests/v27-final-gate.mjs", v27Gate);
 
+let v27Project = read("tests/v27-project-reopen-smoke.mjs");
+v27Project = replaceOnce(
+  v27Project,
+  'const app = read("app.js");\n',
+  'const app = read("app.js");\nconst elementRegistry = read("src/app/element-registry.js");\n',
+  "v27 project element registry source"
+);
+v27Project = replaceOnce(
+  v27Project,
+  'for (const token of ["projectLinkFilesButton", "SignalDockDesktopBridge.saveParts"]) {\n  assert.ok(app.includes(token), \`missing app token \${token}\`);\n}\n',
+  'assert.ok(elementRegistry.includes("projectLinkFilesButton"), "missing element-registry token projectLinkFilesButton");\nassert.ok(app.includes("SignalDockDesktopBridge.saveParts"), "missing app token SignalDockDesktopBridge.saveParts");\n',
+  "v27 project registry ownership"
+);
+write("tests/v27-project-reopen-smoke.mjs", v27Project);
+
 write("VERSION", "2.8.31\n");
 write("README.md", read("README.md").replaceAll("2.8.30", "2.8.31"));
 
