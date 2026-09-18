@@ -96,6 +96,11 @@ for (const token of [
 
 assert.ok(!css.includes(".mock-window"), "obsolete mock application CSS must be removed");
 
+const websiteCustomProperties = [...css.matchAll(/(--[\\w-]+)\\s*:/g)].map((match) => match[1]);
+for (const property of websiteCustomProperties) {
+  assert.ok(css.includes(`var(${property})`), "unused website custom property: " + property);
+}
+
 assert.ok(!/\.site-header nav\s*\{[^}]*display\s*:\s*none/is.test(css), "responsive website nav must remain reachable");
 
 const websitePages = new Map([["index.html", home], ["privacy.html", privacy], ["security.html", security]]);
