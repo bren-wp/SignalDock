@@ -60,4 +60,6 @@ console.log("PASS 3-gram substring candidate narrowing + semantic fallback guard
 const searchIndexSource = fs.readFileSync(path.join(root, "src/core/search-index.js"), "utf8");
 assert(searchIndexSource.includes("function mergeSortedUnique("), "search index must merge sorted posting lists directly");
 assert(!searchIndexSource.includes("const set = new Set();\n    for (const array of arrays)"), "search index union must not materialize a global Set then sort");
+assert(!searchIndexSource.includes("for (const array of arrays) current = mergeSortedUnique(current, array);"), "search index union must not repeatedly merge into one growing array");
+assert(searchIndexSource.includes("while (current.length > 1)"), "search index union must use balanced pairwise merging");
 console.log("PASS sorted multi-posting union equivalence");
