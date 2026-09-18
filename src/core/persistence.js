@@ -127,7 +127,8 @@
       });
       store.delete(LEGACY_DATASET_KEY);
       const oldCount = validChunkCount(previousManifest?.chunkCount);
-      for (let index = chunkCount; index < oldCount; index += 1) store.delete(`${CHUNK_PREFIX}${index}`);
+      const cleanupLimit = oldCount || (previousManifest ? MAX_CHUNKS : chunkCount);
+      for (let index = chunkCount; index < cleanupLimit; index += 1) store.delete(`${CHUNK_PREFIX}${index}`);
     });
 
     return { allowed: true, savedAt, entryCount: entries.length, byteSize: blob.size, chunkCount, estimatedBytes: eligibility.estimatedBytes };
