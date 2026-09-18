@@ -71,6 +71,25 @@ assert(parsed.workspace.baselineSnapshot?.name === 'Production before deploy', '
 assert(parsed.workspace.activeProjectId === 'project-1', 'workspace: active project id was not preserved');
 console.log("PASS workspace serialization + restore normalization");
 
+const missingRawEntry = globalThis.SignalDockWorkspace.normalizeEntry({
+  source: "legacy.log",
+  message: "entry without raw",
+  level: "INFO",
+  timestamp: ""
+}, 0);
+assert(typeof missingRawEntry.searchText === "string", "workspace: missing raw must still build search text");
+assert(missingRawEntry.searchText.includes("entry without raw"), "workspace: missing raw search text lost message");
+
+const missingRawPayload = JSON.stringify({
+  schema: "signaldock.workspace",
+  version: 1,
+  entries: [{ source: "legacy.log", message: "restored without raw", level: "INFO" }],
+  workspace: {}
+});
+const missingRawParsed = globalThis.SignalDockWorkspace.parse(missingRawPayload);
+assert(missingRawParsed.entries[0].message === "restored without raw", "workspace: entry without raw failed to restore");
+console.log("PASS workspace missing-raw compatibility");
+
 let rejected = false;
 try { globalThis.SignalDockWorkspace.parse('{"schema":"wrong","version":1,"entries":[]}'); }
 catch { rejected = true; }
