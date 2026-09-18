@@ -30,14 +30,20 @@
 
   function summarizeSamples(samples) {
     if (!samples?.length) return null;
-    const values = samples.map((sample) => sample.value);
-    const total = values.reduce((sum, value) => sum + value, 0);
-    const sorted = [...values].sort((a, b) => a - b);
+    const sorted = new Array(samples.length);
+    let total = 0;
+    for (let index = 0; index < samples.length; index += 1) {
+      const value = samples[index].value;
+      sorted[index] = value;
+      total += value;
+    }
+    const lastMs = sorted[sorted.length - 1];
+    sorted.sort((a, b) => a - b);
     const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))];
     return {
-      count: values.length,
-      lastMs: values[values.length - 1],
-      avgMs: total / values.length,
+      count: sorted.length,
+      lastMs,
+      avgMs: total / sorted.length,
       p95Ms: p95,
       maxMs: sorted[sorted.length - 1],
       lastMeta: samples[samples.length - 1].meta
