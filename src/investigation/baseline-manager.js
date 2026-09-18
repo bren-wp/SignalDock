@@ -120,8 +120,12 @@
       scope: input.scope === "filtered" ? "filtered" : "all", entries: Math.max(0, Number(input.entries) || 0),
       sources: (Array.isArray(input.sources) ? input.sources : []).map((value) => clean(value, 240)).filter(Boolean).slice(0, 500),
       timeRange: {
-        startMs: Number.isFinite(Number(input.timeRange?.startMs)) ? Number(input.timeRange.startMs) : null,
-        endMs: Number.isFinite(Number(input.timeRange?.endMs)) ? Number(input.timeRange.endMs) : null
+        startMs: input.timeRange?.startMs !== null && input.timeRange?.startMs !== undefined && input.timeRange?.startMs !== "" && Number.isFinite(Number(input.timeRange.startMs))
+          ? Number(input.timeRange.startMs)
+          : null,
+        endMs: input.timeRange?.endMs !== null && input.timeRange?.endMs !== undefined && input.timeRange?.endMs !== "" && Number.isFinite(Number(input.timeRange.endMs))
+          ? Number(input.timeRange.endMs)
+          : null
       },
       services: (Array.isArray(input.services) ? input.services : []).slice(0, MAX_ROWS),
       dependencies: (Array.isArray(input.dependencies) ? input.dependencies : []).slice(0, MAX_ROWS),
