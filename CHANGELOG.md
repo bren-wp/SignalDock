@@ -9,6 +9,7 @@
 - Added a 200,000-entry Service Trends regression covering large timestamp scans.
 - Hardened Observed Health timestamp bounds with the same linear scan, added a 200,000-entry regression, and removed duplicate duration-array sorts while preserving exact median/p95 results.
 - Hardened Trace Analysis and Trace Flame range calculation against large-trace argument-spread overflow and added 200,000-span regressions for both paths.
+- Replaced recursive Trace Analysis subtree-end traversal with an iterative post-order scan and added a two-branch depth-12,000 regression to prevent call-stack overflow on deeply nested traces.
 - Kept the live v2.8.33 runtime wiring unchanged because the root `app.js` migration could not be committed atomically through the active repository write path.
 
 ## 2.8.33 — 2026-09-18
