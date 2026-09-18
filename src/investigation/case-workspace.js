@@ -277,14 +277,22 @@
     const target = normalize(caseFile);
     const evidenceIds = evidenceItemIdSet(evidenceItems);
     const linked = new Set();
-    target.findings.forEach((finding) => finding.evidenceIds.forEach((id) => { if (evidenceIds.has(id)) linked.add(id); }));
+    let confirmed = 0;
+    let open = 0;
+    for (const finding of target.findings) {
+      if (finding.state === "confirmed") confirmed += 1;
+      else if (finding.state === "open") open += 1;
+      for (const id of finding.evidenceIds) if (evidenceIds.has(id)) linked.add(id);
+    }
+    let reachedMilestones = 0;
+    for (const milestone of target.milestones) if (milestone.status === "reached") reachedMilestones += 1;
     return {
       findings: target.findings.length,
-      confirmed: target.findings.filter((item) => item.state === "confirmed").length,
-      open: target.findings.filter((item) => item.state === "open").length,
+      confirmed,
+      open,
       linkedEvidence: linked.size,
       milestones: target.milestones.length,
-      reachedMilestones: target.milestones.filter((item) => item.status === "reached").length,
+      reachedMilestones,
       attachments: target.attachments.length,
       status: target.status,
       severity: target.severity
