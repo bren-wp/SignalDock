@@ -101,6 +101,13 @@ for (const property of websiteCustomProperties) {
   assert.ok(css.includes(`var(${property})`), "unused website custom property: " + property);
 }
 
+const websiteHtml = [home, privacy, security].join("\n");
+const websiteClasses = new Set([...websiteHtml.matchAll(/class="([^"]+)"/g)].flatMap((match) => match[1].split(/\s+/)).filter(Boolean));
+const cssClasses = new Set([...css.matchAll(/\.([A-Za-z_][\w-]*)/g)].map((match) => match[1]));
+for (const className of cssClasses) {
+  assert.ok(websiteClasses.has(className), "unused website CSS class: " + className);
+}
+
 assert.ok(!/\.site-header nav\s*\{[^}]*display\s*:\s*none/is.test(css), "responsive website nav must remain reachable");
 
 const websitePages = new Map([["index.html", home], ["privacy.html", privacy], ["security.html", security]]);
