@@ -69,6 +69,7 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/command-navigation-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/recovery-diagnostics-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/saved-views-controller.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/src/app/import-live-tail-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/investigation-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/exception-controller.js -o /dev/null
           curl --fail --silent --show-error http://127.0.0.1:8080/src/app/trace-explorer-controller.js -o /dev/null
