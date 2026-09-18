@@ -9,4 +9,8 @@ const result=context.SignalDockServiceHealth.analyze(entries,{windowMs:60000});
 const api=result.rows.find(r=>r.service==='api'); const worker=result.rows.find(r=>r.service==='worker');
 if(!api || api.status!=='critical' || api.errorRate<0.1 || api.p95DurationMs===null) throw new Error('api health classification failed');
 if(!worker || worker.status!=='quiet') throw new Error('worker health classification failed');
+const largeEntries=Array.from({length:200000},(_,index)=>({timestampMs:now+index}));
+const largeResult=context.SignalDockServiceHealth.analyze(largeEntries);
+if(largeResult.earliest!==now) throw new Error('large health timestamp minimum mismatch');
+if(largeResult.latest!==now+199999) throw new Error('large health timestamp maximum mismatch');
 console.log('service-health-smoke: ok');
