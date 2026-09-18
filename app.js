@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.24";
+  const APP_VERSION = "2.8.25";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -83,6 +83,7 @@
   let workspaceController = null;
   let datasetOverviewController = null;
   let filterWorkerController = null;
+  let relatedContextController = null;
   let queryLibraryController = null;
   let baselineController = null;
   let projectController = null;
@@ -382,6 +383,18 @@
       applyFilteredIndexes, renderCorrelationsPane, renderTracePane, getSelectedEntry: selectedEntry, updateDiagnostics,
       recordPerformance: (name, elapsed, meta) => profiler()?.record?.(name, elapsed, meta),
       toast
+    });
+    if (!window.SignalDockRelatedContextController?.create) throw new Error("SignalDock Related Context controller is unavailable.");
+    relatedContextController = window.SignalDockRelatedContextController.create({
+      state,
+      relatedIndexes: (entries, correlations, limit, origin) => engine().relatedIndexes(entries, correlations, limit, origin),
+      canUseWorker: () => filterWorkerController?.canUseWorker() || false,
+      requestCorrelation: (payload) => filterWorkerController?.requestCorrelation(payload) ?? false,
+      requestTrace: (payload) => filterWorkerController?.requestTrace(payload) ?? false,
+      renderCorrelations: (entry) => inspectorController?.renderCorrelations(entry),
+      renderTrace: (entry) => inspectorController?.renderTrace(entry),
+      now: () => performance.now(),
+      recordPerformance: (name, elapsed, meta) => profiler()?.record?.(name, elapsed, meta)
     });
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
@@ -846,58 +859,11 @@
 
   function renderInspector() { inspectorController?.render(); }
 
-  function loadCorrelations(entry) {
-    if (!entry) return;
-    const correlations = entry.correlations || {};
-    if (!Object.keys(correlations).length) {
-      state.correlatedIndexes = [];
-      state.correlationEngine = "none";
-      renderCorrelationsPane(entry);
-      return;
-    }
-    state.correlationRequestId += 1;
-    const requestId = state.correlationRequestId;
-    const useWorker = filterWorkerController?.canUseWorker() || false;
-    if (useWorker) {
-      state.correlationEngine = "worker · searching";
-      renderCorrelationsPane(entry);
-      if (filterWorkerController.requestCorrelation({ requestId, correlations, limit: 200, origin: entry.globalIndex })) return;
-    }
-    const started = performance.now();
-    state.correlatedIndexes = engine().relatedIndexes(state.filterEntries, correlations, 200, entry.globalIndex);
-    const correlationElapsed = Math.round((performance.now() - started) * 10) / 10;
-    state.correlationEngine = `main · ${correlationElapsed} ms`;
-    profiler()?.record?.("correlation", correlationElapsed, { engine: "main" });
-    renderCorrelationsPane(entry);
-  }
+  function loadCorrelations(entry) { return relatedContextController?.loadCorrelations(entry); }
 
   function renderCorrelationsPane(entry) { inspectorController?.renderCorrelations(entry); }
 
-  function loadTrace(entry) {
-    if (!entry) return;
-    const traceId = entry.correlations?.trace;
-    if (!traceId) {
-      state.traceIndexes = [];
-      state.traceEngine = "none";
-      renderTracePane(entry);
-      return;
-    }
-    state.traceRequestId += 1;
-    const requestId = state.traceRequestId;
-    const correlations = { trace: traceId };
-    const useWorker = filterWorkerController?.canUseWorker() || false;
-    if (useWorker) {
-      state.traceEngine = "worker · searching";
-      renderTracePane(entry);
-      if (filterWorkerController.requestTrace({ requestId, correlations, limit: 1000, origin: entry.globalIndex })) return;
-    }
-    const started = performance.now();
-    state.traceIndexes = engine().relatedIndexes(state.filterEntries, correlations, 1000, entry.globalIndex);
-    const traceElapsed = Math.round((performance.now() - started) * 10) / 10;
-    state.traceEngine = `main · ${traceElapsed} ms`;
-    profiler()?.record?.("trace", traceElapsed, { engine: "main" });
-    renderTracePane(entry);
-  }
+  function loadTrace(entry) { return relatedContextController?.loadTrace(entry); }
 
   function renderTracePane(entry) { inspectorController?.renderTrace(entry); }
 

@@ -7,7 +7,7 @@
   <p>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/bren-wp/SignalDock/actions/workflows/ci.yml/badge.svg"></a>
     <a href="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/bren-wp/SignalDock/actions/workflows/codeql.yml/badge.svg"></a>
-    <img alt="Version" src="https://img.shields.io/badge/version-2.8.24-22d3ee?style=flat-square">
+    <img alt="Version" src="https://img.shields.io/badge/version-2.8.25-22d3ee?style=flat-square">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-34d399?style=flat-square">
     <img alt="Local first" src="https://img.shields.io/badge/local--first-yes-67e8f9?style=flat-square">
     <img alt="Telemetry" src="https://img.shields.io/badge/telemetry-none-a7f3d0?style=flat-square">
@@ -28,8 +28,8 @@
 </p>
 
 <p align="center">
-  <strong>SignalDock v2.8.24 — real application UI with the bundled demo dataset</strong><br>
-  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.8.24 application screenshot showing local log analysis" width="100%" />
+  <strong>SignalDock v2.8.25 — real application UI with the bundled demo dataset</strong><br>
+  <img src="./docs/images/app-screenshot.png" alt="SignalDock v2.8.25 application screenshot showing local log analysis" width="100%" />
 </p>
 
 ## Your logs should not need a cloud account
@@ -109,6 +109,7 @@ SignalDock includes:
 - feature-level Workspace controller under `src/app/` that owns workspace snapshots, save/restore orchestration and workspace UI shortcuts while serialization, file reads, native/browser save capabilities and Project handle metadata remain root-injected callbacks
 - feature-level Dataset Overview controller under `src/app/` that owns summary metrics, source navigation and timeline rendering while filter/index ownership and domain analytics remain outside the UI renderer
 - feature-level Filter Worker controller under `src/app/` that owns protocol-v1 worker lifecycle and authenticated index/filter/correlation/trace routing while token generation and Worker construction remain root-injected
+- feature-level Related Context controller under `src/app/` that owns correlation/trace request orchestration and main-thread fallback while Query Engine, Inspector rendering and worker dispatch remain injected boundaries
 - feature-level Investigation controller under `src/app/` that owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination through explicit callbacks
 - feature-level Exception controller under `src/app/` that owns recurring-failure rendering, fingerprint filtering and representative-sample actions while exception grouping/trend analysis remains in `src/analysis/`
 - feature-level Trace Explorer controller under `src/app/` that owns distributed-trace inventory, A/B comparison selection and trace-sample navigation while trace aggregation/comparison remains in `src/analysis/`

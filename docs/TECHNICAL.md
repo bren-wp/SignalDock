@@ -32,6 +32,8 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 `filter-worker-controller.js` owns main-thread worker lifecycle, protocol-v1 authenticated envelope routing, index synchronization and filter/correlation/trace dispatch. Token generation and Worker construction stay root-injected; `filter-worker.js` validation, allowlists and bounds remain unchanged.
 
+`related-context-controller.js` owns correlation and trace request IDs, worker/main-thread routing and Query Engine fallback orchestration for the Inspector. Query Engine execution, Filter Worker dispatch, Inspector rendering and performance recording are injected callbacks. Every load increments its request ID, including empty correlation/trace cases, so delayed worker responses cannot overwrite a newly selected entry.
+
 `investigation-controller.js` owns Investigation evidence rendering/actions, local import/export, Case Activity and Unified Case Timeline coordination. Investigation and Case domain modules remain authoritative for normalization and bounded evidence/case data; log selection, inspector refresh, Case Workspace refresh and autosave are injected callbacks.
 
 `exception-controller.js` owns Exception Explorer rendering, deterministic fingerprint query coordination and representative-sample actions. Grouping and trend classification remain in `src/analysis/exception-groups.js` and `src/analysis/exception-trends.js`; log filtering, evidence pinning and selected-log navigation are injected callbacks. Sample resolution prefers stable entry IDs before index and fingerprint fallbacks so restored workspaces do not depend on stale array positions.
@@ -57,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.24**.
+Current version: **2.8.25**.
 
 ## Highlights
 

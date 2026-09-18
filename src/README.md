@@ -38,6 +38,8 @@ Runtime modules are grouped by responsibility while the public entrypoints stay 
 
 `app/filter-worker-controller.js` owns main-thread worker lifecycle plus authenticated index/filter/correlation/trace routing. Token generation and Worker construction remain root-injected, and the worker script remains authoritative for validation and bounds.
 
+`app/related-context-controller.js` owns correlation/trace request sequencing and worker-to-main fallback orchestration while Query Engine execution, worker dispatch, Inspector rendering and profiling remain injected callbacks.
+
 `app/investigation-controller.js` owns evidence UI, local investigation import/export, Case Activity and Unified Timeline coordination.
 
 `app/exception-controller.js` owns recurring-failure rendering, fingerprint-filter actions and representative exception sample navigation/pinning.

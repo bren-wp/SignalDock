@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.8.25 — 2026-09-18
+
+### Related Context application boundary
+- Extracted correlation and trace request sequencing, worker/main-thread routing and Query Engine fallback orchestration into `src/app/related-context-controller.js`.
+- Kept Query Engine execution, Filter Worker dispatch, Inspector rendering and performance recording behind explicit injected callbacks.
+- Fixed an Inspector race: selecting an entry with no correlations or trace now still advances the relevant request ID, making any delayed response from the previously selected entry stale.
+- Preserved worker limits of 200 related correlation entries and 1000 trace-related entries and preserved synchronous main-thread fallback when worker dispatch fails.
+
+### Verification
+- Added isolated coverage for worker dispatch, main-thread fallback, empty-context handling, request-ID invalidation and failed-dispatch fallback.
+- Added permanent source-layout and HTTP asset gates for the new controller without changing `filter-worker.js` or its protocol.
+
 ## 2.8.24 — 2026-09-18
 
 ### Filter Worker application boundary
