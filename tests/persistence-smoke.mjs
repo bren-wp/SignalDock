@@ -33,6 +33,7 @@ assert(!persistenceSource.includes("const oldCount = Number(previousManifest?.ch
 assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(manifest.chunkCount) : (legacy ? 1 : 0)"), "recovery info must normalize manifest chunk count");
 assert(persistenceSource.includes("chunkCount: manifest ? validChunkCount(metadata.chunkCount) : 1"), "restored recovery metadata must normalize manifest chunk count");
 assert(persistenceSource.includes("for (let index = 0; index < MAX_CHUNKS; index += 1)"), "recovery clear must sweep the full bounded chunk key space");
+assert(persistenceSource.includes("const activeManifest = manifestChunkCount ? manifest : null;"), "recovery info must reject invalid chunk manifests before advertising restore");
 assert(!persistenceSource.includes("for (let index = 0; index < chunkCount; index += 1) store.delete"), "recovery clear must not trust manifest chunk count for cleanup");
 console.log("PASS bounded stale recovery cleanup");
 console.log("PASS recovery size estimation");
