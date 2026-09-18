@@ -66,6 +66,7 @@ assert.equal(exported.includes("p:file:w1"), false, "portable export must strip 
 
 const imported = api.importJson(exported);
 assert.equal(imported.activeId, created.project.id);
+assert.throws(() => api.importJson(JSON.stringify({ schema: "signaldock.projects", version: "4", projects: [] })), /Unsupported|invalid/, "string project version must be rejected");
 assert.equal(imported.projects[0].recentDatasets[0].handleRef, "");
 assert.equal(imported.projects[0].recentWorkspaces[0].handleRef, "");
 
