@@ -13,7 +13,16 @@
     const spans = (entries || []).filter((entry) => Number.isFinite(entry?.timestampMs) && duration(entry) !== null && entry?.correlations?.span);
     if (!spans.length) return { available: false, bars: [], minStart: null, maxEnd: null, totalMs: 0, maxDepth: 0, omitted: 0, note: "No timed spans with duration metadata." };
 
-    const bySpan = new Map(spans.map((entry) => [String(entry.correlations.span), entry]));
+    const bySpan = new Map();
+    let minStart = Infinity;
+    let maxEnd = -Infinity;
+    for (const entry of spans) {
+      bySpan.set(String(entry.correlations.span), entry);
+      if (entry.timestampMs < minStart) minStart = entry.timestampMs;
+      const end = entry.timestampMs + duration(entry);
+      if (end > maxEnd) maxEnd = end;
+    }
+
     function depthOf(entry) {
       let depth = 0;
       let parent = entry?.traceMeta?.parentSpan;
@@ -26,8 +35,6 @@
       return depth;
     }
 
-    const minStart = Math.min(...spans.map((entry) => entry.timestampMs));
-    const maxEnd = Math.max(...spans.map((entry) => entry.timestampMs + duration(entry)));
     const totalMs = Math.max(0.001, maxEnd - minStart);
     const sorted = spans.slice().sort((a, b) => a.timestampMs - b.timestampMs || duration(b) - duration(a));
     const selected = sorted.slice(0, maxBars);
