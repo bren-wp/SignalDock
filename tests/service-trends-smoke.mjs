@@ -18,6 +18,8 @@ const data=globalThis.SignalDockServiceTrends.compare(entries,null,{splitMs:t+80
 assert(data.rows.length===1,'expected one edge'); const row=data.rows[0];
 assert(row.before.calls===2&&row.after.calls===3,'period call counts mismatch');
 assert(row.after.errors===3&&row.deltaErrors===3,'period error delta mismatch');
+assert(row.before.medianMs===10&&row.before.p95Ms===12,'before percentile values changed');
+assert(row.after.medianMs===50&&row.after.p95Ms===60,'after percentile values changed');
 assert(['rising','degrading'].includes(row.trend),'expected rising/degrading trend');
 assert(data.windows.before.endMs===t+8000,'split window mismatch');
 const largeEntries=Array.from({length:200000},(_,index)=>({timestampMs:t+index}));
@@ -25,4 +27,7 @@ const largeData=globalThis.SignalDockServiceTrends.compare(largeEntries);
 assert(largeData.windows!==null,'large timestamp scan should complete without argument-spread overflow');
 assert(largeData.windows.before.startMs===t,'large timestamp scan minimum mismatch');
 assert(largeData.windows.after.endMs===t+199999,'large timestamp scan maximum mismatch');
+const source=fs.readFileSync(path.join(root,'src/analysis/service-trends.js'),'utf8');
+assert((source.match(/rows\.filter\(/g)||[]).length===0,'service trend summary must not rescan rows with filter()');
+assert(!source.includes('new Map([...edges.entries()].map'),'service trends must not build an intermediate normalized edge array');
 console.log('service-trends-smoke: ok');
