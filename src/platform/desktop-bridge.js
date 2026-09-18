@@ -3,6 +3,7 @@
 
   const VERSION = 1;
   const MAX_PICKED_FILES = 128;
+  const DEFAULT_MAX_BYTES = 512 * 1024 * 1024;
 
   function storage() { return root.SignalDockStorageAdapter || null; }
   function nativeBridge() {
@@ -10,6 +11,7 @@
     return bridge && typeof bridge === "object" ? bridge : null;
   }
   function clean(value, max = 300) { return String(value ?? "").trim().slice(0, max); }
+  function byteLimit(value) { const number = Number(value); return Number.isFinite(number) && number > 0 ? Math.floor(number) : DEFAULT_MAX_BYTES; }
 
   function capabilities() {
     const native = nativeBridge();
@@ -37,7 +39,7 @@
     return {
       multiple: Boolean(options.multiple),
       maxFiles: Math.min(MAX_PICKED_FILES, Math.max(1, Number(options.maxFiles) || (options.multiple ? 64 : 1))),
-      maxBytes: Math.max(1, Number(options.maxBytes) || 512 * 1024 * 1024),
+      maxBytes: byteLimit(options.maxBytes),
       types: Array.isArray(options.types) ? options.types : undefined,
       persistHandle: Boolean(options.persistHandle),
       projectId: clean(options.projectId, 96),
