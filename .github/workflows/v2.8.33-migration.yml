@@ -1,0 +1,125 @@
+name: SignalDock v2.8.33 migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/v2.8.33-migration.yml'
+      - 'scripts/migrate-v2.8.33.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Prepare v2.8.33 migration
+        run: node scripts/migrate-v2.8.33.mjs
+      - name: Verify release surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "2.8.33"
+          grep -q 'APP_VERSION = "2.8.33"' app.js
+          grep -q 'src/app/dataset-view-composition.js' index.html
+          grep -q 'SignalDockDatasetViewComposition.create' app.js
+          grep -q 'src/app/dataset-view-composition.js' .github/workflows/ci.yml
+          grep -q 'SignalDock v2.8.33' website/index.html
+          grep -q '## 2.8.33 — 2026-09-18' CHANGELOG.md
+          grep -q 'Current version: \*\*2.8.33\*\*' docs/TECHNICAL.md
+      - name: Recursive JavaScript syntax check
+        shell: bash
+        run: |
+          set -euo pipefail
+          find . -type f \( -name '*.js' -o -name '*.mjs' \) -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+      - name: Full regression suite
+        shell: bash
+        env:
+          TERM: xterm
+        run: |
+          set -euo pipefail
+          for test in tests/*.mjs; do
+            echo "::group::$test"
+            node "$test"
+            echo "::endgroup::"
+          done
+      - name: Dataset view composition assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          composition='src/app/dataset-view-composition.js'
+          for token in SignalDockStorageAdapter SignalDockPersistence localStorage sessionStorage indexedDB showOpenFilePicker 'new Worker' '.postMessage(' XMLHttpRequest WebSocket EventSource '.invoke('; do
+            if grep -Fq "$token" "$composition"; then
+              echo "Forbidden capability reference in $composition: $token" >&2
+              exit 1
+            fi
+          done
+          if grep -Eq '\bfetch[[:space:]]*\(' "$composition"; then
+            echo "Forbidden fetch() capability in $composition" >&2
+            exit 1
+          fi
+          grep -Fq 'datasetViewComposition.createSavedViews()' app.js
+          grep -Fq 'datasetViewComposition.createDatasetFilter()' app.js
+          grep -Fq 'datasetViewComposition.createTableView()' app.js
+          grep -Fq 'datasetViewComposition.createDatasetOverview()' app.js
+          grep -Fq 'datasetViewComposition.createViewOrchestrator()' app.js
+          ! grep -Fq 'SignalDockSavedViewsController.create({' app.js
+          ! grep -Fq 'SignalDockDatasetFilterController.create({' app.js
+          ! grep -Fq 'SignalDockTableViewController.create({' app.js
+          ! grep -Fq 'SignalDockDatasetOverviewController.create({' app.js
+          ! grep -Fq 'SignalDockViewOrchestratorController.create({' app.js
+          git diff --exit-code -- filter-worker.js
+      - name: HTTP smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/signaldock-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error http://127.0.0.1:8080/index.html -o /tmp/signaldock-index.html; then
+              ready=1
+              break
+            fi
+            sleep 0.25
+          done
+          test "$ready" -eq 1
+          curl --fail --silent --show-error http://127.0.0.1:8080/app.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/src/app/dataset-view-composition.js -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/website/index.html -o /tmp/signaldock-website.html
+          grep -q 'SignalDock v2.8.33' /tmp/signaldock-website.html
+          curl --fail --silent --show-error http://127.0.0.1:8080/website/privacy.html -o /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:8080/website/security.html -o /dev/null
+      - name: Diff integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+      - name: Commit verified runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add VERSION app.js index.html README.md CHANGELOG.md docs/TECHNICAL.md docs/SOURCE-LAYOUT.md src/README.md website/index.html tests/source-layout-smoke.mjs tests/dataset-view-composition-smoke.mjs tests/saved-views-controller-smoke.mjs tests/dataset-filter-controller-smoke.mjs tests/table-view-controller-smoke.mjs tests/dataset-overview-controller-smoke.mjs tests/view-orchestrator-controller-smoke.mjs tests/website-production-smoke.mjs
+          if git diff --cached --quiet; then
+            echo 'Migration produced no release changes.' >&2
+            exit 1
+          fi
+          git commit -m 'release: SignalDock v2.8.33'
+          git push origin HEAD:main
