@@ -203,7 +203,7 @@
 
   function importJson(text) {
     const parsed = JSON.parse(String(text || ""));
-    if (parsed?.schema !== SCHEMA || ![LEGACY_VERSION, VERSION].includes(Number(parsed?.version))) throw new Error("Unsupported SignalDock investigation file.");
+    if (parsed?.schema !== SCHEMA || ![LEGACY_VERSION, VERSION].includes(parsed?.version)) throw new Error("Unsupported SignalDock investigation file.");
     return normalize(parsed);
   }
 
@@ -229,7 +229,7 @@
 
   function importBundle(text) {
     const parsed = JSON.parse(String(text || ""));
-    if (parsed?.schema !== BUNDLE_SCHEMA || ![LEGACY_BUNDLE_VERSION, BUNDLE_VERSION].includes(Number(parsed?.version)) || !parsed.investigation) throw new Error("Unsupported SignalDock evidence bundle.");
+    if (parsed?.schema !== BUNDLE_SCHEMA || ![LEGACY_BUNDLE_VERSION, BUNDLE_VERSION].includes(parsed?.version) || !parsed.investigation) throw new Error("Unsupported SignalDock evidence bundle.");
     return { investigation: normalize(parsed.investigation), caseFile: parsed.caseFile && typeof parsed.caseFile === "object" ? parsed.caseFile : null, metadata: { exportedAt: parsed.exportedAt || "", appVersion: parsed.appVersion || "", sourceLabel: parsed.sourceLabel || "", manifest: parsed.manifest || {} } };
   }
 
