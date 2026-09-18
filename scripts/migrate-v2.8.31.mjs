@@ -72,6 +72,27 @@ foundation = replaceOnce(
 );
 write("tests/static-foundation-ui-smoke.mjs", foundation);
 
+let uiFoundations = read("tests/ui-foundations-smoke.mjs");
+uiFoundations = replaceOnce(
+  uiFoundations,
+  'const app = fs.readFileSync(path.join(root, "app.js"), "utf8");\n',
+  'const app = fs.readFileSync(path.join(root, "app.js"), "utf8");\nconst elementRegistry = fs.readFileSync(path.join(root, "src/app/element-registry.js"), "utf8");\n',
+  "UI foundations element registry source"
+);
+uiFoundations = replaceOnce(
+  uiFoundations,
+  'const required = [\n  "baselineHistoryList",\n  "touchWorkspace",\n',
+  'const required = [\n  "touchWorkspace",\n',
+  "UI foundations root token ownership"
+);
+uiFoundations = replaceOnce(
+  uiFoundations,
+  'for (const token of required) {\n  if (!app.includes(token)) throw new Error(\`Missing UI foundation token: \${token}\`);\n}\n',
+  'for (const token of required) {\n  if (!app.includes(token)) throw new Error(\`Missing UI foundation token: \${token}\`);\n}\nif (!elementRegistry.includes("\\\"baselineHistoryList\\\"")) throw new Error("Missing UI foundation element-registry token: baselineHistoryList");\n',
+  "UI foundations registry assertion"
+);
+write("tests/ui-foundations-smoke.mjs", uiFoundations);
+
 write("VERSION", "2.8.31\n");
 write("README.md", read("README.md").replaceAll("2.8.30", "2.8.31"));
 
