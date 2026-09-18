@@ -65,7 +65,9 @@
     const chunkSize = 1000;
     let first = true;
     for (let offset = 0; offset < entries.length; offset += chunkSize) {
-      const rows = entries.slice(offset, offset + chunkSize).map((entry) => JSON.stringify(serializableEntry(entry)));
+      const end = Math.min(entries.length, offset + chunkSize);
+      const rows = [];
+      for (let index = offset; index < end; index += 1) rows.push(JSON.stringify(serializableEntry(entries[index])));
       if (!rows.length) continue;
       parts.push((first ? "" : ",") + rows.join(","));
       first = false;
