@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#07111d">
   <meta name="robots" content="index,follow">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="SignalDock privacy architecture: local-first log and trace analysis with no account, telemetry endpoint or cloud ingestion backend.">
+  <meta name="description" content="SignalDock privacy architecture: local-first log, trace and investigation analysis with no account, telemetry endpoint or cloud ingestion backend.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; img-src 'self' data:; style-src 'self'; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Privacy — SignalDock</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
@@ -21,10 +21,11 @@
       <span><strong>Signal</strong><b>Dock</b></span>
     </a>
     <nav class="site-nav" aria-label="Primary navigation">
-      <a href="index.html#features">Features</a>
+      <a href="index.html#capabilities">Capabilities</a>
+      <a href="index.html#runtime">Runtime</a>
       <a href="security.html">Security</a>
       <a href="index.html#formats">Formats</a>
-      <a href="index.html#workflow">Workflow</a>
+      <a href="index.html#faq">FAQ</a>
     </nav>
     <a class="header-cta" href="../index.html">Open SignalDock</a>
   </header>
@@ -34,39 +35,56 @@
       <div class="section-head section-head--wide">
         <span class="eyebrow">PRIVACY</span>
         <h1 id="privacy-title">Your debugging data stays under your control.</h1>
-        <p>SignalDock is designed as a local-first application. Ordinary log, trace and investigation workflows do not require a SignalDock account or a hosted ingestion service.</p>
+        <p>SignalDock is a local-first browser application. Ordinary log, trace, project, case and investigation workflows do not require a SignalDock account, hosted ingestion service or telemetry endpoint.</p>
       </div>
       <div class="security-grid">
         <article><span>01</span><h2>No telemetry endpoint</h2><p>The production runtime does not include a SignalDock analytics beacon, account API or background upload path for imported log contents.</p></article>
-        <article><span>02</span><h2>Explicit local input</h2><p>Files enter the application through user-initiated actions such as file selection, drag-and-drop or supported local file capabilities.</p></article>
-        <article><span>03</span><h2>Local browser storage</h2><p>Features such as recovery state, query libraries and local project metadata may use browser-local storage mechanisms. They are not remote synchronization services.</p></article>
-        <article><span>04</span><h2>Explicit exports</h2><p>SignalDock creates portable workspaces, cases, baselines and reports only when you choose an export or save action.</p></article>
+        <article><span>02</span><h2>Explicit local input</h2><p>Files enter through user-initiated selection, drag-and-drop or supported File System Access actions. The application does not continuously scan arbitrary local files.</p></article>
+        <article><span>03</span><h2>Local browser state</h2><p>Settings, Saved Views, Query Library data and project metadata can use local browser storage. Recovery snapshots and compatible search-cache data can use IndexedDB.</p></article>
+        <article><span>04</span><h2>Explicit exports</h2><p>Portable workspaces, cases, baselines, bundles and reports are created only when you choose a save or export action.</p></article>
+      </div>
+    </section>
+
+    <section class="section-shell" aria-labelledby="storage-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">LOCAL STORAGE BOUNDARIES</span>
+        <h2 id="storage-title">What may remain on the device.</h2>
+        <p>Local-first does not mean nothing is ever persisted. SignalDock keeps certain state locally so work can be restored or reused without a remote service.</p>
+      </div>
+      <div class="runtime-grid">
+        <article><span class="status status--on">LOCAL</span><h3>Preferences &amp; reusable views</h3><p>Settings, Saved Views and Query Library records can remain in browser-local storage until you clear or replace them.</p></article>
+        <article><span class="status status--on">LOCAL</span><h3>Recovery snapshots</h3><p>Eligible workspaces can write bounded crash/restart recovery state into IndexedDB, including normalized log-derived content needed to restore that local session.</p></article>
+        <article><span class="status status--on">LOCAL</span><h3>Search cache</h3><p>A compatible dataset can have a bucketed IndexedDB candidate-index cache. It is validated against the dataset fingerprint and falls back safely when incompatible.</p></article>
+        <article><span class="status status--conditional">PERMISSIONED</span><h3>File handles</h3><p>Supported browsers can retain local File System Access handles for project reopen workflows. Handle capability keys are stripped from portable project exports.</p></article>
+        <article><span class="status status--on">METADATA</span><h3>Project records</h3><p>Projects store local organizational metadata such as names, descriptions and recent artifact references rather than copying imported log files into the project record.</p></article>
+        <article><span class="status status--on">METADATA</span><h3>Case attachments</h3><p>Case Workspace attachment entries are metadata-only references. Referenced file bytes are not embedded into the case record.</p></article>
       </div>
     </section>
 
     <section class="section-shell" aria-labelledby="privacy-boundaries-title">
       <div class="section-head section-head--wide">
-        <span class="eyebrow">DATA BOUNDARIES</span>
-        <h2 id="privacy-boundaries-title">What different artifacts contain.</h2>
-        <p>Portable artifacts are intentionally separated from live browser capabilities so an exported file does not carry access to arbitrary files on your machine.</p>
+        <span class="eyebrow">PORTABLE DATA BOUNDARIES</span>
+        <h2 id="privacy-boundaries-title">Different artifacts contain different levels of detail.</h2>
+        <p>SignalDock separates portable analysis state from live browser capabilities so an exported file does not silently carry arbitrary access to files on your machine.</p>
       </div>
-      <div class="format-groups">
-        <article><h3>Portable workspaces and cases</h3><p>These files contain analysis state needed to continue an investigation. They do not contain live File System Access handles. Case attachment records are metadata-only references.</p></article>
-        <article><h3>Baselines and project metadata</h3><p>Baselines are aggregate summaries rather than raw-log archives. Project records organize local investigation metadata and references without becoming a background upload channel.</p></article>
+      <div class="format-groups format-groups--three">
+        <article><h3>Workspace / <code>.sdsession</code></h3><p>Contains portable analysis state used to continue a local session. It does not embed a live File System Access permission.</p></article>
+        <article><h3>Case / bundle exports</h3><p>Case fields, evidence references and explicitly exported investigation data can be included. Attachment references remain metadata-only.</p></article>
+        <article><h3>Baseline / <code>.sdbaseline</code></h3><p>Contains aggregate service, dependency and trace-set metrics. Raw log records are intentionally not embedded.</p></article>
       </div>
-      <p class="format-note"><strong>Network boundary:</strong> the shipped application CSP keeps <code>connect-src 'none'</code>, and the static website itself is script-free.</p>
+      <p class="format-note"><strong>Network boundary:</strong> the shipped application CSP keeps <code>connect-src 'none'</code>. The bundled website is script-free, loads no external runtime resources and uses the same no-connection policy.</p>
     </section>
 
     <section class="cta">
-      <div><span class="eyebrow">LOCAL-FIRST BY DEFAULT</span><h2>Inspect locally. Export deliberately.</h2><p>SignalDock is built to minimize hidden data movement during debugging.</p></div>
+      <div><span class="eyebrow">LOCAL-FIRST BY DEFAULT</span><h2>Inspect locally. Persist knowingly. Export deliberately.</h2><p>SignalDock minimizes hidden data movement while still making recovery, reuse and portable handoff explicit.</p></div>
       <a class="button button--primary" href="../index.html">Launch SignalDock</a>
     </section>
   </main>
 
   <footer>
     <a class="logo" href="index.html#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
-    <span><a href="privacy.html">Privacy</a> · <a href="security.html">Security</a></span>
-    <span>Local-first · zero telemetry</span>
+    <span><a href="index.html">Product</a> · <a href="privacy.html">Privacy</a> · <a href="security.html">Security</a></span>
+    <span>v2.8.33 · local-first · zero telemetry</span>
   </footer>
 </body>
 </html>
