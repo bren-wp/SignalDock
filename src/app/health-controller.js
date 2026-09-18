@@ -36,11 +36,8 @@
       if (!root.SignalDockServiceHealth || !el.healthTableBody) return null;
       state.healthScopeFiltered = Boolean(useFiltered);
       const scope = selectScope(state.entries, state.filteredIndexes, state.healthScopeFiltered);
-      const subset = scope.filtered
-        ? scope.indexes.map((index) => state.entries[index]).filter(Boolean)
-        : state.entries;
       const health = scope.filtered
-        ? root.SignalDockServiceHealth.analyze(subset)
+        ? root.SignalDockServiceHealth.analyze(state.entries, { indexes: scope.indexes })
         : (state.healthData || root.SignalDockServiceHealth.analyze(state.entries));
       const document = el.healthTableBody.ownerDocument;
 
