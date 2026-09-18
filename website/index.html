@@ -8,13 +8,13 @@
   <meta name="application-name" content="SignalDock">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta name="description" content="SignalDock is a private, local-first observability workspace for logs, traces, service dependencies and incident evidence. No backend, account or telemetry.">
+  <meta name="description" content="SignalDock is a private, local-first observability and investigation workspace for logs, traces, service dependencies, exceptions, baselines and incident evidence. No backend, account or telemetry.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="SignalDock — Private observability on your machine">
-  <meta property="og:description" content="Inspect logs, traces, service relationships and incident evidence locally without sending your data to a cloud backend.">
+  <meta property="og:description" content="Search logs, inspect traces, analyze explicit service dependencies and preserve incident evidence locally without sending source data to a SignalDock backend.">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="SignalDock — Private observability on your machine">
-  <meta name="twitter:description" content="Local-first log, trace and incident analysis with no account, backend or telemetry.">
+  <meta name="twitter:description" content="Local-first logs, traces, service analysis and incident evidence with no account, backend or telemetry.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; img-src 'self' data:; style-src 'self'; script-src 'none'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>SignalDock — Private observability on your machine</title>
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
@@ -29,7 +29,8 @@
       <span><strong>Signal</strong><b>Dock</b></span>
     </a>
     <nav class="site-nav" aria-label="Primary navigation">
-      <a href="#features">Features</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#runtime">Runtime</a>
       <a href="#security">Privacy &amp; security</a>
       <a href="#formats">Formats</a>
       <a href="#workflow">Workflow</a>
@@ -41,108 +42,104 @@
   <main id="main-content">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero__copy">
-        <div class="release-badge" aria-label="Current release SignalDock version 2.8.33">
+        <div class="release-badge" aria-label="Current stable release SignalDock version 2.8.33">
           <strong>v2.8.33</strong>
-          <span>Local-first · zero telemetry · zero backend</span>
+          <span>Current stable runtime · local-first · zero telemetry</span>
         </div>
         <span class="eyebrow">PRIVATE OBSERVABILITY FOR REAL DEBUGGING</span>
-        <h1 id="hero-title">Trace the failure.<br><em>Keep the data local.</em></h1>
-        <p>SignalDock turns local logs and traces into a focused investigation workspace — search, service topology, trace analysis, exceptions, health signals and case evidence without an ingestion server or cloud account.</p>
+        <h1 id="hero-title">Follow the evidence.<br><em>Keep the data local.</em></h1>
+        <p>SignalDock is a zero-build local observability and investigation workspace. Open logs and OTLP-style trace data, search locally, inspect explicit service relationships, compare traces and datasets, group recurring failures, and preserve incident evidence without a SignalDock ingestion backend.</p>
         <div class="hero__actions">
           <a class="button button--primary" href="../index.html">Open local app</a>
-          <a class="button" href="#features">Explore capabilities</a>
+          <a class="button" href="#capabilities">See what ships</a>
         </div>
-        <ul class="trust-row" aria-label="Privacy guarantees">
-          <li>No cloud required</li>
+        <ul class="trust-row" aria-label="SignalDock runtime guarantees">
           <li>No account required</li>
           <li>No telemetry</li>
-          <li>Explicit local file access</li>
+          <li>No cloud ingestion service</li>
+          <li>No runtime CDN</li>
+          <li>Explicit local file actions</li>
         </ul>
       </div>
 
-      <div class="hero__visual" aria-label="SignalDock application preview">
-        <div class="mock-window">
-          <div class="mock-top"><i></i><i></i><i></i><span>SignalDock</span><b>LOCAL</b></div>
-          <div class="mock-body">
-            <aside class="mock-sidebar" aria-hidden="true">
-              <strong>SignalDock</strong>
-              <span class="active">▣ Logs</span>
-              <span>⌕ Search</span>
-              <span>◇ Investigation</span>
-              <span>≋ Trace explorer</span>
-              <span>▦ Service matrix</span>
-              <span>♥ Observed health</span>
-              <span>⚠ Exceptions</span>
-              <span>⌁ Live tail</span>
-              <small>● dev-api</small>
-            </aside>
-            <div class="mock-main" aria-hidden="true">
-              <div class="mock-search">⌕ service:auth level:ERROR <kbd>⌘ K</kbd></div>
-              <div class="mock-filters"><span>auth</span><span>ERROR</span><span>Last hour</span><b>LOCAL</b></div>
-              <div class="mock-table">
-                <div class="mock-row"><time>10:24:31</time><em class="info">INFO</em><span>api</span><p>Request completed 200 OK</p></div>
-                <div class="mock-row is-selected"><time>10:24:30</time><em class="error">ERROR</em><span>auth</span><p>Failed to verify token: invalid signature</p></div>
-                <div class="mock-row"><time>10:24:30</time><em class="warn">WARN</em><span>worker</span><p>Retrying job in 5s</p></div>
-                <div class="mock-row"><time>10:24:29</time><em class="debug">DEBUG</em><span>cache</span><p>Cache miss for key user:123</p></div>
-                <div class="mock-row"><time>10:24:28</time><em class="info">INFO</em><span>api</span><p>POST /v1/events 201 98ms</p></div>
-              </div>
-            </div>
-            <aside class="mock-inspector" aria-hidden="true">
-              <em class="error">ERROR</em>
-              <h3>Invalid signature</h3>
-              <dl><dt>service</dt><dd>auth</dd><dt>trace</dt><dd>9f3a2c7e</dd><dt>environment</dt><dd>staging</dd></dl>
-              <pre>{
-  "method": "POST",
-  "path": "/v1/auth",
-  "status": 401
-}</pre>
-            </aside>
-          </div>
+      <figure class="product-shot">
+        <div class="product-shot__frame">
+          <img src="../docs/images/app-screenshot.png" alt="SignalDock v2.8.33 application showing local log analysis, navigation, table results and inspector" width="1600" height="900">
         </div>
-        <span class="visual-note">YOUR LOGS.<br>YOUR MACHINE.<br>YOUR CONTROL.</span>
-      </div>
+        <figcaption>
+          <span>ACTUAL APPLICATION UI</span>
+          <strong>SignalDock v2.8.33 with the bundled demo dataset</strong>
+        </figcaption>
+      </figure>
     </section>
 
     <section class="proof" aria-label="SignalDock principles">
-      <article><span aria-hidden="true">▱</span><div><strong>Private by design</strong><p>Imported content is processed locally and is not sent to a SignalDock backend.</p></div></article>
-      <article><span aria-hidden="true">ϟ</span><div><strong>Fast investigation loop</strong><p>Filter, correlate and inspect without waiting for a remote ingestion pipeline.</p></div></article>
-      <article><span aria-hidden="true">⌁</span><div><strong>Open local formats</strong><p>Logs, portable workspaces, baselines, case files and explicit exports.</p></div></article>
-      <article><span aria-hidden="true">⌘</span><div><strong>Built for operators</strong><p>Dense data views, keyboard workflows, transparent analysis and explicit limits.</p></div></article>
+      <article><span aria-hidden="true">▱</span><div><strong>Local-first architecture</strong><p>Imported log contents stay in the local application environment unless you explicitly export an artifact.</p></div></article>
+      <article><span aria-hidden="true">ϟ</span><div><strong>Bounded large-data paths</strong><p>Worker indexes, result windows, topology views and selected analytics use explicit caps or streaming scans.</p></div></article>
+      <article><span aria-hidden="true">⌁</span><div><strong>Evidence over inference</strong><p>Missing telemetry stays missing. Parent-span topology, health labels and regressions are derived only from observed data.</p></div></article>
+      <article><span aria-hidden="true">⌘</span><div><strong>Portable investigation</strong><p>Save workspaces, cases, baselines and reports deliberately without creating a hosted SignalDock account.</p></div></article>
+    </section>
+
+    <section class="features section-shell" id="capabilities" aria-labelledby="capabilities-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">WHAT THE CURRENT SCRIPT ACTUALLY SHIPS</span>
+        <h2 id="capabilities-title">One local workspace for logs, traces and incident evidence.</h2>
+        <p>The website mirrors the capabilities present in the repository runtime. No AI agent, hosted collector, native installer or remote synchronization feature is implied where the application does not ship one.</p>
+      </div>
+      <div class="feature-grid">
+        <article><span aria-hidden="true">⌕</span><h3>Local search &amp; filtering</h3><p>Smart queries, source/level/time filters, correlation operators, guarded regular expressions, worker filtering and a bounded local 3-gram candidate index.</p></article>
+        <article><span aria-hidden="true">▣</span><h3>Large result navigation</h3><p>Index-first filtered results, paged or windowed table rendering, virtual spacers and bounded Trace Explorer windows reduce DOM and ranking overhead.</p></article>
+        <article><span aria-hidden="true">≋</span><h3>Trace Explorer &amp; compare</h3><p>Inventory explicit trace IDs, inspect parent-link coverage, compare two traces, open representative samples and navigate into Trace Inspector views.</p></article>
+        <article><span aria-hidden="true">△</span><h3>Critical chain &amp; flame view</h3><p>Analyze explicit parent-span branches, observed trace latency, bottlenecks and duration-backed flame spans without inventing missing timing data.</p></article>
+        <article><span aria-hidden="true">▦</span><h3>Service dependency analysis</h3><p>Service Map, Matrix, Dependency Heatmap and Dependency Trends use explicit parent-span relationships and retain empty filtered scopes as empty.</p></article>
+        <article><span aria-hidden="true">♥</span><h3>Observed Health</h3><p>Summarize service error/warning rates, recurring exception groups, exact duration samples and recent-vs-previous error deltas from loaded evidence.</p></article>
+        <article><span aria-hidden="true">⚠</span><h3>Exception groups &amp; trends</h3><p>Deterministic normalized fingerprints group recurring failures and compare timestamped windows as spiking, rising, stable or falling.</p></article>
+        <article><span aria-hidden="true">◇</span><h3>Case &amp; Investigation workspace</h3><p>Pin evidence, record hypothesis, impact, findings, milestones, activity and unified case timeline events with bounded local checkpoints.</p></article>
+        <article><span aria-hidden="true">⇄</span><h3>Baselines &amp; regressions</h3><p>Capture aggregate-only <code>.sdbaseline</code> snapshots and compare service, dependency and trace-set changes without embedding raw logs.</p></article>
+        <article><span aria-hidden="true">⌘</span><h3>Query Library &amp; Saved Views</h3><p>Keep reusable smart queries, folders, favorites and lightweight saved filter views with explicit local persistence and import/export.</p></article>
+        <article><span aria-hidden="true">↗</span><h3>Projects &amp; reopen workflows</h3><p>Organize local project metadata, linked file handles where supported, recent workspaces/datasets/baselines/cases, relink and permission recovery.</p></article>
+        <article><span aria-hidden="true">↺</span><h3>Recovery &amp; diagnostics</h3><p>IndexedDB recovery snapshots, bucketed search-cache restore, parser/filter/table/topology performance diagnostics and user-clearable local state.</p></article>
+        <article><span aria-hidden="true">⌁</span><h3>Live Tail</h3><p>Follow a changing local file in browsers that support File System Access, with explicit user permission and no SignalDock upload service.</p></article>
+        <article><span aria-hidden="true">⚙</span><h3>Parser profiles</h3><p>Built-in Auto, NLog/text, JSON/NDJSON, Apache/Nginx, syslog, logfmt and custom named-group regex profiles plus a bundled CEF parser plugin.</p></article>
+        <article><span aria-hidden="true">◫</span><h3>Portable workspaces</h3><p>Save and restore <code>.sdsession</code> state through explicit local actions; native filesystem capabilities are not embedded into portable exports.</p></article>
+      </div>
+    </section>
+
+    <section class="runtime section-shell" id="runtime" aria-labelledby="runtime-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">RUNTIME TRUTH, NOT ROADMAP COPY</span>
+        <h2 id="runtime-title">What is active today, what is local, and what is not shipped yet.</h2>
+        <p>The current repository keeps the stable product version at 2.8.33 while <code>main</code> contains additional unreleased large-dataset hardening. The browser application remains the shipped runtime.</p>
+      </div>
+      <div class="runtime-grid" role="list">
+        <article role="listitem"><span class="status status--on">SHIPPED</span><h3>Browser application</h3><p>Zero-build static application. Serve it locally over HTTP for the complete worker path, or open directly with main-thread fallback.</p></article>
+        <article role="listitem"><span class="status status--on">SHIPPED</span><h3>Background worker filtering</h3><p>Protocol-v1 dedicated worker routing with session token, bounded envelopes and semantic fallback to the canonical query engine.</p></article>
+        <article role="listitem"><span class="status status--on">SHIPPED</span><h3>Local persistence</h3><p>Saved views, query library, projects, recovery and compatible search-cache data use browser-local storage or IndexedDB.</p></article>
+        <article role="listitem"><span class="status status--conditional">CAPABILITY</span><h3>File System Access</h3><p>Workspace saves, project reopen and Live Tail can use supported browser file capabilities after explicit user interaction.</p></article>
+        <article role="listitem"><span class="status status--off">NOT SHIPPED</span><h3>Native installers</h3><p>The repository defines a narrow desktop-bridge contract, but Windows, macOS and Linux installers are not part of v2.8.33.</p></article>
+        <article role="listitem"><span class="status status--off">NOT PRESENT</span><h3>Hosted backend / account sync</h3><p>There is no SignalDock ingestion backend, account service, telemetry endpoint or remote project synchronization runtime.</p></article>
+      </div>
+      <div class="hardening-note">
+        <span class="eyebrow">CURRENT MAIN HARDENING</span>
+        <p>Recent unreleased work reduces large-dataset memory and ranking cost across Trace Analysis, Trace Flame, Dataset Overview, Observed Health, Dependency Heatmap, Trace Explorer, Trace Outliers and Service Map while preserving deterministic output.</p>
+      </div>
     </section>
 
     <section class="security section-shell" id="security" aria-labelledby="security-title">
       <div class="section-head section-head--wide">
         <span class="eyebrow">PRIVACY IS AN ARCHITECTURE, NOT A SLOGAN</span>
         <h2 id="security-title">Local-first from input to export.</h2>
-        <p>SignalDock keeps privileged browser capabilities at narrow boundaries and keeps analysis modules focused on the data you explicitly load.</p>
+        <p>SignalDock keeps privileged browser capabilities at narrow platform boundaries and keeps analysis modules focused on the data you explicitly load.</p>
       </div>
       <div class="security-grid">
-        <article><span>01</span><h3>No remote data path</h3><p>The app CSP keeps <code>connect-src 'none'</code>. There is no telemetry endpoint, account service or analytics beacon in the runtime.</p></article>
-        <article><span>02</span><h3>Explicit file capabilities</h3><p>Local files are opened through user actions. File System Access capabilities stay in platform boundaries rather than leaking into analysis controllers.</p></article>
-        <article><span>03</span><h3>Portable means portable</h3><p>Workspace and case exports carry analysis state, not live file-handle capabilities. Case attachments are metadata-only references.</p></article>
-        <article><span>04</span><h3>Bounded processing</h3><p>Worker messages are authenticated with a per-session token, imports have explicit safety limits, and large export paths avoid one giant in-memory payload.</p></article>
+        <article><span>01</span><h3>No application network path</h3><p>The shipped app CSP keeps <code>connect-src 'none'</code>. Production audits reject fetch, XMLHttpRequest, WebSocket and EventSource primitives in runtime JavaScript.</p></article>
+        <article><span>02</span><h3>Authenticated worker protocol</h3><p>Dedicated worker messages use a versioned protocol, unpredictable per-session token, allowlisted message types and bounded request behavior.</p></article>
+        <article><span>03</span><h3>Explicit file capabilities</h3><p>Local files are opened through user actions. File System Access and save/reopen capabilities remain behind platform and root-injected boundaries.</p></article>
+        <article><span>04</span><h3>Portable means portable</h3><p>Project exports strip live file-handle capability keys, case attachments are metadata-only and baselines contain aggregate metrics rather than raw logs.</p></article>
       </div>
-    </section>
-
-    <section class="features section-shell" id="features" aria-labelledby="features-title">
-      <div class="section-head">
-        <span class="eyebrow">ONE LOCAL WORKSPACE, MULTIPLE SIGNALS</span>
-        <h2 id="features-title">From raw lines to an investigation.</h2>
-        <p>SignalDock combines transparent local analysis with an incident workflow you can save, reopen and export.</p>
-      </div>
-      <div class="feature-grid">
-        <article><span aria-hidden="true">⌕</span><h3>Indexed local search</h3><p>Smart queries, source/level/time filters and a bounded worker candidate index keep large local datasets responsive.</p></article>
-        <article><span aria-hidden="true">≋</span><h3>Trace Explorer</h3><p>Inventory traces, inspect parent coverage, waterfall/flame timing, critical chain, span events and resource/scope context.</p></article>
-        <article><span aria-hidden="true">△</span><h3>Trace outliers</h3><p>Rank unusual traces using measured latency, explicit errors and service breadth with visible reasons rather than opaque anomaly labels.</p></article>
-        <article><span aria-hidden="true">▦</span><h3>Dependency analysis</h3><p>Explore service maps, latency matrices, time heatmaps and adjacent-window dependency trends from explicit span relationships.</p></article>
-        <article><span aria-hidden="true">♥</span><h3>Observed health</h3><p>Compare local error/warning rates, recurring exceptions and available trace-duration samples without pretending logs are a full uptime monitor.</p></article>
-        <article><span aria-hidden="true">⚠</span><h3>Exception trends</h3><p>Group recurring failure signatures and distinguish spiking, rising, stable and falling patterns in the loaded timestamps.</p></article>
-        <article><span aria-hidden="true">◇</span><h3>Case + evidence workspace</h3><p>Track hypothesis, impact, findings, milestones, evidence links and a unified local case timeline. Attachments remain metadata-only.</p></article>
-        <article><span aria-hidden="true">↺</span><h3>Case checkpoints</h3><p>Create bounded local waypoints that preserve case state and evidence IDs without duplicating source log contents.</p></article>
-        <article><span aria-hidden="true">⇄</span><h3>Cross-dataset baselines</h3><p>Capture aggregate-only snapshots and compare a later dataset without embedding raw logs in the baseline.</p></article>
-        <article><span aria-hidden="true">⌘</span><h3>Reusable query library</h3><p>Save named smart queries with folders, favorites and explicit local JSON import/export.</p></article>
-        <article><span aria-hidden="true">⌁</span><h3>Live tail</h3><p>Follow a local file as it grows in supported browsers while keeping processing on the device.</p></article>
-        <article><span aria-hidden="true">▣</span><h3>Portable workspaces</h3><p>Save <code>.sdsession</code> analysis state and bounded crash-recovery snapshots without a remote session service.</p></article>
+      <div class="security-actions">
+        <a class="button" href="privacy.html">Read privacy architecture</a>
+        <a class="button" href="security.html">Read security architecture</a>
       </div>
     </section>
 
@@ -150,37 +147,43 @@
       <div class="section-head section-head--wide">
         <span class="eyebrow">OPEN INPUTS, EXPLICIT OUTPUTS</span>
         <h2 id="formats-title">Bring files you already have.</h2>
-        <p>No agent install is required for ordinary local inspection. Import supported files directly, then save only the analysis artifacts you choose.</p>
+        <p>No agent install is required for ordinary local inspection. SignalDock detects supported structured/text families and creates portable artifacts only through explicit save or export actions.</p>
       </div>
-      <div class="format-groups">
+      <div class="format-groups format-groups--three">
         <article>
-          <h3>Logs &amp; archives</h3>
+          <h3>Log &amp; trace inputs</h3>
           <div class="format-list"><code>.json</code><code>.jsonl</code><code>.ndjson</code><code>.log</code><code>.txt</code><code>.zip</code></div>
-          <p>Structured and text logs, including supported local ZIP archives.</p>
+          <p>JSON/ECS-style records, OTLP JSON exports, Docker logs, Apache/Nginx access logs, syslog, logfmt, multiline traces and CEF security events.</p>
         </article>
         <article>
-          <h3>Analysis artifacts</h3>
-          <div class="format-list"><code>.sdsession</code><code>.sdcase</code><code>.sdbaseline</code><code>.sdbundle</code><code>.sdprojects</code></div>
-          <p>Portable workspaces, case files, aggregate baselines, evidence bundles and local project metadata.</p>
+          <h3>Workspace &amp; investigation</h3>
+          <div class="format-list"><code>.sdsession</code><code>.sdcase</code><code>.sdbundle</code><code>.sdprojects</code></div>
+          <p>Portable analysis sessions, case records, evidence bundles and local project metadata. Case attachment bytes are not embedded.</p>
+        </article>
+        <article>
+          <h3>Baseline &amp; export</h3>
+          <div class="format-list"><code>.sdbaseline</code><code>.sdbaselines</code><code>.json</code><code>.ndjson</code><code>.md</code></div>
+          <p>Aggregate baselines/history plus explicit result and report exports. Large filtered result exports can use chunked NDJSON.</p>
         </article>
       </div>
-      <p class="format-note"><strong>Safety:</strong> Case imports are bounded to 32 MB before file contents are read. Large filtered exports automatically use chunked NDJSON to reduce memory pressure.</p>
+      <p class="format-note"><strong>Safety:</strong> local ZIP handling, case imports, worker envelopes, recovery data and high-volume analysis paths use explicit bounds or fallback behavior. Exact limits depend on the feature and are enforced in the runtime modules.</p>
     </section>
 
     <section class="workflow" id="workflow" aria-labelledby="workflow-title">
       <div>
         <span class="eyebrow">ZERO INGESTION PIPELINE</span>
-        <h2 id="workflow-title">Open. Narrow. Explain. Preserve.</h2>
-        <p>Move from local evidence to a portable investigation without changing tools or shipping the source data to a hosted observability backend.</p>
+        <h2 id="workflow-title">Open. Narrow. Explain. Preserve. Reopen.</h2>
+        <p>Move from local evidence to a portable investigation without changing tools or shipping source data to a hosted observability backend.</p>
       </div>
       <ol>
-        <li><b>01</b><span><strong>Import locally</strong><small>Choose files or drag them into the app. Access starts with an explicit user action.</small></span></li>
-        <li><b>02</b><span><strong>Narrow the signal</strong><small>Filter by source, severity, service, environment, namespace, correlation IDs, time and smart-query terms.</small></span></li>
-        <li><b>03</b><span><strong>Connect the context</strong><small>Inspect traces, dependency edges, exceptions, health summaries and raw payloads without fabricating missing telemetry.</small></span></li>
-        <li><b>04</b><span><strong>Preserve the case</strong><small>Pin evidence, record findings and milestones, save a workspace, or export a bounded case/report explicitly.</small></span></li>
+        <li><b>01</b><span><strong>Import locally</strong><small>Select files, drag them into the app or use supported local file capabilities. Parsing stays on the device.</small></span></li>
+        <li><b>02</b><span><strong>Narrow the signal</strong><small>Use smart queries, severity/source/service/environment/namespace filters, time bounds and explicit correlation IDs.</small></span></li>
+        <li><b>03</b><span><strong>Connect the context</strong><small>Inspect traces, dependency edges, exceptions, health summaries, span events and raw payloads without fabricating missing telemetry.</small></span></li>
+        <li><b>04</b><span><strong>Preserve the case</strong><small>Pin evidence, add findings and milestones, create checkpoints, save a workspace or export a bounded case/report.</small></span></li>
+        <li><b>05</b><span><strong>Compare change</strong><small>Capture aggregate baselines, compare trace/service/dependency behavior and keep deterministic labels separate from causal claims.</small></span></li>
+        <li><b>06</b><span><strong>Reopen deliberately</strong><small>Use local projects, recent history and supported file handles to relink/reopen work after explicit permission.</small></span></li>
       </ol>
     </section>
-
 
     <section class="faq section-shell" id="faq" aria-labelledby="faq-title">
       <div class="section-head section-head--wide">
@@ -195,42 +198,59 @@
         </details>
         <details>
           <summary>Do I need an account or API key?</summary>
-          <p>No. Local log, trace, case and workspace workflows do not require a SignalDock account or API credential.</p>
+          <p>No. Local log, trace, case, project and workspace workflows do not require a SignalDock account or API credential.</p>
+        </details>
+        <details>
+          <summary>What is stored in my browser?</summary>
+          <p>Depending on the features you use, local settings, Saved Views, Query Library data, project metadata, recovery snapshots and compatible search-cache data can be stored locally in browser storage or IndexedDB.</p>
         </details>
         <details>
           <summary>What happens when I save a workspace?</summary>
-          <p>A portable <code>.sdsession</code> file is created through an explicit save action. Portable exports do not carry live browser file-handle capabilities.</p>
+          <p>A portable <code>.sdsession</code> is created through an explicit save action. Portable exports do not carry live browser file-handle capabilities.</p>
         </details>
         <details>
-          <summary>Can SignalDock follow a changing local file?</summary>
-          <p>Live Tail is available in supported browsers through an explicit local file capability. The file remains local to the browser session.</p>
+          <summary>Can SignalDock follow or reopen local files?</summary>
+          <p>Supported browsers can use File System Access for Live Tail, workspace saves and project link/reopen flows after explicit user permission. Other environments retain browser-download/main-thread fallbacks where implemented.</p>
+        </details>
+        <details>
+          <summary>Does Observed Health mean service uptime?</summary>
+          <p>No. Observed Health summarizes only the logs and timing samples currently loaded. It is not a synthetic monitor, uptime service or causal root-cause engine.</p>
+        </details>
+        <details>
+          <summary>How are dependency maps created?</summary>
+          <p>Service Map, Matrix, Heatmap and Trends use explicit parent-span relationships present in the data. Missing topology is not silently inferred.</p>
         </details>
         <details>
           <summary>How are case attachments handled?</summary>
-          <p>Case attachments are metadata-only references. SignalDock does not embed arbitrary attachment file contents into the Case Workspace record.</p>
+          <p>Case attachments are metadata-only references. SignalDock does not embed arbitrary referenced file contents into the Case Workspace record.</p>
+        </details>
+        <details>
+          <summary>Are native desktop installers available?</summary>
+          <p>No. The current release is the local browser application. The repository contains a narrow future desktop capability facade, but native installers are not shipped in v2.8.33.</p>
         </details>
         <details>
           <summary>Is the website itself tracking visitors?</summary>
-          <p>The bundled static website is script-free, uses no analytics runtime and carries the same no-connection CSP boundary.</p>
+          <p>The bundled static website is script-free, uses no analytics runtime, loads no external runtime resources and carries <code>connect-src 'none'</code>.</p>
         </details>
       </div>
     </section>
 
     <section class="release-strip" aria-labelledby="release-title">
       <div>
-        <span class="eyebrow">CURRENT RELEASE</span>
+        <span class="eyebrow">CURRENT STABLE VERSION</span>
         <h2 id="release-title">SignalDock v2.8.33</h2>
+        <p>Dataset View composition is shipped. Current <code>main</code> additionally contains unreleased large-dataset hardening.</p>
       </div>
       <ul>
-        <li>Dataset View controllers now share one explicit lazy composition factory</li>
-        <li>Saved Views, Filter, Table, Overview and View Orchestrator keep their existing bind order</li>
-        <li>Worker, Inspector and trace dependencies remain late-bound through narrow getters</li>
-        <li>Platform-heavy Live Tail and Workspace flows stay outside the pure view composition boundary</li>
+        <li>Saved Views, Dataset Filter, Table View, Dataset Overview and View Orchestrator share an explicit composition boundary</li>
+        <li>Trace and service analysis remain deterministic, explicit-parent based and bounded where high-volume rendering requires it</li>
+        <li>Recovery, search cache, Query Library, projects and workspaces remain local-only capabilities</li>
+        <li>Analysis View composition exists as staged source coverage but is not advertised as migrated runtime ownership</li>
       </ul>
     </section>
 
     <section class="cta">
-      <div><span class="eyebrow">OBSERVE LOCALLY. BUILD FREELY.</span><h2>Take control of the debugging loop.</h2><p>No signup. No upload. No telemetry dependency.</p></div>
+      <div><span class="eyebrow">OBSERVE LOCALLY. BUILD FREELY.</span><h2>Take control of the debugging loop.</h2><p>No signup. No source-data upload. No telemetry dependency.</p></div>
       <a class="button button--primary" href="../index.html">Launch SignalDock</a>
     </section>
   </main>
@@ -238,7 +258,7 @@
   <footer>
     <a class="logo" href="#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
     <span><a href="privacy.html">Privacy</a> · <a href="security.html">Security</a> · <a href="#faq">FAQ</a></span>
-    <span>v2.8.33 · local-first · zero telemetry</span>
+    <span>v2.8.33 · browser runtime · local-first · zero telemetry</span>
   </footer>
 </body>
 </html>
