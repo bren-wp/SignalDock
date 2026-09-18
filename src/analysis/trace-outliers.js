@@ -7,9 +7,11 @@
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
   }
 
-  function aggregate(entries) {
+  function aggregate(entries, indexes = null) {
+    const source = Array.isArray(entries) ? entries : [];
+    const selected = Array.isArray(indexes) ? indexes : null;
     const traces = new Map();
-    (Array.isArray(entries) ? entries : []).forEach((entry) => {
+    const collect = (entry) => {
       const id = String(entry?.correlations?.trace || "").trim(); if (!id) return;
       const row = traces.get(id) || { traceId: id, entries: 0, spans: new Set(), services: new Set(), errors: 0, warnings: 0, events: 0, startMs: null, endMs: null };
       row.entries += 1;
@@ -24,7 +26,17 @@
         row.startMs = row.startMs === null ? start : Math.min(row.startMs, start); row.endMs = row.endMs === null ? end : Math.max(row.endMs, end);
       }
       traces.set(id, row);
-    });
+    };
+    if (selected) {
+      for (const index of selected) {
+        const entry = source[index];
+        if (entry) collect(entry);
+      }
+    } else {
+      for (const entry of source) {
+        if (entry) collect(entry);
+      }
+    }
     return [...traces.values()].map((row) => ({
       traceId: row.traceId,
       entries: row.entries,
@@ -39,7 +51,7 @@
   }
 
   function rank(entries, options = {}) {
-    const traces = aggregate(entries);
+    const traces = aggregate(entries, options.indexes);
     const timed = traces.map((row) => row.durationMs).filter((value) => Number.isFinite(value) && value >= 0);
     const center = median(timed);
     const deviations = center === null ? [] : timed.map((value) => Math.abs(value - center));
