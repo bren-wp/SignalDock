@@ -252,9 +252,18 @@
 
   function removeAttachment(caseFile, id) { return removeCollectionItem(caseFile, "attachments", id); }
 
+  function evidenceItemIdSet(evidenceItems = []) {
+    const ids = new Set();
+    for (const item of Array.isArray(evidenceItems) ? evidenceItems : []) {
+      const id = clean(item?.id, 96);
+      if (id) ids.add(id);
+    }
+    return ids;
+  }
+
   function pruneEvidenceLinks(caseFile, evidenceItems = []) {
     const target = normalize(caseFile);
-    const valid = new Set((evidenceItems || []).map((item) => item?.id).filter(Boolean));
+    const valid = evidenceItemIdSet(evidenceItems);
     let changed = false;
     target.findings.forEach((finding) => {
       const next = finding.evidenceIds.filter((id) => valid.has(id));
@@ -266,7 +275,7 @@
 
   function summarize(caseFile, evidenceItems = []) {
     const target = normalize(caseFile);
-    const evidenceIds = new Set((evidenceItems || []).map((item) => item?.id).filter(Boolean));
+    const evidenceIds = evidenceItemIdSet(evidenceItems);
     const linked = new Set();
     target.findings.forEach((finding) => finding.evidenceIds.forEach((id) => { if (evidenceIds.has(id)) linked.add(id); }));
     return {
