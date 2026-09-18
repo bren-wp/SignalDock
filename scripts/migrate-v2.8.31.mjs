@@ -102,9 +102,15 @@ v27Gate = replaceOnce(
 );
 v27Gate = replaceOnce(
   v27Gate,
-  "for (const token of ['projectLinkFilesButton', 'SignalDockDesktopBridge.saveParts', 'workerToken: \\"\\"', 'SignalDockFilterWorkerController.create', 'sd_session=']) assert.ok(app.includes(token), \`missing app token: \${token}\`);",
-  "for (const token of ['SignalDockDesktopBridge.saveParts', 'workerToken: \\"\\"', 'SignalDockFilterWorkerController.create', 'sd_session=']) assert.ok(app.includes(token), \`missing app token: \${token}\`);\nassert.ok(elementRegistry.includes('\\\"projectLinkFilesButton\\\"'), 'missing element-registry token: projectLinkFilesButton');",
-  "v27 gate registry ownership"
+  "'projectLinkFilesButton', ",
+  "",
+  "v27 gate app token ownership"
+);
+v27Gate = replaceOnce(
+  v27Gate,
+  "for (const token of ['PROTOCOL_VERSION = 1'",
+  "assert.ok(elementRegistry.includes('\\\"projectLinkFilesButton\\\"'), 'missing element-registry token: projectLinkFilesButton');\nfor (const token of ['PROTOCOL_VERSION = 1'",
+  "v27 gate registry assertion"
 );
 write("tests/v27-final-gate.mjs", v27Gate);
 
