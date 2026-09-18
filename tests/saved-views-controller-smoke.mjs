@@ -9,10 +9,13 @@ const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
 const app = read("app.js");
 const controllerSource = read("src/app/saved-views-controller.js");
+const compositionSource = read("src/app/dataset-view-composition.js");
 
 assert.ok(html.includes('src/app/saved-views-controller.js'), "Saved Views controller missing from index.html");
 assert.ok(html.indexOf('src/app/saved-views-controller.js') < html.indexOf('app.js'), "Saved Views controller must load before app.js");
-assert.ok(app.includes("SignalDockSavedViewsController.create"), "Saved Views controller factory wiring missing");
+assert.ok(compositionSource.includes("modules.savedViews.create"), "composition module create wiring missing: savedViews");
+assert.ok(app.includes("savedViews: window.SignalDockSavedViewsController"), "root composition module mapping missing: savedViews");
+assert.ok(app.includes("datasetViewComposition.createSavedViews()"), "root composition call missing: datasetViewComposition.createSavedViews()");
 assert.ok(app.includes("savedViewsController.bind();"), "Saved Views controller bind() missing");
 assert.ok(!app.includes('el.saveViewButton.addEventListener("click", saveCurrentView)'), "root still owns save-view listener");
 assert.ok(!app.includes('el.savedList.addEventListener("click", onSavedViewsClick)'), "root still owns saved-list listener");

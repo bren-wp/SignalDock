@@ -9,10 +9,13 @@ const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
 const app = read("app.js");
 const controllerSource = read("src/app/dataset-filter-controller.js");
+const compositionSource = read("src/app/dataset-view-composition.js");
 
 assert.ok(html.includes('src/app/dataset-filter-controller.js'), "Dataset Filter controller missing from index.html");
 assert.ok(html.indexOf('src/app/dataset-filter-controller.js') < html.indexOf('app.js'), "Dataset Filter controller must load before app.js");
-assert.ok(app.includes("SignalDockDatasetFilterController.create"), "Dataset Filter controller factory wiring missing");
+assert.ok(compositionSource.includes("modules.datasetFilter.create"), "composition module create wiring missing: datasetFilter");
+assert.ok(app.includes("datasetFilter: window.SignalDockDatasetFilterController"), "root composition module mapping missing: datasetFilter");
+assert.ok(app.includes("datasetViewComposition.createDatasetFilter()"), "root composition call missing: datasetViewComposition.createDatasetFilter()");
 assert.ok(app.includes("datasetFilterController.bind();"), "Dataset Filter controller bind() missing");
 
 for (const token of [

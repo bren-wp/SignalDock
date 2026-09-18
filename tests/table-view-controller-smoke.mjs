@@ -9,10 +9,13 @@ const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
 const app = read("app.js");
 const controllerSource = read("src/app/table-view-controller.js");
+const compositionSource = read("src/app/dataset-view-composition.js");
 
 assert.ok(html.includes('src/app/table-view-controller.js'));
 assert.ok(html.indexOf('src/app/table-view-controller.js') < html.indexOf('app.js'));
-assert.ok(app.includes("SignalDockTableViewController.create"));
+assert.ok(compositionSource.includes("modules.tableView.create"), "composition module create wiring missing: tableView");
+assert.ok(app.includes("tableView: window.SignalDockTableViewController"), "root composition module mapping missing: tableView");
+assert.ok(app.includes("datasetViewComposition.createTableView()"), "root composition call missing: datasetViewComposition.createTableView()");
 assert.ok(app.includes("tableViewController.bind();"));
 
 for (const token of [

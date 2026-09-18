@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.33 — 2026-09-18
+
+### Dataset View composition
+- Added src/app/dataset-view-composition.js as the lazy wiring owner for Saved Views, Dataset Filter, Table View, Dataset Overview and View Orchestrator.
+- Replaced five large Controller.create option blocks in app.js with explicit composition create calls while preserving the original bind/startup order.
+- Kept Worker, Inspector and Trace Explorer dependencies late-bound through injected getters so the composition factory does not own those sibling controllers.
+- Kept Import/Live Tail and Workspace outside this factory because they cross File System Access and save/read capability boundaries.
+
 ## 2.8.32 — 2026-09-18
 
 ### Startup state composition

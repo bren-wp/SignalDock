@@ -80,3 +80,6 @@ app/element-registry.js is the declarative application DOM registry. It resolves
 
 
 app/startup-state-controller.js owns phased, idempotent application-state hydration while storage/domain loaders remain injected from the root composition boundary.
+
+
+app/dataset-view-composition.js is the lazy composition factory for Saved Views, Dataset Filter, Table View, Dataset Overview and View Orchestrator. It owns wiring only; feature logic remains in the individual controllers.

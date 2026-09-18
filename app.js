@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.32";
+  const APP_VERSION = "2.8.33";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -104,6 +104,7 @@
   let interactionShellController = null;
   let viewOrchestratorController = null;
   let startupStateController = null;
+  let datasetViewComposition = null;
   let caseWorkspaceController = null;
   let caseFileController = null;
   let caseCheckpointController = null;
@@ -140,18 +141,59 @@
       normalizeCheckpoints: (items) => window.SignalDockCaseCheckpoints?.normalizeList?.(items)
     });
     startupStateController.hydratePreferences();
-    if (!window.SignalDockSavedViewsController?.create) throw new Error("SignalDock Saved Views controller is unavailable.");
-    savedViewsController = window.SignalDockSavedViewsController.create({
+    if (!window.SignalDockDatasetViewComposition?.create) throw new Error("SignalDock Dataset View composition is unavailable.");
+    datasetViewComposition = window.SignalDockDatasetViewComposition.create({
       state,
       el,
-      persistSavedViews: (views) => utils().saveJson(STORAGE_VIEWS, views),
-      requestName: (message, suggested) => window.prompt(message, suggested),
-      createViewId: () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      getShortSource: (value) => utils().shortSource(value),
-      syncLevelChips,
-      applyFilters,
-      toast
+      ownerDocument: document,
+      ownerWindow: window,
+      modules: {
+        savedViews: window.SignalDockSavedViewsController,
+        datasetFilter: window.SignalDockDatasetFilterController,
+        tableView: window.SignalDockTableViewController,
+        datasetOverview: window.SignalDockDatasetOverviewController,
+        viewOrchestrator: window.SignalDockViewOrchestratorController
+      },
+      services: {
+        utils: utils(),
+        engine: engine(),
+        getProfiler: profiler,
+        analysis: {
+          exceptionGroups: window.SignalDockExceptionGroups,
+          exceptionTrends: window.SignalDockExceptionTrends,
+          serviceHealth: window.SignalDockServiceHealth,
+          serviceMatrix: window.SignalDockServiceMatrix,
+          serviceHeatmap: window.SignalDockServiceHeatmap,
+          serviceTrends: window.SignalDockServiceTrends,
+          traceExplorer: window.SignalDockTraceExplorer,
+          traceOutliers: window.SignalDockTraceOutliers,
+          virtualViewport: window.SignalDockVirtualViewport
+        }
+      },
+      actions: {
+        persistSavedViews: (views) => utils().saveJson(STORAGE_VIEWS, views),
+        requestSavedViewName: (message, suggested) => window.prompt(message, suggested),
+        createViewId: () => Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+        syncLevelChips,
+        applyFilters,
+        toast,
+        ensurePageInRange,
+        renderDataViews,
+        scheduleViewAutosave: () => scheduleViewAutosave(),
+        updateStats,
+        renderSourceNavigation,
+        selectEntry,
+        getSources,
+        scheduleFrame: (callback) => requestAnimationFrame(callback),
+        now: () => performance.now()
+      },
+      getters: {
+        getFilterWorker: () => filterWorkerController,
+        getTraceExplorerController: () => traceExplorerController,
+        getInspectorController: () => inspectorController
+      }
     });
+    savedViewsController = datasetViewComposition.createSavedViews();
     savedViewsController.bind();
     if (!window.SignalDockImportLiveTailController?.create) throw new Error("SignalDock Import/Live Tail controller is unavailable.");
     importLiveTailController = window.SignalDockImportLiveTailController.create({
@@ -194,55 +236,9 @@
       }
     });
     importLiveTailController.bind();
-    if (!window.SignalDockDatasetFilterController?.create) throw new Error("SignalDock Dataset Filter controller is unavailable.");
-    datasetFilterController = window.SignalDockDatasetFilterController.create({
-      state,
-      el,
-      debounce: (callback, wait) => utils().debounce(callback, wait),
-      parseSmartQuery: (query) => engine().parseSmartQuery(query),
-      filterIndexes: (entries, request) => engine().filterIndexes(entries, request),
-      shouldUseWorkerFilter: () => filterWorkerController?.canUseWorker() || false,
-      requestWorkerFilter: ({ requestId, request }) => filterWorkerController?.requestFilter({ requestId, request }) ?? false,
-      now: () => performance.now(),
-      recordPerformance: (elapsed, meta) => profiler()?.record?.("filter", elapsed, meta),
-      getExceptionFingerprint: (entry) => window.SignalDockExceptionGroups?.candidate?.(entry) ? window.SignalDockExceptionGroups.fingerprint(entry) : "",
-      refreshDerivedAnalysis: () => {
-        state.serviceGraph = null;
-        state.exceptionGroups = window.SignalDockExceptionGroups?.group?.(state.entries, { maxGroups: 1500 }) || [];
-        state.exceptionTrends = window.SignalDockExceptionTrends?.analyze?.(state.entries, { bucketCount: 20 }) || null;
-        state.healthData = window.SignalDockServiceHealth?.analyze?.(state.entries) || null;
-        state.serviceMatrixData = window.SignalDockServiceMatrix?.build?.(state.entries) || null;
-        state.serviceHeatmapData = window.SignalDockServiceHeatmap?.build?.(state.entries, null, { bucketCount: 12 }) || null;
-        state.serviceTrendsData = window.SignalDockServiceTrends?.compare?.(state.entries) || null;
-        state.traceExplorerData = window.SignalDockTraceExplorer?.buildWindow?.(state.entries, null, { limit: 1000 }) || window.SignalDockTraceExplorer?.build?.(state.entries) || null;
-        state.traceOutlierData = window.SignalDockTraceOutliers?.rank?.(state.entries, { limit: 250 }) || null;
-        traceExplorerController?.reconcileSelection(state.traceExplorerData);
-      },
-      syncLevelChips,
-      ensurePageInRange,
-      renderDataViews,
-      scheduleViewAutosave: () => scheduleViewAutosave(),
-      updateStats,
-      renderSourceNavigation,
-      getShortSource: (source) => utils().shortSource(source)
-    });
+    datasetFilterController = datasetViewComposition.createDatasetFilter();
     datasetFilterController.bind();
-    if (!window.SignalDockTableViewController?.create) throw new Error("SignalDock Table View controller is unavailable.");
-    tableViewController = window.SignalDockTableViewController.create({
-      state,
-      el,
-      ownerDocument: document,
-      ownerWindow: window,
-      debounce: (callback, wait) => utils().debounce(callback, wait),
-      scheduleFrame: (callback) => requestAnimationFrame(callback),
-      now: () => performance.now(),
-      calculateVirtualViewport: (options) => window.SignalDockVirtualViewport?.calculate?.(options) || null,
-      formatTime: (value) => utils().formatTime(value),
-      shortSource: (value) => utils().shortSource(value),
-      recordPerformance: (elapsed, meta) => profiler()?.record?.("table-render", elapsed, meta),
-      scheduleViewAutosave: () => scheduleViewAutosave(),
-      selectEntry
-    });
+    tableViewController = datasetViewComposition.createTableView();
     tableViewController.bind();
     if (!window.SignalDockWorkspaceController?.create) throw new Error("SignalDock Workspace controller is unavailable.");
     workspaceController = window.SignalDockWorkspaceController.create({
@@ -343,19 +339,7 @@
       nowIso: () => new Date().toISOString()
     });
     workspaceController.bind();
-    if (!window.SignalDockDatasetOverviewController?.create) throw new Error("SignalDock Dataset Overview controller is unavailable.");
-    datasetOverviewController = window.SignalDockDatasetOverviewController.create({
-      state,
-      el,
-      ownerDocument: document,
-      getSources,
-      formatBytes: (value) => utils().formatBytes(value),
-      shortSource: (value) => utils().shortSource(value),
-      formatTimelineTime: (ms) => {
-        const date = new Date(ms);
-        return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-      }
-    });
+    datasetOverviewController = datasetViewComposition.createDatasetOverview();
     datasetOverviewController.bind();
     if (!window.SignalDockFilterWorkerController?.create) throw new Error("SignalDock Filter Worker controller is unavailable.");
     filterWorkerController = window.SignalDockFilterWorkerController.create({
@@ -417,21 +401,7 @@
       applyFilters: (resetPage) => applyFilters(resetPage)
     });
     interactionShellController.bind();
-    if (!window.SignalDockViewOrchestratorController?.create) throw new Error("SignalDock View Orchestrator controller is unavailable.");
-    viewOrchestratorController = window.SignalDockViewOrchestratorController.create({
-      state,
-      ownerDocument: document,
-      rebuildFilterIndex: () => datasetFilterController?.rebuildFilterIndex(),
-      updateStats: () => datasetOverviewController?.updateStats(),
-      refreshFilters: () => datasetFilterController?.refreshFilters(),
-      renderSavedViews: () => savedViewsController?.render(),
-      setControlsEnabled: (enabled) => datasetFilterController?.setControlsEnabled(enabled),
-      applyFilters: (resetPage) => datasetFilterController?.applyFilters(resetPage),
-      renderTimeline: () => datasetOverviewController?.renderTimeline(),
-      renderTable: () => tableViewController?.renderTable(),
-      renderInspector: () => inspectorController?.render(),
-      updateActiveSourceUI: () => datasetOverviewController?.updateActiveSourceUI()
-    });
+    viewOrchestratorController = datasetViewComposition.createViewOrchestrator();
     startupStateController.hydrateInvestigation();
     if (!window.SignalDockRecoveryDiagnosticsController?.create) throw new Error("SignalDock Recovery/diagnostics controller is unavailable.");
     recoveryDiagnosticsController = window.SignalDockRecoveryDiagnosticsController.create({

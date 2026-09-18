@@ -9,10 +9,13 @@ const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
 const app = read("app.js");
 const source = read("src/app/view-orchestrator-controller.js");
+const compositionSource = read("src/app/dataset-view-composition.js");
 
 assert.ok(html.includes("src/app/view-orchestrator-controller.js"));
 assert.ok(html.indexOf("src/app/view-orchestrator-controller.js") < html.indexOf("app.js"));
-assert.ok(app.includes("SignalDockViewOrchestratorController.create"));
+assert.ok(compositionSource.includes("modules.viewOrchestrator.create"), "composition module create wiring missing: viewOrchestrator");
+assert.ok(app.includes("viewOrchestrator: window.SignalDockViewOrchestratorController"), "root composition module mapping missing: viewOrchestrator");
+assert.ok(app.includes("datasetViewComposition.createViewOrchestrator()"), "root composition call missing: datasetViewComposition.createViewOrchestrator()");
 assert.ok(app.includes("viewOrchestratorController?.renderEverything"));
 assert.ok(app.includes("viewOrchestratorController?.renderDataViews"));
 assert.ok(app.includes("viewOrchestratorController?.syncLevelChips"));

@@ -10,6 +10,7 @@ const explorerDomain = read("src/analysis/trace-explorer.js");
 const compareDomain = read("src/analysis/trace-compare.js");
 const source = read("src/app/trace-explorer-controller.js");
 const app = read("app.js");
+const compositionSource = read("src/app/dataset-view-composition.js");
 const index = read("index.html");
 const ci = read(".github/workflows/ci.yml");
 
@@ -69,8 +70,9 @@ for (const token of [
   "SignalDockTraceExplorerController.create",
   "traceExplorerController.bind()",
   "traces: () => traceExplorerController?.open()",
-  "traceExplorerController?.reconcileSelection(state.traceExplorerData)"
 ]) assert.ok(app.includes(token), `Trace Explorer app integration token missing: ${token}`);
+assert.ok(compositionSource.includes("getTraceExplorerController"), "Dataset View composition must late-bind the Trace Explorer controller");
+assert.ok(compositionSource.includes("reconcileSelection"), "Dataset View composition must preserve trace selection reconciliation");
 for (const legacy of [
   "function openTraceExplorer()",
   "function renderTraceExplorer(",

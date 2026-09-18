@@ -45,3 +45,6 @@ Element registry boundary: src/app/element-registry.js owns the declarative list
 
 
 Startup state application boundary: src/app/startup-state-controller.js owns initial Saved Views/settings, investigation/case/query, baseline, project and checkpoint hydration through explicit injected loaders. It must not acquire direct storage, filesystem, worker or network capabilities.
+
+
+Dataset View composition boundary: src/app/dataset-view-composition.js owns explicit lazy wiring for the pure dataset-view controller stack. It must not acquire storage, filesystem, worker-construction or network capabilities.
