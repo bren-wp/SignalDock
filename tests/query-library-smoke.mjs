@@ -11,7 +11,7 @@ const manyTags=[...Array.from({length:5000},()=> 'dup'),...Array.from({length:25
 const originalId=items[0].id;items=api.markUsed(items,originalId,'2026-09-13T01:00:00.000Z');assert(items.find(x=>x.id===originalId).useCount===1,'usage counter failed');
 items=api.duplicate(items,originalId,{name:'Auth errors copy'});assert(items.length===2&&items.some(x=>x.name==='Auth errors copy'),'duplicate failed');
 const ids=items.map(x=>x.id);items=api.bulkUpdate(items,ids,{folder:'Incidents',tags:['bulk']});assert(items.every(x=>x.folder==='Incidents'),'bulk move failed');
-const longId='x'.repeat(120);const longItem=api.upsert(items,{id:longId,name:'Long id',query:'warn'});const normalizedLongId=longItem.find(x=>x.name==='Long id').id;assert(normalizedLongId.length===96,'query id normalization cap failed');
+const longId='x'.repeat(120);const longItem=[...items,{id:longId,name:'Long id',query:'warn'}];const normalizedLongId=api.normalize(longItem).find(x=>x.name==='Long id').id;assert(normalizedLongId.length===96,'query id normalization cap failed');
 const noisyIds=['',normalizedLongId,normalizedLongId,longId];const bulkNoisy=api.bulkUpdate(longItem,noisyIds,{folder:'Long IDs'});assert(bulkNoisy.find(x=>x.id===normalizedLongId).folder==='Long IDs','bulk update id normalization mismatch');
 const selectedNoisy=JSON.parse(api.exportSelected(bulkNoisy,noisyIds));assert(selectedNoisy.items.length===1&&selectedNoisy.items[0].id===normalizedLongId,'selected export id normalization mismatch');
 const removedNoisy=api.bulkRemove(bulkNoisy,noisyIds);assert(!removedNoisy.some(x=>x.id===normalizedLongId),'bulk remove id normalization mismatch');
