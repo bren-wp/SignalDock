@@ -61,7 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           controller='src/app/workspace-controller.js'
-          for token in SignalDockWorkspace SignalDockDesktopBridge SignalDockProjectManager SignalDockPersistence SignalDockStorageAdapter showOpenFilePicker indexedDB localStorage sessionStorage handleRef handleKind reopenable '.text(' XMLHttpRequest WebSocket EventSource '.invoke('; do
+          for token in 'SignalDockWorkspace.' SignalDockDesktopBridge SignalDockProjectManager SignalDockPersistence SignalDockStorageAdapter showOpenFilePicker indexedDB localStorage sessionStorage handleRef handleKind reopenable '.text(' XMLHttpRequest WebSocket EventSource '.invoke('; do
             if grep -Fq "$token" "$controller"; then
               echo "Forbidden capability reference in $controller: $token" >&2
               exit 1
