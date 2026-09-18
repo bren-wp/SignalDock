@@ -115,10 +115,33 @@
     return out;
   }
 
+  function mergeSortedUnique(a, b) {
+    const left = Array.isArray(a) ? a : [];
+    const right = Array.isArray(b) ? b : [];
+    const out = [];
+    let i = 0;
+    let j = 0;
+    let last = null;
+    let hasLast = false;
+    while (i < left.length || j < right.length) {
+      let value;
+      if (j >= right.length || (i < left.length && left[i] <= right[j])) value = left[i++];
+      else value = right[j++];
+      if (!hasLast || value !== last) {
+        out.push(value);
+        last = value;
+        hasLast = true;
+      }
+      while (i < left.length && left[i] === last) i += 1;
+      while (j < right.length && right[j] === last) j += 1;
+    }
+    return out;
+  }
+
   function unionSorted(arrays) {
-    const set = new Set();
-    for (const array of arrays) for (const value of array || []) set.add(value);
-    return [...set].sort((a, b) => a - b);
+    let current = [];
+    for (const array of arrays) current = mergeSortedUnique(current, array);
+    return current;
   }
 
   function exactPosting(map, value) {
