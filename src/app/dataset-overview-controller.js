@@ -209,7 +209,7 @@
       el.timelineBars.appendChild(fragment);
       setText(el.timelineStart, formatTimelineTime(min));
       setText(el.timelineEnd, formatTimelineTime(max));
-      setText(el.timelineTitle, (state.filteredIndexes || []).length === (state.entries || []).length ? "All activity" : "Filtered activity");
+      setText(el.timelineTitle, filteredIndexes.length === (state.entries || []).length ? "All activity" : "Filtered activity");
       setText(el.timelineMeta, `${timestampedCount.toLocaleString()} timestamped · ${filteredIndexes.length.toLocaleString()} results · ${state.lastEngine || "idle"}`);
     }
 
