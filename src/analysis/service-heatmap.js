@@ -25,19 +25,22 @@
     };
 
     const spanMap = new Map();
-    const timedRows = [];
+    let timedCount = 0;
+    let startMs = Infinity;
+    let endMs = -Infinity;
     each((entry) => {
       const spanId = String(entry?.correlations?.span || "").trim();
       if (spanId) spanMap.set(spanId, entry);
       const ms = Number(entry?.timestampMs);
-      if (Number.isFinite(ms)) timedRows.push(ms);
+      if (!Number.isFinite(ms)) return;
+      timedCount += 1;
+      if (ms < startMs) startMs = ms;
+      if (ms > endMs) endMs = ms;
     });
 
-    if (!timedRows.length) return { rows: [], buckets: [], summary: { edges: 0, calls: 0, errors: 0, timedCalls: 0, startMs: null, endMs: null } };
-    let startMs = Infinity; let endMs = -Infinity;
-    for (const value of timedRows) { if (value < startMs) startMs = value; if (value > endMs) endMs = value; }
+    if (!timedCount) return { rows: [], buckets: [], summary: { edges: 0, calls: 0, errors: 0, timedCalls: 0, startMs: null, endMs: null } };
     const width = Math.max(1, endMs - startMs);
-    const bucketCount = Math.min(requestedBuckets, Math.max(1, Math.ceil(Math.sqrt(timedRows.length))));
+    const bucketCount = Math.min(requestedBuckets, Math.max(1, Math.ceil(Math.sqrt(timedCount))));
     const buckets = Array.from({ length: bucketCount }, (_, index) => ({
       index,
       startMs: startMs + width * index / bucketCount,
