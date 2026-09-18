@@ -274,7 +274,7 @@ a:focus-visible,.button:focus-visible { outline:2px solid var(--cyan); outline-o
 }
 .security-grid article { min-height:230px; padding:24px; }
 .security-grid article>span { display:inline-grid; width:38px; height:38px; place-items:center; border:1px solid rgba(21,216,242,.22); border-radius:10px; color:#52e2d2; background:var(--cyan-soft); font:800 10px ui-monospace,monospace; }
-.security-grid h3 { margin:28px 0 10px; font-size:15px; }
+.security-grid h2,.security-grid h3 { margin:28px 0 10px; font-size:15px; }
 .security-grid p,.format-groups p,.format-note { margin:0; color:#7f96a9; font-size:11px; line-height:1.72; }
 .security-grid code { color:#71e7ef; }
 
