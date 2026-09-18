@@ -8,6 +8,7 @@ for(let i=0;i<50;i++) entries.push({service:'worker',level:'INFO',timestampMs:no
 const result=context.SignalDockServiceHealth.analyze(entries,{windowMs:60000});
 const api=result.rows.find(r=>r.service==='api'); const worker=result.rows.find(r=>r.service==='worker');
 if(!api || api.status!=='critical' || api.errorRate<0.1 || api.p95DurationMs===null) throw new Error('api health classification failed');
+if(api.medianDurationMs!==50 || api.p95DurationMs!==95) throw new Error('api health percentile mismatch');
 if(!worker || worker.status!=='quiet') throw new Error('worker health classification failed');
 const largeEntries=Array.from({length:200000},(_,index)=>({timestampMs:now+index}));
 const largeResult=context.SignalDockServiceHealth.analyze(largeEntries);
