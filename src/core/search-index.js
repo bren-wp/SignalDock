@@ -158,10 +158,15 @@
   function termPosting(index, term) {
     const grams = gramsForTerm(term);
     if (!grams?.length) return null;
-    let current = null;
+    const postings = [];
     for (const gram of grams) {
       const posting = index.tokenMap.get(gram);
       if (!posting) return [];
+      postings.push(posting);
+    }
+    postings.sort((a, b) => a.length - b.length);
+    let current = null;
+    for (const posting of postings) {
       current = intersectSorted(current, posting);
       if (!current.length) return [];
     }
