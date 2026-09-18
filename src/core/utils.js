@@ -34,7 +34,13 @@
 
   function safeStringify(value, pretty = true) {
     if (typeof value === "string") return value;
-    try { return JSON.stringify(value, null, pretty ? 2 : 0); } catch { return String(value); }
+    if (value === undefined) return "";
+    try {
+      const serialized = JSON.stringify(value, null, pretty ? 2 : 0);
+      return typeof serialized === "string" ? serialized : "";
+    } catch {
+      return String(value ?? "");
+    }
   }
 
   function downloadBlob(filename, blob) {
