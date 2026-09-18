@@ -29,6 +29,20 @@
     return out;
   }
 
+  function cleanEvidenceIds(input) {
+    const source = Array.isArray(input) ? input : [];
+    const out = [];
+    const seen = new Set();
+    for (const value of source) {
+      const id = clean(value, 96);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      out.push(id);
+      if (out.length >= MAX_EVIDENCE_LINKS) break;
+    }
+    return out;
+  }
+
   function empty(title = "Local investigation") {
     const now = new Date().toISOString();
     return {
@@ -116,7 +130,7 @@
       body: clean(src.body || "", 12000),
       state: ["open", "confirmed", "dismissed"].includes(src.state) ? src.state : "open",
       tags: cleanTags(src.tags || []),
-      evidenceIds: [...new Set((Array.isArray(src.evidenceIds) ? src.evidenceIds : []).map((id) => clean(id, 96)).filter(Boolean))].slice(0, MAX_EVIDENCE_LINKS),
+      evidenceIds: cleanEvidenceIds(src.evidenceIds),
       createdAt: clean(src.createdAt || new Date().toISOString(), 64),
       updatedAt: clean(src.updatedAt || new Date().toISOString(), 64)
     };
@@ -185,7 +199,7 @@
     if (Object.prototype.hasOwnProperty.call(patch, "body")) finding.body = clean(patch.body, 12000);
     if (Object.prototype.hasOwnProperty.call(patch, "state") && ["open", "confirmed", "dismissed"].includes(patch.state)) finding.state = patch.state;
     if (Object.prototype.hasOwnProperty.call(patch, "tags")) finding.tags = cleanTags(patch.tags);
-    if (Object.prototype.hasOwnProperty.call(patch, "evidenceIds")) finding.evidenceIds = [...new Set((Array.isArray(patch.evidenceIds) ? patch.evidenceIds : []).map((value) => clean(value, 96)).filter(Boolean))].slice(0, MAX_EVIDENCE_LINKS);
+    if (Object.prototype.hasOwnProperty.call(patch, "evidenceIds")) finding.evidenceIds = cleanEvidenceIds(patch.evidenceIds);
     finding.updatedAt = new Date().toISOString();
     target.updatedAt = finding.updatedAt;
     return target;
