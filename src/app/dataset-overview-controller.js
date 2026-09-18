@@ -140,19 +140,20 @@
       if (!el.timelineBars) return;
       el.timelineBars.replaceChildren();
 
-      const timestamped = [];
+      const filteredIndexes = state.filteredIndexes || [];
+      let timestampedCount = 0;
       let min = null;
       let max = null;
 
-      for (const index of state.filteredIndexes || []) {
+      for (const index of filteredIndexes) {
         const entry = state.entries?.[index];
         if (!entry || !Number.isFinite(entry.timestampMs)) continue;
-        timestamped.push(entry);
+        timestampedCount += 1;
         min = min === null ? entry.timestampMs : Math.min(min, entry.timestampMs);
         max = max === null ? entry.timestampMs : Math.max(max, entry.timestampMs);
       }
 
-      if (!timestamped.length || min === null || max === null) {
+      if (!timestampedCount || min === null || max === null) {
         const empty = ownerDocument.createElement("div");
         empty.className = "timeline-empty";
         empty.textContent = state.entries?.length
@@ -161,14 +162,16 @@
         el.timelineBars.appendChild(empty);
         setText(el.timelineStart, "—");
         setText(el.timelineEnd, "—");
-        setText(el.timelineTitle, (state.filteredIndexes || []).length === (state.entries || []).length ? "All activity" : "Filtered activity");
-        setText(el.timelineMeta, `${(state.filteredIndexes || []).length.toLocaleString()} results · ${state.lastEngine || "idle"}`);
+        setText(el.timelineTitle, filteredIndexes.length === (state.entries || []).length ? "All activity" : "Filtered activity");
+        setText(el.timelineMeta, `${filteredIndexes.length.toLocaleString()} results · ${state.lastEngine || "idle"}`);
         return;
       }
 
       const span = Math.max(1, max - min);
       const buckets = Array.from({ length: TIMELINE_BUCKETS }, () => ({ count: 0, errors: 0, warnings: 0 }));
-      for (const entry of timestamped) {
+      for (const index of filteredIndexes) {
+        const entry = state.entries?.[index];
+        if (!entry || !Number.isFinite(entry.timestampMs)) continue;
         const bucketIndex = Math.min(
           TIMELINE_BUCKETS - 1,
           Math.floor(((entry.timestampMs - min) / span) * TIMELINE_BUCKETS)
@@ -207,7 +210,7 @@
       setText(el.timelineStart, formatTimelineTime(min));
       setText(el.timelineEnd, formatTimelineTime(max));
       setText(el.timelineTitle, (state.filteredIndexes || []).length === (state.entries || []).length ? "All activity" : "Filtered activity");
-      setText(el.timelineMeta, `${timestamped.length.toLocaleString()} timestamped · ${(state.filteredIndexes || []).length.toLocaleString()} results · ${state.lastEngine || "idle"}`);
+      setText(el.timelineMeta, `${timestampedCount.toLocaleString()} timestamped · ${filteredIndexes.length.toLocaleString()} results · ${state.lastEngine || "idle"}`);
     }
 
     function bind() {
