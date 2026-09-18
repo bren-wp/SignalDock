@@ -40,6 +40,68 @@
     const pos = (sorted.length - 1) * p; const lo = Math.floor(pos); const hi = Math.ceil(pos);
     return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
   }
+  function finiteNumber(value, fallback = 0) {
+    if (value === null || value === undefined || value === "") return fallback;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+  }
+  function nullableNumber(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  }
+  function normalizeServiceRow(row) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return null;
+    return {
+      service: clean(row.service || "—", 160) || "—",
+      entries: Math.max(0, finiteNumber(row.entries)),
+      errors: Math.max(0, finiteNumber(row.errors)),
+      warnings: Math.max(0, finiteNumber(row.warnings)),
+      errorRate: Math.max(0, Math.min(1, finiteNumber(row.errorRate))),
+      p95Ms: nullableNumber(row.p95Ms)
+    };
+  }
+  function normalizeDependencyRow(row) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return null;
+    return {
+      from: clean(row.from, 160),
+      to: clean(row.to, 160),
+      calls: Math.max(0, finiteNumber(row.calls)),
+      errors: Math.max(0, finiteNumber(row.errors)),
+      errorRate: Math.max(0, Math.min(1, finiteNumber(row.errorRate))),
+      p95Ms: nullableNumber(row.p95Ms)
+    };
+  }
+  function normalizeTraceSetRow(row) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) return null;
+    const services = [];
+    const seen = new Set();
+    for (const value of Array.isArray(row.services) ? row.services : []) {
+      const service = clean(value, 160);
+      if (!service || seen.has(service)) continue;
+      seen.add(service);
+      services.push(service);
+      if (services.length >= 256) break;
+    }
+    return {
+      signature: clean(row.signature || services.join("→") || "(unknown)", 16384),
+      services,
+      traces: Math.max(0, finiteNumber(row.traces)),
+      errorRate: Math.max(0, Math.min(1, finiteNumber(row.errorRate))),
+      medianDurationMs: nullableNumber(row.medianDurationMs),
+      p95DurationMs: nullableNumber(row.p95DurationMs),
+      medianSpans: nullableNumber(row.medianSpans)
+    };
+  }
+  function normalizeRows(value, normalizer) {
+    const out = [];
+    for (const row of Array.isArray(value) ? value : []) {
+      const normalized = normalizer(row);
+      if (normalized) out.push(normalized);
+      if (out.length >= MAX_ROWS) break;
+    }
+    return out;
+  }
   function eachSelected(entries, indexes, callback) {
     const source = Array.isArray(entries) ? entries : [];
     if (Array.isArray(indexes)) {
@@ -148,9 +210,9 @@
           ? Number(input.timeRange.endMs)
           : null
       },
-      services: (Array.isArray(input.services) ? input.services : []).slice(0, MAX_ROWS),
-      dependencies: (Array.isArray(input.dependencies) ? input.dependencies : []).slice(0, MAX_ROWS),
-      traceSets: (Array.isArray(input.traceSets) ? input.traceSets : []).slice(0, MAX_ROWS)
+      services: normalizeRows(input.services, normalizeServiceRow),
+      dependencies: normalizeRows(input.dependencies, normalizeDependencyRow),
+      traceSets: normalizeRows(input.traceSets, normalizeTraceSetRow)
     };
   }
   function exportJson(value) { return JSON.stringify(normalize(value), null, 2); }
