@@ -255,7 +255,7 @@
   function evidenceItemIdSet(evidenceItems = []) {
     const ids = new Set();
     for (const item of Array.isArray(evidenceItems) ? evidenceItems : []) {
-      const id = clean(item?.id, 96);
+      const id = item?.id;
       if (id) ids.add(id);
     }
     return ids;
