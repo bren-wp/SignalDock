@@ -33,6 +33,7 @@
       <a href="#security">Privacy &amp; security</a>
       <a href="#formats">Formats</a>
       <a href="#workflow">Workflow</a>
+      <a href="#faq">FAQ</a>
     </nav>
     <a class="header-cta" href="../index.html">Open SignalDock</a>
   </header>
@@ -40,8 +41,8 @@
   <main id="main-content">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero__copy">
-        <div class="release-badge" aria-label="Current release SignalDock version 2.8.28">
-          <strong>v2.8.28</strong>
+        <div class="release-badge" aria-label="Current release SignalDock version 2.8.29">
+          <strong>v2.8.29</strong>
           <span>Local-first · zero telemetry · zero backend</span>
         </div>
         <span class="eyebrow">PRIVATE OBSERVABILITY FOR REAL DEBUGGING</span>
@@ -180,16 +181,51 @@
       </ol>
     </section>
 
+
+    <section class="faq section-shell" id="faq" aria-labelledby="faq-title">
+      <div class="section-head section-head--wide">
+        <span class="eyebrow">QUESTIONS BEFORE YOU LOAD A FILE</span>
+        <h2 id="faq-title">Local-first, without hidden assumptions.</h2>
+        <p>SignalDock is intentionally explicit about what it can observe, what stays local and where browser capabilities begin and end.</p>
+      </div>
+      <div class="faq-grid">
+        <details>
+          <summary>Does SignalDock upload my logs?</summary>
+          <p>No SignalDock backend is required for ordinary analysis. The shipped application CSP keeps <code>connect-src 'none'</code>, and production audits reject runtime network primitives.</p>
+        </details>
+        <details>
+          <summary>Do I need an account or API key?</summary>
+          <p>No. Local log, trace, case and workspace workflows do not require a SignalDock account or API credential.</p>
+        </details>
+        <details>
+          <summary>What happens when I save a workspace?</summary>
+          <p>A portable <code>.sdsession</code> file is created through an explicit save action. Portable exports do not carry live browser file-handle capabilities.</p>
+        </details>
+        <details>
+          <summary>Can SignalDock follow a changing local file?</summary>
+          <p>Live Tail is available in supported browsers through an explicit local file capability. The file remains local to the browser session.</p>
+        </details>
+        <details>
+          <summary>How are case attachments handled?</summary>
+          <p>Case attachments are metadata-only references. SignalDock does not embed arbitrary attachment file contents into the Case Workspace record.</p>
+        </details>
+        <details>
+          <summary>Is the website itself tracking visitors?</summary>
+          <p>The bundled static website is script-free, uses no analytics runtime and carries the same no-connection CSP boundary.</p>
+        </details>
+      </div>
+    </section>
+
     <section class="release-strip" aria-labelledby="release-title">
       <div>
         <span class="eyebrow">CURRENT RELEASE</span>
-        <h2 id="release-title">SignalDock v2.8.28</h2>
+        <h2 id="release-title">SignalDock v2.8.29</h2>
       </div>
       <ul>
-        <li>Cleaner query/topology filter orchestration</li>
-        <li>Bounded case import and explicit export cancellation</li>
-        <li>Authenticated local worker routing with stale-response guards</li>
-        <li>Responsive, keyboard-accessible static website with no marketing scripts</li>
+        <li>Centralized global shortcuts and dialog exclusivity</li>
+        <li>Command Palette Escape no longer leaks into query/Inspector actions</li>
+        <li>Dedicated Privacy and Security website pages under the same static CSP</li>
+        <li>All website HTML pages are now covered by the production static audit</li>
       </ul>
     </section>
 
@@ -201,8 +237,8 @@
 
   <footer>
     <a class="logo" href="#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
-    <span>Private observability on your machine.</span>
-    <span>v2.8.28 · local-first · zero telemetry</span>
+    <span><a href="privacy.html">Privacy</a> · <a href="security.html">Security</a> · <a href="#faq">FAQ</a></span>
+    <span>v2.8.29 · local-first · zero telemetry</span>
   </footer>
 </body>
 </html>

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.8.29 — 2026-09-18
+
+### Interaction shell + website assurance
+- Extracted global file/search shortcuts, Escape handling and generic dialog exclusivity into src/app/interaction-shell-controller.js.
+- Fixed an event-order bug where an Escape already handled by Command Palette could still close the Inspector or clear the active query in the old root keydown listener.
+- Global Ctrl/Cmd+O, Ctrl/Cmd+F and slash search shortcuts now stay out of open dialogs; slash also respects contenteditable targets.
+- Added dedicated script-free website Privacy and Security pages plus a native-details FAQ on the homepage.
+- Expanded the production static audit from website/index.html to every HTML page under website/.
+
 ## 2.8.28 — 2026-09-18
 
 ### Query navigation + website refresh

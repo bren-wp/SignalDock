@@ -407,3 +407,48 @@ footer .logo span { font-size:16px; }
   html { scroll-behavior:auto; }
   *,*::before,*::after { transition-duration:.001ms !important; animation-duration:.001ms !important; animation-iteration-count:1 !important; }
 }
+
+
+.faq { padding-top:64px; }
+.faq-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.faq-grid details {
+  border:1px solid var(--line);
+  border-radius:13px;
+  background:linear-gradient(180deg,rgba(15,31,48,.8),rgba(8,18,29,.8));
+}
+.faq-grid summary {
+  position:relative;
+  padding:20px 48px 20px 20px;
+  cursor:pointer;
+  color:#dceef3;
+  font-size:12px;
+  font-weight:800;
+  list-style:none;
+}
+.faq-grid summary::-webkit-details-marker { display:none; }
+.faq-grid summary::after {
+  content:"+";
+  position:absolute;
+  right:20px;
+  top:17px;
+  color:var(--cyan);
+  font:800 18px ui-monospace,monospace;
+}
+.faq-grid details[open] summary::after { content:"−"; }
+.faq-grid details p {
+  margin:0;
+  padding:0 20px 20px;
+  color:#7f96a9;
+  font-size:11px;
+  line-height:1.72;
+}
+.faq-grid code { color:#79e6ee; }
+footer a:not(.logo) { color:#88a3b5; }
+footer a:not(.logo):hover { color:#dffcff; }
+@media (max-width:720px) {
+  .faq-grid { grid-template-columns:1fr; }
+}

@@ -68,3 +68,6 @@ app/case-file-controller.js owns case JSON/Markdown export, bounded case import 
 
 
 app/query-navigation-controller.js owns service/environment/namespace query composition and topology filter translation while filter execution remains injected.
+
+
+app/interaction-shell-controller.js owns global keyboard shortcuts and generic dialog exclusivity while feature-specific navigation and Command Palette state remain separate.

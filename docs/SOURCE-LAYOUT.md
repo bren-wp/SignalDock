@@ -33,3 +33,6 @@ Case file application boundary: src/app/case-file-controller.js owns bounded Cas
 
 
 Query navigation application boundary: src/app/query-navigation-controller.js owns UI query composition for service, environment, namespace and topology navigation without direct Query Engine or storage capabilities.
+
+
+Interaction shell application boundary: src/app/interaction-shell-controller.js owns global keyboard shortcuts and dialog exclusivity without direct storage, worker, filesystem or network capabilities.

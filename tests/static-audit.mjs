@@ -23,7 +23,8 @@ function collectFiles(dir, predicate, out = []) {
 
 const appHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const appJs = fs.readFileSync(path.join(root, "app.js"), "utf8");
-const websiteHtml = fs.readFileSync(path.join(root, "website", "index.html"), "utf8");
+const websiteDir = path.join(root, "website");
+const websiteHtmlEntries = fs.readdirSync(websiteDir).filter((name) => name.endsWith(".html")).sort().map((name) => ["website/" + name, fs.readFileSync(path.join(websiteDir, name), "utf8")]);
 
 const ids = [...appHtml.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
 const idSet = new Set(ids);
@@ -40,7 +41,7 @@ const jsRefs = [...appJs.matchAll(/\$\("([^"]+)"\)/g)].map((match) => match[1]);
 const missingRefs = [...new Set(jsRefs.filter((id) => !declaredIdSet.has(id)))];
 assert(!missingRefs.length, `app.js references missing ids: ${missingRefs.join(", ")}`);
 
-for (const [name, html] of [["index.html", appHtml], ["website/index.html", websiteHtml]]) {
+for (const [name, html] of [["index.html", appHtml], ...websiteHtmlEntries]) {
   assert(!/\sstyle\s*=/i.test(html), `${name} contains inline style attributes`);
   assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html), `${name} contains inline script blocks`);
   assert(!/(?:src|href)=["']https?:\/\//i.test(html), `${name} contains external runtime resources`);
@@ -66,7 +67,7 @@ function verifyLocalRefs(html, baseDir, label) {
   for (const ref of localRefs) assert(fs.existsSync(path.resolve(baseDir, ref)), `missing local asset referenced by ${label}: ${ref}`);
 }
 verifyLocalRefs(appHtml, root, "index.html");
-verifyLocalRefs(websiteHtml, path.join(root, "website"), "website/index.html");
+for (const [name, html] of websiteHtmlEntries) verifyLocalRefs(html, websiteDir, name);
 
 console.log(`PASS unique static DOM ids (${ids.length})`);
 console.log(`PASS trusted dynamic DOM ids (${dynamicIds.length})`);

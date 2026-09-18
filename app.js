@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.28";
+  const APP_VERSION = "2.8.29";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
@@ -101,6 +101,7 @@
   let inspectorController = null;
   let settingsController = null;
   let commandNavigationController = null;
+  let interactionShellController = null;
   let caseWorkspaceController = null;
   let caseFileController = null;
   let caseCheckpointController = null;
@@ -415,6 +416,23 @@
       toast
     });
     datasetSessionController.bind();
+    if (!window.SignalDockInteractionShellController?.create) throw new Error("SignalDock Interaction Shell controller is unavailable.");
+    interactionShellController = window.SignalDockInteractionShellController.create({
+      state,
+      el,
+      ownerDocument: document,
+      dialogs: [
+        el.settingsDialog, el.serviceMapDialog, el.serviceMatrixDialog, el.serviceHeatmapDialog,
+        el.serviceTrendsDialog, el.baselineDialog, el.projectDialog, el.traceExplorerDialog,
+        el.traceCompareDialog, el.traceOutlierDialog, el.queryLibraryDialog, el.healthDialog,
+        el.commandPaletteDialog, el.investigationDialog, el.exceptionDialog
+      ],
+      importLogs: () => el.fileInput?.click(),
+      focusSearch: () => { if (!el.queryInput?.disabled) el.queryInput?.focus(); },
+      closeInspector: () => closeInspector(),
+      applyFilters: (resetPage) => applyFilters(resetPage)
+    });
+    interactionShellController.bind();
     state.investigation = window.SignalDockInvestigation?.empty?.() || { title: "Investigation", summary: "", items: [] };
     state.caseFile = window.SignalDockCaseWorkspace?.empty?.("Investigation") || { title: "Investigation", status: "open", severity: "none", findings: [] };
     state.queryLibrary = window.SignalDockQueryLibrary?.load?.() || [];
@@ -801,40 +819,10 @@
     applySettings();
     refreshSavedParserProfiles();
     profiler()?.observeLongTasks?.();
-    bindEvents();
     setActiveNav("logs");
     filterWorkerController.init();
     renderEverything();
     void recoveryDiagnosticsController.checkRecoverySnapshot();
-  }
-
-  function bindEvents() {
-
-
-
-    document.addEventListener("keydown", (event) => {
-      const tag = document.activeElement?.tagName;
-      const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(tag);
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
-        event.preventDefault();
-        el.fileInput.click();
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
-        event.preventDefault();
-        if (!el.queryInput.disabled) el.queryInput.focus();
-      }
-      if (event.key === "/" && !typing) {
-        event.preventDefault();
-        if (!el.queryInput.disabled) el.queryInput.focus();
-      }
-      if (event.key === "Escape" && !el.settingsDialog.open) {
-        if (state.selectedId) closeInspector();
-        else if (el.queryInput.value) {
-          el.queryInput.value = "";
-          applyFilters(true);
-        }
-      }
-    });
   }
 
   function syncWorkerIndex() { return filterWorkerController?.syncIndex() || false; }
@@ -992,26 +980,9 @@
 
   async function importParserProfiles(event) { await settingsController?.importParserProfiles?.(event); }
 
-  function closeCompetingDialogs(exceptId = "") {
-    [el.settingsDialog, el.serviceMapDialog, el.serviceMatrixDialog, el.serviceHeatmapDialog, el.serviceTrendsDialog, el.baselineDialog, el.projectDialog, el.traceExplorerDialog, el.traceCompareDialog, el.traceOutlierDialog, el.queryLibraryDialog, el.healthDialog, el.commandPaletteDialog, el.investigationDialog, el.exceptionDialog].forEach((dialog) => {
-      if (!dialog || dialog.id === exceptId || !dialog.open) return;
-      if (typeof dialog.close === "function") dialog.close();
-      else dialog.removeAttribute("open");
-    });
-  }
+  function closeCompetingDialogs(exceptId = "") { return interactionShellController?.closeCompetingDialogs(exceptId) || 0; }
 
-  function showDialogSafely(dialog) {
-    if (!dialog) return false;
-    if (dialog.open) return true;
-    try {
-      if (typeof dialog.showModal === "function") dialog.showModal();
-      else dialog.setAttribute("open", "");
-      return true;
-    } catch {
-      dialog.setAttribute("open", "");
-      return true;
-    }
-  }
+  function showDialogSafely(dialog) { return interactionShellController?.showDialogSafely(dialog) || false; }
 
   function openCommandPalette() { commandNavigationController?.open(); }
 

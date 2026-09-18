@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.28**.
+Current version: **2.8.29**.
 
 ## Highlights
 
@@ -667,3 +667,8 @@ Case File controller: JSON/Markdown export, case import, report assembly and Cas
 Query Navigation controller: service/environment/namespace and topology-to-query orchestration are isolated under src/app/query-navigation-controller.js. Query execution remains owned by Dataset Filter/Query Engine boundaries. Unsupported topology dimensions are ignored rather than being coerced into namespace filters.
 
 Website: the static website/ landing is script-free, responsive without hiding navigation, keyboard-focus visible, reduced-motion aware, and documents the local-first capability model, current formats and v2.8.28 release state.
+
+
+Interaction Shell controller: root-level file/search shortcuts, Escape behavior and generic dialog exclusivity are isolated under src/app/interaction-shell-controller.js. It ignores already-prevented events and does not leak global shortcuts into open dialogs or contenteditable fields. Command Palette ownership remains in command-navigation-controller.js.
+
+Website assurance: website/privacy.html and website/security.html are script-free static surfaces. The static audit now checks every website HTML file for inline code, external runtime resources and broken local references. The homepage includes a native-details FAQ with no JavaScript dependency.
