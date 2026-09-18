@@ -10,6 +10,11 @@ const api=result.rows.find(r=>r.service==='api'); const worker=result.rows.find(
 if(!api || api.status!=='critical' || api.errorRate<0.1 || api.p95DurationMs===null) throw new Error('api health classification failed');
 if(api.medianDurationMs!==50 || api.p95DurationMs!==95) throw new Error('api health percentile mismatch');
 if(!worker || worker.status!=='quiet') throw new Error('worker health classification failed');
+const scoped=context.SignalDockServiceHealth.analyze(entries,{indexes:[0,1,2],windowMs:60000});
+if(scoped.rows.length!==1||scoped.rows[0].service!=='api'||scoped.rows[0].total!==3||scoped.rows[0].errors!==3) throw new Error('indexed health scope mismatch');
+if(scoped.earliest!==now-2000||scoped.latest!==now) throw new Error('indexed health bounds mismatch');
+const emptyScoped=context.SignalDockServiceHealth.analyze(entries,{indexes:[]});
+if(emptyScoped.rows.length!==0||emptyScoped.earliest!==null||emptyScoped.latest!==null) throw new Error('empty indexed health scope must stay empty');
 const largeEntries=Array.from({length:200000},(_,index)=>({timestampMs:now+index}));
 const largeResult=context.SignalDockServiceHealth.analyze(largeEntries);
 if(largeResult.earliest!==now) throw new Error('large health timestamp minimum mismatch');
