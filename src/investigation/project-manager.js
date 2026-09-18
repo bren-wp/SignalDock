@@ -153,7 +153,7 @@
 
   function importJson(text) {
     const parsed = JSON.parse(String(text || ""));
-    if (parsed?.schema !== SCHEMA || ![...LEGACY_VERSIONS, VERSION].includes(Number(parsed.version)) || !Array.isArray(parsed.projects)) throw new Error("Unsupported or invalid SignalDock projects file.");
+    if (parsed?.schema !== SCHEMA || ![...LEGACY_VERSIONS, VERSION].includes(parsed.version) || !Array.isArray(parsed.projects)) throw new Error("Unsupported or invalid SignalDock projects file.");
     return { projects: persist(parsed.projects.map(portableProject)), activeId: clean(parsed.activeId, 96) };
   }
 
