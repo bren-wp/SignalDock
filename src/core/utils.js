@@ -64,8 +64,11 @@
 
   function downloadNdjson(filename, rows, chunkSize = 2000) {
     const parts = [];
-    for (let i = 0; i < rows.length; i += chunkSize) {
-      parts.push(rows.slice(i, i + chunkSize).map((row) => JSON.stringify(row)).join("\n") + "\n");
+    for (let offset = 0; offset < rows.length; offset += chunkSize) {
+      const end = Math.min(rows.length, offset + chunkSize);
+      const chunk = [];
+      for (let index = offset; index < end; index += 1) chunk.push(JSON.stringify(rows[index]));
+      parts.push(chunk.join("\n") + "\n");
     }
     downloadParts(filename, parts, "application/x-ndjson;charset=utf-8");
   }
