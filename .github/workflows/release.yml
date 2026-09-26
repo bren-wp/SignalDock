@@ -47,6 +47,7 @@ jobs:
           SHA="${{ github.event.workflow_run.head_sha }}"
           CURRENT_VERSION="$(tr -d '[:space:]' < VERSION)"
           PREVIOUS_VERSION="$(git show "${SHA}^:VERSION" 2>/dev/null | tr -d '[:space:]' || true)"
+          GRANDPARENT_VERSION="$(git show "${SHA}^^:VERSION" 2>/dev/null | tr -d '[:space:]' || true)"
 
           if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid VERSION: $CURRENT_VERSION" >&2
@@ -55,12 +56,6 @@ jobs:
 
           TAG="v${CURRENT_VERSION}"
           if [[ "$CURRENT_VERSION" == "$PREVIOUS_VERSION" ]]; then
-            if gh release view "$TAG" >/dev/null 2>&1; then
-              echo "release=false" >> "$GITHUB_OUTPUT"
-              echo "VERSION is unchanged ($CURRENT_VERSION) and release $TAG already exists."
-              exit 0
-            fi
-            echo "VERSION is unchanged ($CURRENT_VERSION), but release $TAG is missing; retrying publication on this verified main commit."
           else
             echo "Release intent detected: $PREVIOUS_VERSION -> $CURRENT_VERSION"
           fi
@@ -168,7 +163,6 @@ jobs:
             exit 0
           fi
 
-          EXISTING_TAG_SHA="$(resolve_tag_sha)"
           if [[ -n "$EXISTING_TAG_SHA" && "$EXISTING_TAG_SHA" != "$SHA" ]]; then
             echo "Existing tag $TAG resolves to $EXISTING_TAG_SHA instead of $SHA" >&2
             exit 1

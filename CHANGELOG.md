@@ -9,7 +9,6 @@
 - Added an idempotent GitHub Actions release gate that reacts only to successful `main` workflow completions, verifies both `quality-gate` and CodeQL on the exact commit, and then creates the matching tag and GitHub Release with the built-in repository token.
 - Fixed missing-tag detection so GitHub API error bodies cannot be misread as commit SHAs, serialized duplicate workflow-run release attempts, and allowed a verified later `main` commit to recover publication when the current VERSION still has no release.
 - Added static release-workflow regression coverage and expanded version-consistency checks so stale public version markers fail CI.
-- Updated the Security website to describe the live Dataset/Analysis composition boundaries and the permanent verified Release workflow.
 
 ### Analysis View composition migration
 - Promoted `src/app/analysis-view-composition.js` from isolated staging code into the live runtime wiring path for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health.

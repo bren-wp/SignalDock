@@ -621,7 +621,6 @@ Coverage includes Case Workspace v3 milestones/attachment metadata/v1-v2 migrati
 
 ## Release pipeline
 
-`VERSION` is the authoritative release version. `tests/version-consistency-smoke.mjs` keeps current-facing application, README, website and technical-documentation version markers synchronized with it. `.github/workflows/release.yml` runs only after a successful `SignalDock CI` or `CodeQL` completion on `main`, requires `VERSION` to differ from the parent commit, verifies both `quality-gate` and `Analyze JavaScript / TypeScript` checks on the exact release commit, then creates the matching `v<version>` GitHub Release/tag with the built-in `GITHUB_TOKEN`. The workflow is idempotent, serializes release attempts per commit, refuses a pre-existing tag that resolves to a different commit, and retries publication on a later verified main commit when the current VERSION has no GitHub Release yet.
 
 ## Brand and marketing page
 
