@@ -43,8 +43,8 @@
   <main id="main-content">
     <section class="hero" id="top" aria-labelledby="hero-title">
       <div class="hero__copy">
-        <div class="release-badge" aria-label="Current stable release SignalDock version 2.8.33">
-          <strong>v2.8.33</strong>
+        <div class="release-badge" aria-label="Current stable release SignalDock version 2.8.34">
+          <strong>v2.8.34</strong>
           <span>Current stable runtime · local-first · zero telemetry</span>
         </div>
         <span class="eyebrow">PRIVATE OBSERVABILITY FOR REAL DEBUGGING</span>
@@ -65,11 +65,11 @@
 
       <figure class="product-shot">
         <div class="product-shot__frame">
-          <img src="../docs/images/app-screenshot.png" alt="SignalDock v2.8.33 application showing local log analysis, navigation, table results and inspector">
+          <img src="../docs/images/app-screenshot.png" alt="SignalDock v2.8.34 application showing local log analysis, navigation, table results and inspector">
         </div>
         <figcaption>
           <span>ACTUAL APPLICATION UI</span>
-          <strong>SignalDock v2.8.33 with the bundled demo dataset</strong>
+          <strong>SignalDock v2.8.34 with the bundled demo dataset</strong>
         </figcaption>
       </figure>
     </section>
@@ -140,19 +140,19 @@ before:2026-09-12T18:00:00 any:timeout,retry,failed</code></pre>
       <div class="section-head section-head--wide">
         <span class="eyebrow">RUNTIME TRUTH, NOT ROADMAP COPY</span>
         <h2 id="runtime-title">What is active today, what is local, and what is not shipped yet.</h2>
-        <p>The current repository keeps the stable product version at 2.8.33 while <code>main</code> contains additional unreleased large-dataset hardening. The browser application remains the shipped runtime.</p>
+        <p>SignalDock v2.8.34 is the current stable browser runtime. It ships the large-dataset hardening and Analysis View composition work validated by the repository quality gates.</p>
       </div>
       <div class="runtime-grid" role="list">
         <article role="listitem"><span class="status status--on">SHIPPED</span><h3>Browser application</h3><p>Zero-build static application. Serve it locally over HTTP for the complete worker path, or open directly with main-thread fallback.</p></article>
         <article role="listitem"><span class="status status--on">SHIPPED</span><h3>Background worker filtering</h3><p>Protocol-v1 dedicated worker routing with session token, bounded envelopes and semantic fallback to the canonical query engine.</p></article>
         <article role="listitem"><span class="status status--on">SHIPPED</span><h3>Local persistence</h3><p>Saved views, query library, projects, recovery and compatible search-cache data use browser-local storage or IndexedDB.</p></article>
         <article role="listitem"><span class="status status--conditional">CAPABILITY</span><h3>File System Access</h3><p>Workspace saves, project reopen and Live Tail can use supported browser file capabilities after explicit user interaction.</p></article>
-        <article role="listitem"><span class="status status--off">NOT SHIPPED</span><h3>Native installers</h3><p>The repository defines a narrow desktop-bridge contract, but Windows, macOS and Linux installers are not part of v2.8.33.</p></article>
+        <article role="listitem"><span class="status status--off">NOT SHIPPED</span><h3>Native installers</h3><p>The repository defines a narrow desktop-bridge contract, but Windows, macOS and Linux installers are not part of v2.8.34.</p></article>
         <article role="listitem"><span class="status status--off">NOT PRESENT</span><h3>Hosted backend / account sync</h3><p>There is no SignalDock ingestion backend, account service, telemetry endpoint or remote project synchronization runtime.</p></article>
       </div>
       <div class="hardening-note">
-        <span class="eyebrow">Current main hardening</span>
-        <p>Recent unreleased work reduces large-dataset memory and ranking cost across Trace Analysis, Trace Flame, Dataset Overview, Observed Health, Dependency Heatmap, Trace Explorer, Trace Outliers and Service Map while preserving deterministic output.</p>
+        <span class="eyebrow">v2.8.34 hardening</span>
+        <p>This release reduces large-dataset memory and ranking cost across Trace Analysis, Trace Flame, Dataset Overview, Observed Health, Dependency Heatmap, Trace Explorer, Trace Outliers and Service Map while preserving deterministic output.</p>
       </div>
     </section>
 
@@ -257,7 +257,7 @@ before:2026-09-12T18:00:00 any:timeout,retry,failed</code></pre>
         </details>
         <details>
           <summary>Are native desktop installers available?</summary>
-          <p>No. The current release is the local browser application. The repository contains a narrow future desktop capability facade, but native installers are not shipped in v2.8.33.</p>
+          <p>No. The current release is the local browser application. The repository contains a narrow future desktop capability facade, but native installers are not shipped in v2.8.34.</p>
         </details>
         <details>
           <summary>Is the website itself tracking visitors?</summary>
@@ -269,14 +269,14 @@ before:2026-09-12T18:00:00 any:timeout,retry,failed</code></pre>
     <section class="release-strip" aria-labelledby="release-title">
       <div>
         <span class="eyebrow">CURRENT STABLE VERSION</span>
-        <h2 id="release-title">SignalDock v2.8.33</h2>
-        <p>Dataset View composition is shipped. Current <code>main</code> additionally contains unreleased large-dataset hardening.</p>
+        <h2 id="release-title">SignalDock v2.8.34</h2>
+        <p>v2.8.34 ships the large-dataset hardening together with live Dataset View and Analysis View composition boundaries.</p>
       </div>
       <ul>
         <li>Saved Views, Dataset Filter, Table View, Dataset Overview and View Orchestrator share an explicit composition boundary</li>
         <li>Trace and service analysis remain deterministic, explicit-parent based and bounded where high-volume rendering requires it</li>
         <li>Recovery, search cache, Query Library, projects and workspaces remain local-only capabilities</li>
-        <li>Analysis View composition exists as staged source coverage but is not advertised as migrated runtime ownership</li>
+        <li>Analysis View composition now owns live wiring for Trace Explorer, Trace Outliers, Service Map, Matrix, Heatmap, Trends and Observed Health</li>
       </ul>
     </section>
 
@@ -289,7 +289,7 @@ before:2026-09-12T18:00:00 any:timeout,retry,failed</code></pre>
   <footer>
     <a class="logo" href="#top"><img src="../assets/logo.svg" width="34" height="34" alt=""><span><strong>Signal</strong><b>Dock</b></span></a>
     <span><a href="privacy.html">Privacy</a> · <a href="security.html">Security</a> · <a href="#faq">FAQ</a></span>
-    <span>v2.8.33 · browser runtime · local-first · zero telemetry</span>
+    <span>v2.8.34 · browser runtime · local-first · zero telemetry</span>
   </footer>
 </body>
 </html>
