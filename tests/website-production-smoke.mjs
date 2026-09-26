@@ -12,6 +12,7 @@ const security = readWebsite("security.html");
 const css = readWebsite("styles.css");
 const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
 const appHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const appJs = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
 assert.match(version, /^\d+\.\d+\.\d+$/);
 
@@ -35,13 +36,13 @@ for (const token of [
   'id="formats"',
   'id="workflow"',
   'id="faq"',
-  'SignalDock v2.8.33',
   '../docs/images/app-screenshot.png',
   'ACTUAL APPLICATION UI',
-  'Current stable runtime',
+  'Current app version',
   'Native installers',
   'Hosted backend / account sync',
   'Current main hardening',
+  'Analysis View composition',
   'href="privacy.html"',
   'href="security.html"'
 ]) assert.ok(home.includes(token), "homepage token missing: " + token);
@@ -49,7 +50,12 @@ for (const token of [
 assert.ok(!home.includes('class="mock-window"'), "homepage must use the real application screenshot instead of a hand-built UI mock");
 
 assert.ok(home.includes(`SignalDock v${version}`), "homepage release copy must match VERSION");
-assert.ok(home.includes(`<strong>v${version}</strong>`), "homepage release badge must match VERSION");
+assert.ok(home.includes(`<strong>v${version}</strong>`), "homepage version badge must match VERSION");
+assert.ok(home.includes(`SignalDock v${version}`), "homepage version strip must match VERSION");
+assert.ok(!/current stable release|current stable runtime|current stable version/i.test(home), "website must not claim a stable GitHub release unless release state is explicitly represented");
+assert.ok(!home.includes("staged source coverage"), "website must not describe live Analysis View ownership as staged");
+assert.ok(appHtml.includes('<script src="src/app/analysis-view-composition.js" defer></script>'), "application must load Analysis View composition for website claim");
+assert.ok(appJs.includes("window.SignalDockAnalysisViewComposition.create({"), "application must create the live Analysis View composition");
 
 const runtimeClaims = [
   ["src/core/query-engine.js", "SMART QUERY LANGUAGE"],
@@ -65,7 +71,8 @@ const runtimeClaims = [
   ["src/investigation/case-workspace.js", "Case &amp; Investigation workspace"],
   ["src/investigation/case-checkpoints.js", "Case Checkpoints"],
   ["src/app/import-live-tail-controller.js", "Live Tail"],
-  ["src/app/recovery-diagnostics-controller.js", "Recovery &amp; diagnostics"]
+  ["src/app/recovery-diagnostics-controller.js", "Recovery &amp; diagnostics"],
+  ["src/app/analysis-view-composition.js", "Analysis View composition"]
 ];
 for (const [modulePath, websiteCopy] of runtimeClaims) {
   assert.ok(appHtml.includes(`<script src="${modulePath}" defer></script>`), "runtime module missing for website claim: " + modulePath);
@@ -84,6 +91,7 @@ assert.ok(security.includes("No generic native bridge"));
 assert.ok(security.includes("CodeQL"));
 assert.ok(security.includes("Trace Explorer"));
 assert.ok(security.includes("Trace Outliers"));
+assert.ok(security.includes("Dataset View and Analysis View composition modules"));
 assert.ok(privacy.includes('href="privacy.html" aria-current="page"'));
 assert.ok(security.includes('href="security.html" aria-current="page"'));
 
