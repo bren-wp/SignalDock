@@ -36,11 +36,14 @@ jobs:
       - name: Determine release intent
         id: intent
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           SHA="${{ github.event.workflow_run.head_sha }}"
           CURRENT_VERSION="$(tr -d '[:space:]' < VERSION)"
           PREVIOUS_VERSION="$(git show "${SHA}^:VERSION" 2>/dev/null | tr -d '[:space:]' || true)"
+          GRANDPARENT_VERSION="$(git show "${SHA}^^:VERSION" 2>/dev/null | tr -d '[:space:]' || true)"
 
           if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid VERSION: $CURRENT_VERSION" >&2
@@ -48,14 +51,25 @@ jobs:
           fi
 
           if [[ "$CURRENT_VERSION" == "$PREVIOUS_VERSION" ]]; then
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "VERSION is unchanged ($CURRENT_VERSION); no release is intended."
-            exit 0
+            if gh release view "v${CURRENT_VERSION}" >/dev/null 2>&1; then
+              echo "release=false" >> "$GITHUB_OUTPUT"
+              echo "Release v${CURRENT_VERSION} already exists; no release is intended."
+              exit 0
+            fi
+
+            if [[ -z "$GRANDPARENT_VERSION" || "$CURRENT_VERSION" == "$GRANDPARENT_VERSION" ]]; then
+              echo "release=false" >> "$GITHUB_OUTPUT"
+              echo "VERSION is unchanged ($CURRENT_VERSION) and no immediate release-prep retry is detected."
+              exit 0
+            fi
+
+            echo "Retrying unpublished release v${CURRENT_VERSION} after release-prep follow-up."
+          else
+            echo "Release intent detected: $PREVIOUS_VERSION -> $CURRENT_VERSION"
           fi
 
           echo "release=true" >> "$GITHUB_OUTPUT"
           echo "version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Release intent detected: $PREVIOUS_VERSION -> $CURRENT_VERSION"
 
       - name: Validate release metadata
         if: steps.intent.outputs.release == 'true'
@@ -133,7 +147,12 @@ jobs:
             exit 0
           fi
 
-          EXISTING_TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha 2>/dev/null || true)"
+          EXISTING_TAG_SHA=""
+          if EXISTING_TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha 2>/dev/null)"; then
+            :
+          else
+            EXISTING_TAG_SHA=""
+          fi
           if [[ -n "$EXISTING_TAG_SHA" && "$EXISTING_TAG_SHA" != "$SHA" ]]; then
             echo "Existing tag $TAG resolves to $EXISTING_TAG_SHA instead of $SHA" >&2
             exit 1
