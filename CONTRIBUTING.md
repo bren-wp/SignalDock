@@ -42,4 +42,4 @@ Keep each PR focused. Explain what changed, why it is safe for local-first/priva
 
 `VERSION` is the single authoritative release version. Current application, README, website and technical-documentation markers must stay synchronized with it and are checked by `tests/version-consistency-smoke.mjs`.
 
-Do not create a release from an unverified commit. The repository release workflow only acts on `main` after the version changes and both the normal quality gate and CodeQL have succeeded for the same commit. It then creates the matching `v<version>` tag and GitHub Release using the repository-scoped GitHub Actions token; no private signing key or external release secret is required.
+Do not create a release from an unverified commit. The repository release workflow only acts on `main` after a version change or a bounded retry of an immediately preceding unpublished release-prep commit, and only when both the normal quality gate and CodeQL have succeeded for the exact commit. It then creates the matching `v<version>` tag and GitHub Release using the repository-scoped GitHub Actions token; no private signing key or external release secret is required.
