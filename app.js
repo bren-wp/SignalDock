@@ -105,6 +105,7 @@
   let viewOrchestratorController = null;
   let startupStateController = null;
   let datasetViewComposition = null;
+  let analysisViewComposition = null;
   let caseWorkspaceController = null;
   let caseFileController = null;
   let caseCheckpointController = null;
@@ -640,98 +641,51 @@
       setActiveNav
     });
     exceptionController.bind();
-    if (!window.SignalDockTraceExplorerController?.create) throw new Error("SignalDock Trace Explorer controller is unavailable.");
-    traceExplorerController = window.SignalDockTraceExplorerController.create({
+    if (!window.SignalDockAnalysisViewComposition?.create) throw new Error("SignalDock Analysis View composition is unavailable.");
+    analysisViewComposition = window.SignalDockAnalysisViewComposition.create({
       state,
       el,
-      formatDuration,
-      toast,
-      selectEntry,
-      renderInspector,
-      entryRowIntoView,
-      filterByCorrelation,
-      closeCompetingDialogs,
-      showDialogSafely,
-      setActiveNav
-    });
-    traceExplorerController.bind();
-    if (!window.SignalDockTraceOutlierController?.create) throw new Error("SignalDock Trace Outliers controller is unavailable.");
-    traceOutlierController = window.SignalDockTraceOutlierController.create({
-      state,
-      el,
-      formatDuration,
-      toast,
-      applyTraceFilter: (traceId) => {
-        el.queryInput.value = `trace:${quoteIfNeeded(traceId)}`;
-        applyFilters(true);
+      modules: {
+        traceExplorer: window.SignalDockTraceExplorerController,
+        traceOutlier: window.SignalDockTraceOutlierController,
+        serviceMap: window.SignalDockServiceMapController,
+        serviceMatrix: window.SignalDockServiceMatrixController,
+        serviceHeatmap: window.SignalDockServiceHeatmapController,
+        serviceTrends: window.SignalDockServiceTrendsController,
+        health: window.SignalDockHealthController
       },
-      selectEntry,
-      renderInspector,
-      closeCompetingDialogs,
-      showDialogSafely,
-      setActiveNav
+      actions: {
+        formatDuration,
+        toast,
+        selectEntry,
+        renderInspector,
+        entryRowIntoView,
+        filterByCorrelation,
+        applyTraceFilter: (traceId) => {
+          el.queryInput.value = `trace:${quoteIfNeeded(traceId)}`;
+          applyFilters(true);
+        },
+        applyTopologyFilter,
+        filterByServiceValue,
+        closeCompetingDialogs,
+        showDialogSafely,
+        setActiveNav,
+        recordPerformance: (...args) => profiler()?.record?.(...args)
+      }
     });
+    traceExplorerController = analysisViewComposition.createTraceExplorer();
+    traceExplorerController.bind();
+    traceOutlierController = analysisViewComposition.createTraceOutlier();
     traceOutlierController.bind();
-    if (!window.SignalDockServiceMapController?.create) throw new Error("SignalDock Service Map controller is unavailable.");
-    serviceMapController = window.SignalDockServiceMapController.create({
-      state,
-      el,
-      formatDuration,
-      toast,
-      applyMapNodeFilter: applyTopologyFilter,
-      closeCompetingDialogs,
-      showDialogSafely,
-      setActiveNav,
-      recordPerformance: (...args) => profiler()?.record?.(...args)
-    });
+    serviceMapController = analysisViewComposition.createServiceMap();
     serviceMapController.bind();
-    if (!window.SignalDockServiceMatrixController?.create) throw new Error("SignalDock Service Matrix controller is unavailable.");
-    serviceMatrixController = window.SignalDockServiceMatrixController.create({
-      state,
-      el,
-      formatDuration,
-      toast,
-      filterByServiceValue,
-      closeCompetingDialogs,
-      showDialogSafely,
-      setActiveNav
-    });
+    serviceMatrixController = analysisViewComposition.createServiceMatrix();
     serviceMatrixController.bind();
-    if (!window.SignalDockServiceHeatmapController?.create) throw new Error("SignalDock Service Heatmap controller is unavailable.");
-    serviceHeatmapController = window.SignalDockServiceHeatmapController.create({
-      state,
-      el,
-      formatDuration,
-      toast,
-      filterByServiceValue,
-      closeCompetingDialogs,
-      showDialogSafely,
-      setActiveNav
-    });
+    serviceHeatmapController = analysisViewComposition.createServiceHeatmap();
     serviceHeatmapController.bind();
-    if (!window.SignalDockServiceTrendsController?.create) throw new Error("SignalDock Service Trends controller is unavailable.");
-    serviceTrendsController = window.SignalDockServiceTrendsController.create({
-      state,
-      el,
-      formatDuration,
-      toast,
-      filterByServiceValue,
-      closeCompetingDialogs,
-      showDialogSafely,
-      setActiveNav
-    });
+    serviceTrendsController = analysisViewComposition.createServiceTrends();
     serviceTrendsController.bind();
-    if (!window.SignalDockHealthController?.create) throw new Error("SignalDock Observed Health controller is unavailable.");
-    healthController = window.SignalDockHealthController.create({
-      state,
-      el,
-      formatDuration,
-      toast,
-      filterByServiceValue,
-      closeCompetingDialogs,
-      showDialogSafely,
-      setActiveNav
-    });
+    healthController = analysisViewComposition.createHealth();
     healthController.bind();
     if (!window.SignalDockCaseWorkspaceController?.create) throw new Error("SignalDock Case Workspace controller is unavailable.");
     caseWorkspaceController = window.SignalDockCaseWorkspaceController.create({
