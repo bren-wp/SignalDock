@@ -12,6 +12,7 @@ const security = readWebsite("security.html");
 const css = readWebsite("styles.css");
 const version = fs.readFileSync(path.join(root, "VERSION"), "utf8").trim();
 const appHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
+const appJs = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
 assert.match(version, /^\d+\.\d+\.\d+$/);
 
@@ -50,6 +51,8 @@ assert.ok(!home.includes('class="mock-window"'), "homepage must use the real app
 
 assert.ok(home.includes(`SignalDock v${version}`), "homepage release copy must match VERSION");
 assert.ok(home.includes(`<strong>v${version}</strong>`), "homepage release badge must match VERSION");
+assert.ok(appHtml.includes('<script src="src/app/analysis-view-composition.js" defer></script>'), "application must load Analysis View composition");
+assert.ok(appJs.includes("window.SignalDockAnalysisViewComposition.create({"), "application must create the live Analysis View composition");
 
 const runtimeClaims = [
   ["src/core/query-engine.js", "SMART QUERY LANGUAGE"],
@@ -85,6 +88,9 @@ assert.ok(security.includes("No generic native bridge"));
 assert.ok(security.includes("CodeQL"));
 assert.ok(security.includes("Trace Explorer"));
 assert.ok(security.includes("Trace Outliers"));
+assert.ok(security.includes("Dataset View and Analysis View composition modules"));
+assert.ok(security.includes("CodeQL + verified release"));
+assert.ok(security.includes("Release workflow"));
 assert.ok(privacy.includes('href="privacy.html" aria-current="page"'));
 assert.ok(security.includes('href="security.html" aria-current="page"'));
 
