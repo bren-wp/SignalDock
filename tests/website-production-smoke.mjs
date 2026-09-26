@@ -42,7 +42,7 @@ for (const token of [
   'Current stable runtime',
   'Native installers',
   'Hosted backend / account sync',
-  `v${version} hardening`,
+  `v${version} release integrity`,
   'href="privacy.html"',
   'href="security.html"'
 ]) assert.ok(home.includes(token), "homepage token missing: " + token);
