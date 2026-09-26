@@ -15,18 +15,22 @@ for (const token of [
   "github.event.workflow_run.head_branch == 'main'",
   "github.event.workflow_run.head_sha",
   'git show "${SHA}^:VERSION"',
+  'git show "${SHA}^^:VERSION"',
+  'gh release view "v${CURRENT_VERSION}"',
   "node tests/version-consistency-smoke.mjs",
   'check_state "quality-gate"',
   'check_state "Analyze JavaScript / TypeScript"',
   'gh release create "$TAG"',
   '--target "$SHA"',
   'commits/${TAG}',
+  'if EXISTING_TAG_SHA="$(gh api',
   "CHANGELOG.md"
 ]) {
   assert.ok(source.includes(token), "release workflow missing required gate: " + token);
 }
 
 assert.equal(source.includes("secrets."), false, "release workflow must not require private repository secrets");
+assert.equal(source.includes('--jq .sha 2>/dev/null || true'), false, "missing-tag API errors must not be captured as a fake SHA");
 assert.ok(source.includes("GH_TOKEN: ${{ github.token }}"), "release workflow must use the built-in GitHub token");
 assert.equal(/\n\s+push:/.test(source), false, "release workflow must not publish directly on arbitrary pushes");
 assert.equal(/\n\s+pull_request:/.test(source), false, "release workflow must not publish from pull requests");
