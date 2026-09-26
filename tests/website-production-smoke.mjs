@@ -91,6 +91,7 @@ assert.ok(security.includes("Trace Outliers"));
 assert.ok(security.includes("Dataset View and Analysis View composition modules"));
 assert.ok(security.includes("CodeQL + verified release"));
 assert.ok(security.includes("Release workflow"));
+assert.equal(security.includes("Current main includes"), false, "public Security copy must describe the released runtime rather than branch state");
 assert.ok(privacy.includes('href="privacy.html" aria-current="page"'));
 assert.ok(security.includes('href="security.html" aria-current="page"'));
 

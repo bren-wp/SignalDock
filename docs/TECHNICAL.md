@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.34**.
+Current version: **2.8.35**.
 
 ## Highlights
 
@@ -621,6 +621,8 @@ Coverage includes Case Workspace v3 milestones/attachment metadata/v1-v2 migrati
 
 ## Release pipeline
 
+`VERSION` is the authoritative release source. The permanent release workflow distinguishes a direct version change from a single bounded retry immediately after an unpublished release-prep commit. Ordinary same-version commits do not enter the publish path. Existing lightweight/annotated tags are resolved through Git refs before use, and all multiline workflow shell blocks are syntax-checked in CI.
+
 
 ## Brand and marketing page
 
@@ -669,7 +671,7 @@ Case File controller: JSON/Markdown export, case import, report assembly and Cas
 
 Query Navigation controller: service/environment/namespace and topology-to-query orchestration are isolated under src/app/query-navigation-controller.js. Query execution remains owned by Dataset Filter/Query Engine boundaries. Unsupported topology dimensions are ignored rather than being coerced into namespace filters.
 
-Website: the static website/ landing is script-free, responsive without hiding navigation, keyboard-focus visible, reduced-motion aware, and documents the local-first capability model, current formats and v2.8.28 release state.
+Website: the static website/ landing is script-free, responsive without hiding navigation, keyboard-focus visible, reduced-motion aware, and documents the local-first capability model, current formats and current release state.
 
 
 Interaction Shell controller: root-level file/search shortcuts, Escape behavior and generic dialog exclusivity are isolated under src/app/interaction-shell-controller.js. It ignores already-prevented events and does not leak global shortcuts into open dialogs or contenteditable fields. Command Palette ownership remains in command-navigation-controller.js.
