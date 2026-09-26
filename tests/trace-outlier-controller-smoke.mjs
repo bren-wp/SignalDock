@@ -81,7 +81,7 @@ assert.ok(source.includes("rank(state.entries, { indexes: scope.indexes, limit: 
 assert.ok(index.includes('src/app/trace-outlier-controller.js'), "Trace Outliers controller must load from index.html");
 assert.ok(ci.includes('src/app/trace-outlier-controller.js'), "CI must HTTP-smoke the Trace Outliers controller");
 for (const token of [
-  "SignalDockTraceOutlierController.create",
+  "analysisViewComposition.createTraceOutlier()",
   "traceOutlierController.bind()",
   "outliers: () => traceOutlierController?.open()"
 ]) assert.ok(app.includes(token), `Trace Outliers app integration token missing: ${token}`);

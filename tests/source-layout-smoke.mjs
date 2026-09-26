@@ -25,6 +25,7 @@ const applicationControllers = [
   "src/app/element-registry.js",
   "src/app/startup-state-controller.js",
   "src/app/dataset-view-composition.js",
+  "src/app/analysis-view-composition.js",
   "src/app/recovery-diagnostics-controller.js",
   "src/app/saved-views-controller.js",
   "src/app/import-live-tail-controller.js",
@@ -64,6 +65,20 @@ const ci = fs.readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
 assert.ok(ci.includes("find . -type f -name '*.js'"), "CI syntax check must recurse into organized source directories");
 for (const ref of applicationControllers) {
   assert.ok(ci.includes(ref), `HTTP smoke must verify application controller asset: ${ref}`);
+}
+
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+assert.ok(app.includes("window.SignalDockAnalysisViewComposition.create({"), "app.js must use the Analysis View composition boundary");
+for (const directFactory of [
+  "SignalDockTraceExplorerController.create({",
+  "SignalDockTraceOutlierController.create({",
+  "SignalDockServiceMapController.create({",
+  "SignalDockServiceMatrixController.create({",
+  "SignalDockServiceHeatmapController.create({",
+  "SignalDockServiceTrendsController.create({",
+  "SignalDockHealthController.create({"
+]) {
+  assert.equal(app.includes(directFactory), false, `app.js must not bypass Analysis View composition: ${directFactory}`);
 }
 assert.ok(ci.includes("src/core/parser.js"), "HTTP smoke must verify organized core assets");
 assert.ok(ci.includes("src/analysis/trace-explorer.js"), "HTTP smoke must verify organized analysis assets");

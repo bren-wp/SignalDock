@@ -11,7 +11,7 @@ const app = fs.readFileSync(path.join(rootDir, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(rootDir, "index.html"), "utf8");
 
 assert.ok(html.includes('src/app/service-map-controller.js'), "Service Map controller must load from index.html");
-assert.ok(app.includes("SignalDockServiceMapController.create"), "app must initialize Service Map controller");
+assert.ok(app.includes("analysisViewComposition.createServiceMap()"), "app must initialize Service Map through Analysis View composition");
 assert.ok(app.includes("serviceMapController.bind()"), "app must bind Service Map controller");
 assert.ok(app.includes("map: () => serviceMapController?.open()"), "map navigation must route through controller");
 for (const legacy of ["function openServiceMap()", "function closeServiceMap()", "function renderServiceMap(", "el.serviceMapResetButton?.addEventListener", "el.serviceMapCanvas?.addEventListener"]) {

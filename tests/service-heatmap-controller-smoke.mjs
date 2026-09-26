@@ -77,7 +77,7 @@ assert.ok(source.includes('setAttribute("aria-label", `Filter to target service'
 assert.ok(index.includes('src/app/service-heatmap-controller.js'), "Service Heatmap controller must load from index.html");
 assert.ok(ci.includes('src/app/service-heatmap-controller.js'), "CI must HTTP-smoke the Service Heatmap controller");
 for (const token of [
-  "SignalDockServiceHeatmapController.create",
+  "analysisViewComposition.createServiceHeatmap()",
   "serviceHeatmapController.bind()",
   "heatmap: () => serviceHeatmapController?.open()"
 ]) assert.ok(app.includes(token), `Service Heatmap app integration token missing: ${token}`);

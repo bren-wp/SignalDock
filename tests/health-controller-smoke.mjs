@@ -10,7 +10,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const source = fs.readFileSync(path.join(root, "src/app/health-controller.js"), "utf8");
 
 assert.ok(html.includes('src/app/health-controller.js'), "Health controller must load from index.html");
-assert.ok(app.includes('SignalDockHealthController.create'), "app must initialize Health controller");
+assert.ok(app.includes('analysisViewComposition.createHealth()'), "app must initialize Health through Analysis View composition");
 assert.ok(app.includes('healthController.bind()'), "app must bind Health controller");
 assert.ok(app.includes('health: () => healthController?.open()'), "navigation must delegate to Health controller");
 for (const token of ['function openHealth()', 'function renderHealth(', 'function onHealthClick(']) {

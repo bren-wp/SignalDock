@@ -67,7 +67,7 @@ for (const forbidden of ["fetch(", "XMLHttpRequest", "WebSocket(", "EventSource(
 assert.ok(index.includes('src/app/trace-explorer-controller.js'), "Trace Explorer controller must load from index.html");
 assert.ok(ci.includes('src/app/trace-explorer-controller.js'), "CI must HTTP-smoke the Trace Explorer controller");
 for (const token of [
-  "SignalDockTraceExplorerController.create",
+  "analysisViewComposition.createTraceExplorer()",
   "traceExplorerController.bind()",
   "traces: () => traceExplorerController?.open()",
 ]) assert.ok(app.includes(token), `Trace Explorer app integration token missing: ${token}`);

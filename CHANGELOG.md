@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Analysis View composition migration
+- Promoted `src/app/analysis-view-composition.js` from isolated staging code into the live runtime wiring path for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health.
+- Preserved the existing controller create/bind order and dependency callbacks while removing seven duplicated root factory option blocks from `app.js`.
+- Added permanent source-layout and HTTP asset gates so the live application cannot silently bypass or omit the composition boundary.
+- Updated architecture documentation to describe the shipped composition ownership instead of the previous staging state.
+
 ### Core runtime cleanup
 - Repaired stale Persistence smoke coverage so recovery metadata tests follow the validated-manifest path actually used by the runtime, and removed duplicate orphan-chunk setup/assertions from the IndexedDB integration test.
 - Removed proven-unused website design tokens and added production guards that reject unused website custom properties and CSS classes.
