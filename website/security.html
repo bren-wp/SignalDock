@@ -54,7 +54,7 @@
       </div>
       <div class="runtime-grid">
         <article><span class="status status--on">ISOLATED</span><h3>Analysis modules</h3><p>Trace, service, span and exception analysis modules operate on supplied data and do not own filesystem, network or persistence capabilities.</p></article>
-        <article><span class="status status--on">INJECTED</span><h3>Application controllers</h3><p>Controllers receive shared state, element registries and narrow callbacks instead of reaching directly into unrelated controllers or generic platform APIs.</p></article>
+        <article><span class="status status--on">INJECTED</span><h3>Application controllers</h3><p>Controllers receive shared state, element registries and narrow callbacks instead of reaching directly into unrelated controllers or generic platform APIs. Dataset View and Analysis View composition modules centralize live controller wiring without acquiring storage, filesystem, worker-construction, network or native-bridge authority.</p></article>
         <article><span class="status status--conditional">PLATFORM</span><h3>File capabilities</h3><p>Browser save/open/reopen behavior is kept behind storage and desktop capability facades, with user permission required where File System Access applies.</p></article>
         <article><span class="status status--on">VERSIONED</span><h3>Worker boundary</h3><p>The filter worker validates its protocol envelope and token before handling allowlisted index, filter, correlation and trace operations.</p></article>
         <article><span class="status status--on">PORTABLE</span><h3>Export boundary</h3><p>Portable project exports strip file-handle capability keys, baselines omit raw logs and case attachments remain metadata-only.</p></article>

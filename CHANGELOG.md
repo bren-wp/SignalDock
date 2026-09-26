@@ -7,6 +7,8 @@
 - Preserved the existing controller create/bind order and dependency callbacks while removing seven duplicated root factory option blocks from `app.js`.
 - Added permanent source-layout and HTTP asset gates so the live application cannot silently bypass or omit the composition boundary.
 - Updated architecture documentation to describe the shipped composition ownership instead of the previous staging state.
+- Aligned the bundled website with live runtime ownership: removed stale staged-composition copy, replaced unsupported stable-release wording with repository app-version wording and added website/runtime composition guards.
+- Expanded version consistency coverage so `VERSION`, `app.js`, README and all bundled website pages must stay synchronized.
 
 ### Core runtime cleanup
 - Repaired stale Persistence smoke coverage so recovery metadata tests follow the validated-manifest path actually used by the runtime, and removed duplicate orphan-chunk setup/assertions from the IndexedDB integration test.
