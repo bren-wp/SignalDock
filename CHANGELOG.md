@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 2.8.35 — 2026-09-27
+
+### Release workflow integrity
+- Fixed a real Release workflow shell syntax regression that caused verified same-version `main` runs to fail in the release-intent step.
+- Restored the missing existing-tag SHA assignment so `set -u` cannot abort publication when a release tag is absent.
+- Restricted same-version publication to one bounded retry immediately after an unpublished version-change commit; ordinary same-version commits now exit without entering the publish gate.
+- Increased release checkout history to three commits so the bounded retry decision can compare the current, parent and first-parent grandparent versions deterministically.
+- Added `workflow-shell-syntax-smoke.mjs`, which runs `bash -n` over every multiline shell block in permanent GitHub workflows, plus stronger static release-gate regressions.
+- Updated current-facing README, technical documentation and website copy to v2.8.35 and removed stale branch/release-state wording.
+
 ## 2.8.34 — 2026-09-26
 
 ### Release automation
