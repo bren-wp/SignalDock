@@ -75,7 +75,7 @@ for (const forbidden of ["fetch(", "XMLHttpRequest", "WebSocket(", "EventSource(
 assert.ok(index.includes('src/app/service-matrix-controller.js'), "Service Matrix controller must load from index.html");
 assert.ok(ci.includes('src/app/service-matrix-controller.js'), "CI must HTTP-smoke the Service Matrix controller");
 for (const token of [
-  "SignalDockServiceMatrixController.create",
+  "analysisViewComposition.createServiceMatrix()",
   "serviceMatrixController.bind()",
   "matrix: () => serviceMatrixController?.open()"
 ]) assert.ok(app.includes(token), `Service Matrix app integration token missing: ${token}`);

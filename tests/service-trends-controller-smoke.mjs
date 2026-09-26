@@ -87,7 +87,7 @@ assert.ok(source.includes('setAttribute("aria-label", `Filter to target service'
 assert.ok(index.includes('src/app/service-trends-controller.js'), "Service Trends controller must load from index.html");
 assert.ok(ci.includes('src/app/service-trends-controller.js'), "CI must HTTP-smoke the Service Trends controller");
 for (const token of [
-  "SignalDockServiceTrendsController.create",
+  "analysisViewComposition.createServiceTrends()",
   "serviceTrendsController.bind()",
   "trends: () => serviceTrendsController?.open()"
 ]) assert.ok(app.includes(token), `Service Trends app integration token missing: ${token}`);
