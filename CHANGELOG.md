@@ -6,9 +6,9 @@
 
 ### Release automation
 - Promoted `VERSION` as the enforced release source of truth across the application, README, public website and technical documentation.
-- Added an idempotent GitHub Actions release gate that reacts only to successful `main` workflow completions, requires a real version change, verifies both `quality-gate` and CodeQL on the exact commit, and then creates the matching tag and GitHub Release with the built-in repository token.
+- Added an idempotent GitHub Actions release gate that reacts only to successful `main` workflow completions, verifies both `quality-gate` and CodeQL on the exact commit, and then creates the matching tag and GitHub Release with the built-in repository token.
+- Fixed missing-tag detection so GitHub API error bodies cannot be misread as commit SHAs, serialized duplicate workflow-run release attempts, and allowed a verified later `main` commit to recover publication when the current VERSION still has no release.
 - Added static release-workflow regression coverage and expanded version-consistency checks so stale public version markers fail CI.
-- Hardened missing-tag detection so GitHub API error payloads cannot be mistaken for tag SHAs, and added a bounded retry path for an immediately preceding unpublished release-prep commit.
 
 ### Analysis View composition migration
 - Promoted `src/app/analysis-view-composition.js` from isolated staging code into the live runtime wiring path for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health.

@@ -13,6 +13,10 @@ permissions:
   actions: read
   checks: read
 
+concurrency:
+  group: release-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
 jobs:
   release:
     if: >-
@@ -50,20 +54,8 @@ jobs:
             exit 1
           fi
 
+          TAG="v${CURRENT_VERSION}"
           if [[ "$CURRENT_VERSION" == "$PREVIOUS_VERSION" ]]; then
-            if gh release view "v${CURRENT_VERSION}" >/dev/null 2>&1; then
-              echo "release=false" >> "$GITHUB_OUTPUT"
-              echo "Release v${CURRENT_VERSION} already exists; no release is intended."
-              exit 0
-            fi
-
-            if [[ -z "$GRANDPARENT_VERSION" || "$CURRENT_VERSION" == "$GRANDPARENT_VERSION" ]]; then
-              echo "release=false" >> "$GITHUB_OUTPUT"
-              echo "VERSION is unchanged ($CURRENT_VERSION) and no immediate release-prep retry is detected."
-              exit 0
-            fi
-
-            echo "Retrying unpublished release v${CURRENT_VERSION} after release-prep follow-up."
           else
             echo "Release intent detected: $PREVIOUS_VERSION -> $CURRENT_VERSION"
           fi
@@ -137,8 +129,32 @@ jobs:
           VERSION="${{ steps.intent.outputs.version }}"
           TAG="v${VERSION}"
 
+          resolve_tag_sha() {
+            local tag_ref_file="/tmp/signaldock-tag-ref.json"
+            local tag_object_file="/tmp/signaldock-tag-object.json"
+            local object_type object_sha
+
+            if ! gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" >"$tag_ref_file" 2>/dev/null; then
+              return 0
+            fi
+
+            object_type="$(jq -r '.object.type // empty' "$tag_ref_file")"
+            object_sha="$(jq -r '.object.sha // empty' "$tag_ref_file")"
+            if [[ -z "$object_sha" ]]; then
+              echo "Tag $TAG exists but its target could not be resolved." >&2
+              return 2
+            fi
+
+            if [[ "$object_type" == "tag" ]]; then
+              gh api "repos/${GITHUB_REPOSITORY}/git/tags/${object_sha}" >"$tag_object_file"
+              jq -r '.object.sha // empty' "$tag_object_file"
+            else
+              printf '%s\n' "$object_sha"
+            fi
+          }
+
           if gh release view "$TAG" >/dev/null 2>&1; then
-            RESOLVED="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)"
+            RESOLVED="$(resolve_tag_sha)"
             if [[ "$RESOLVED" != "$SHA" ]]; then
               echo "Existing release tag $TAG resolves to $RESOLVED instead of $SHA" >&2
               exit 1
@@ -147,12 +163,6 @@ jobs:
             exit 0
           fi
 
-          EXISTING_TAG_SHA=""
-          if EXISTING_TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha 2>/dev/null)"; then
-            :
-          else
-            EXISTING_TAG_SHA=""
-          fi
           if [[ -n "$EXISTING_TAG_SHA" && "$EXISTING_TAG_SHA" != "$SHA" ]]; then
             echo "Existing tag $TAG resolves to $EXISTING_TAG_SHA instead of $SHA" >&2
             exit 1
@@ -171,7 +181,7 @@ jobs:
             gh release create "$TAG" --target "$SHA" --title "SignalDock v${VERSION}" --notes-file /tmp/release-notes.md
           fi
 
-          RESOLVED="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)"
+          RESOLVED="$(resolve_tag_sha)"
           if [[ "$RESOLVED" != "$SHA" ]]; then
             echo "Created tag $TAG resolves to $RESOLVED instead of $SHA" >&2
             exit 1
