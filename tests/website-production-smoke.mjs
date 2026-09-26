@@ -35,13 +35,13 @@ for (const token of [
   'id="formats"',
   'id="workflow"',
   'id="faq"',
-  'SignalDock v2.8.33',
+  `SignalDock v${version}`,
   '../docs/images/app-screenshot.png',
   'ACTUAL APPLICATION UI',
   'Current stable runtime',
   'Native installers',
   'Hosted backend / account sync',
-  'Current main hardening',
+  `v${version} hardening`,
   'href="privacy.html"',
   'href="security.html"'
 ]) assert.ok(home.includes(token), "homepage token missing: " + token);
@@ -65,7 +65,8 @@ const runtimeClaims = [
   ["src/investigation/case-workspace.js", "Case &amp; Investigation workspace"],
   ["src/investigation/case-checkpoints.js", "Case Checkpoints"],
   ["src/app/import-live-tail-controller.js", "Live Tail"],
-  ["src/app/recovery-diagnostics-controller.js", "Recovery &amp; diagnostics"]
+  ["src/app/recovery-diagnostics-controller.js", "Recovery &amp; diagnostics"],
+  ["src/app/analysis-view-composition.js", "Analysis View composition"]
 ];
 for (const [modulePath, websiteCopy] of runtimeClaims) {
   assert.ok(appHtml.includes(`<script src="${modulePath}" defer></script>`), "runtime module missing for website claim: " + modulePath);
