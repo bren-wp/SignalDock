@@ -12,15 +12,20 @@ for (const token of [
   "- CodeQL",
   "contents: write",
   "checks: read",
+  "group: release-${{ github.event.workflow_run.head_sha }}",
+  "cancel-in-progress: false",
   "github.event.workflow_run.head_branch == 'main'",
   "github.event.workflow_run.head_sha",
   'git show "${SHA}^:VERSION"',
+  'gh release view "$TAG"',
+  "release $TAG is missing; retrying publication",
   "node tests/version-consistency-smoke.mjs",
   'check_state "quality-gate"',
   'check_state "Analyze JavaScript / TypeScript"',
   'gh release create "$TAG"',
   '--target "$SHA"',
-  'commits/${TAG}',
+  'git/ref/tags/${TAG}',
+  "resolve_tag_sha",
   "CHANGELOG.md"
 ]) {
   assert.ok(source.includes(token), "release workflow missing required gate: " + token);
@@ -32,3 +37,5 @@ assert.equal(/\n\s+push:/.test(source), false, "release workflow must not publis
 assert.equal(/\n\s+pull_request:/.test(source), false, "release workflow must not publish from pull requests");
 
 console.log("release-workflow-smoke PASS");
+
+assert.equal(source.includes('commits/${TAG}'), false, "release workflow must not treat an API error body as a tag SHA");
