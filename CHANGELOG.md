@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.8.34 — 2026-09-26
+
+### Release automation
+- Promoted `VERSION` as the enforced release source of truth across the application, README, public website and technical documentation.
+- Added an idempotent GitHub Actions release gate that reacts only to successful `main` workflow completions, requires a real version change, verifies both `quality-gate` and CodeQL on the exact commit, and then creates the matching tag and GitHub Release with the built-in repository token.
+- Added static release-workflow regression coverage and expanded version-consistency checks so stale public version markers fail CI.
+
 ### Analysis View composition migration
 - Promoted `src/app/analysis-view-composition.js` from isolated staging code into the live runtime wiring path for Trace Explorer, Trace Outliers, Service Map, Service Matrix, Dependency Heatmap, Dependency Trends and Observed Health.
 - Preserved the existing controller create/bind order and dependency callbacks while removing seven duplicated root factory option blocks from `app.js`.
@@ -24,7 +31,7 @@
 - Reworked the landing page around current runtime capabilities: Smart Query, Trace Explorer/Compare/Outliers, explicit parent-span service analysis, Observed Health, Exception Trends, Case Workspace/Checkpoints, baselines, Query Library, projects/reopen flows, recovery/search cache, Live Tail and parser profiles.
 - Added an explicit runtime-status section distinguishing the shipped browser application and permissioned File System Access features from native installers and hosted account/backend capabilities that are not shipped.
 - Expanded Privacy and Security pages to match actual localStorage/IndexedDB, recovery/search-cache, file-handle, portable-export, dedicated-worker and capability-boundary behavior.
-- Added current-main large-dataset hardening copy without mislabeling it as a v2.8.34 release; the stable product version remains v2.8.33.
+- Updated the public runtime-status copy so the large-dataset hardening is described as shipped in v2.8.34 rather than unreleased work.
 - Added a script-free Smart Query reference using operators supported by the local Query Engine.
 - Strengthened website production tests so key marketing claims are tied to the corresponding runtime modules loaded by the application and current-page navigation remains accessible.
 
@@ -37,7 +44,7 @@
 - Hardened Trace Analysis and Trace Flame range calculation against large-trace argument-spread overflow and added 200,000-span regressions for both paths.
 - Replaced recursive Trace Analysis subtree-end traversal with an iterative post-order scan and added a two-branch depth-12,000 regression to prevent call-stack overflow on deeply nested traces.
 - Replaced full-array sorts used only to choose the Trace Analysis root, next critical-chain child and bottleneck with linear selections while preserving the existing end-time, timestamp and duration tie-breaks.
-- Kept the live v2.8.33 runtime wiring unchanged because the root `app.js` migration could not be committed atomically through the active repository write path.
+- Staged the capability-narrow Analysis View composition under v2.8.33; the live root migration is completed by the Analysis View composition changes in v2.8.34.
 
 ### Large-dataset performance hardening
 - Reduced Trace Analysis working-copy memory by collecting selected entries, timestamped spans, parent counts and measured-span counts in one pass while preserving indexed-scope semantics.

@@ -36,3 +36,10 @@ For parser changes, add a focused synthetic fixture/test. For query changes, ver
 ## Pull requests
 
 Keep each PR focused. Explain what changed, why it is safe for local-first/privacy guarantees, and which tests cover the change. Avoid committing real production logs or secrets.
+
+
+## Releases
+
+`VERSION` is the single authoritative release version. Current application, README, website and technical-documentation markers must stay synchronized with it and are checked by `tests/version-consistency-smoke.mjs`.
+
+Do not create a release from an unverified commit. The repository release workflow only acts on `main` after the version changes and both the normal quality gate and CodeQL have succeeded for the same commit. It then creates the matching `v<version>` tag and GitHub Release using the repository-scoped GitHub Actions token; no private signing key or external release secret is required.

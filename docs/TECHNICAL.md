@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.33**.
+Current version: **2.8.34**.
 
 ## Highlights
 
@@ -618,6 +618,10 @@ node tests/static-audit.mjs
 ```
 
 Coverage includes Case Workspace v3 milestones/attachment metadata/v1-v2 migration, unified case-timeline aggregation, service-to-service matrix, dependency-heatmap and dependency-period trend aggregation, distributed Trace Explorer summaries, trace comparison and robust trace-outlier ranking, Query Library v2 folders/favorites/search/folder-management/migration, Investigation evidence merge round-trips, structured ECS-like JSON, Docker, Apache access logs, syslog, logfmt, CEF security events, multiline stack traces, fixed/reusable custom parser profiles, the parser-plugin registry, environment/namespace metadata, trace/span/parent-span metadata, critical-chain and flame-layout honesty guards, smart queries, bounded full-text candidate indexing, bucketed disk-backed search-cache restore and selective-bucket candidate lookup, million-row viewport calculations, OpenTelemetry span-event/resource-scope normalization, Case/Investigation v2/evidence-bundle round-trips, exception-trend and observed-health analysis, exception fingerprint grouping/querying, correlation extraction/matching, command-palette ranking, regex guards, large streaming parsing/filtering, ZIP parsing, worker linear/indexed filtering plus correlation/trace protocol, grouped explicit service-map dependencies, workspace serialization/schema validation, chunked IndexedDB recovery, performance metrics, DOM-reference integrity, local asset integrity, legacy-brand checks, and checks against inline/external runtime code.
+
+## Release pipeline
+
+`VERSION` is the authoritative release version. `tests/version-consistency-smoke.mjs` keeps current-facing application, README, website and technical-documentation version markers synchronized with it. `.github/workflows/release.yml` runs only after a successful `SignalDock CI` or `CodeQL` completion on `main`, requires `VERSION` to differ from the parent commit, verifies both `quality-gate` and `Analyze JavaScript / TypeScript` checks on the exact release commit, then creates the matching `v<version>` GitHub Release/tag with the built-in `GITHUB_TOKEN`. The workflow is idempotent and refuses a pre-existing tag that resolves to a different commit.
 
 ## Brand and marketing page
 

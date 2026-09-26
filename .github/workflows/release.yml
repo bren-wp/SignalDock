@@ -1,0 +1,161 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows:
+      - SignalDock CI
+      - CodeQL
+    types:
+      - completed
+
+permissions:
+  contents: write
+  actions: read
+  checks: read
+
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Determine release intent
+        id: intent
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          CURRENT_VERSION="$(tr -d '[:space:]' < VERSION)"
+          PREVIOUS_VERSION="$(git show "${SHA}^:VERSION" 2>/dev/null | tr -d '[:space:]' || true)"
+
+          if [[ ! "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid VERSION: $CURRENT_VERSION" >&2
+            exit 1
+          fi
+
+          if [[ "$CURRENT_VERSION" == "$PREVIOUS_VERSION" ]]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "VERSION is unchanged ($CURRENT_VERSION); no release is intended."
+            exit 0
+          fi
+
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Release intent detected: $PREVIOUS_VERSION -> $CURRENT_VERSION"
+
+      - name: Validate release metadata
+        if: steps.intent.outputs.release == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/version-consistency-smoke.mjs
+          grep -Fq "## ${{ steps.intent.outputs.version }} — " CHANGELOG.md
+
+      - name: Verify required checks
+        id: checks
+        if: steps.intent.outputs.release == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          CHECK_RUNS="$(gh api -H "Accept: application/vnd.github+json" "repos/${GITHUB_REPOSITORY}/commits/${SHA}/check-runs?per_page=100")"
+
+          check_state() {
+            jq -r --arg name "$1" '
+              [.check_runs[] | select(.name == $name)]
+              | sort_by(.started_at)
+              | last
+              | if . == null then ""
+                elif .status != "completed" then "pending"
+                else (.conclusion // "pending")
+                end
+            ' <<< "$CHECK_RUNS"
+          }
+
+          QUALITY_STATE="$(check_state "quality-gate")"
+          CODEQL_STATE="$(check_state "Analyze JavaScript / TypeScript")"
+          echo "quality-gate=$QUALITY_STATE"
+          echo "CodeQL=$CODEQL_STATE"
+
+          WAITING=0
+          for STATE in "$QUALITY_STATE" "$CODEQL_STATE"; do
+            case "$STATE" in
+              success) ;;
+              pending|"") WAITING=1 ;;
+              *)
+                echo "Required check completed without success: $STATE" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          if [[ "$WAITING" -eq 1 ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Another required check is still pending; the matching workflow_run event will retry the gate."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release
+        if: steps.intent.outputs.release == 'true' && steps.checks.outputs.ready == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          VERSION="${{ steps.intent.outputs.version }}"
+          TAG="v${VERSION}"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            RESOLVED="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)"
+            if [[ "$RESOLVED" != "$SHA" ]]; then
+              echo "Existing release tag $TAG resolves to $RESOLVED instead of $SHA" >&2
+              exit 1
+            fi
+            echo "Release $TAG already exists on the expected commit."
+            exit 0
+          fi
+
+          EXISTING_TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha 2>/dev/null || true)"
+          if [[ -n "$EXISTING_TAG_SHA" && "$EXISTING_TAG_SHA" != "$SHA" ]]; then
+            echo "Existing tag $TAG resolves to $EXISTING_TAG_SHA instead of $SHA" >&2
+            exit 1
+          fi
+
+          awk -v header="## ${VERSION} — " '
+            index($0, header) == 1 { capture=1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+          test -s /tmp/release-notes.md
+
+          if [[ -n "$EXISTING_TAG_SHA" ]]; then
+            gh release create "$TAG" --title "SignalDock v${VERSION}" --notes-file /tmp/release-notes.md
+          else
+            gh release create "$TAG" --target "$SHA" --title "SignalDock v${VERSION}" --notes-file /tmp/release-notes.md
+          fi
+
+          RESOLVED="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TAG}" --jq .sha)"
+          if [[ "$RESOLVED" != "$SHA" ]]; then
+            echo "Created tag $TAG resolves to $RESOLVED instead of $SHA" >&2
+            exit 1
+          fi
+
+          gh release view "$TAG" --json tagName,targetCommitish,url

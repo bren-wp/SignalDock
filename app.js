@@ -3,7 +3,7 @@
 
   const STORAGE_VIEWS = "signaldock-saved-views-v3";
   const STORAGE_SETTINGS = "signaldock-settings-v10";
-  const APP_VERSION = "2.8.33";
+  const APP_VERSION = "2.8.34";
   const WORKER_THRESHOLD = 25000;
 
   const state = {
