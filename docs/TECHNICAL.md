@@ -59,7 +59,7 @@ The root `app.js` remains the public workspace entrypoint, but feature-owned UI 
 
 SignalDock is a local-first log inspection workspace for developers. It opens log files directly in the browser, parses and filters them on the device, and never uploads log contents to a backend.
 
-Current version: **2.8.35**.
+Current version: **2.8.36**.
 
 ## Highlights
 
