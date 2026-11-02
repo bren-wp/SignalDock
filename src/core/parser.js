@@ -454,6 +454,9 @@
     if (file.size > MAX_PLAIN_FILE && !lower.endsWith(".zip")) throw new Error(`${file.name} is larger than the 750 MB safety limit.`);
 
     if (lower.endsWith(".zip")) {
+      if (file.size > 300 * 1024 * 1024) {
+        throw new Error("ZIP archive exceeds the 300 MB compressed-size safety limit.");
+      }
       const extracted = await window.SignalDockZip.extract(await file.arrayBuffer());
       const entries = [];
       for (let i = 0; i < extracted.length; i += 1) {

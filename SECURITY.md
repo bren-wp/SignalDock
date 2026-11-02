@@ -1,20 +1,24 @@
 # Security Policy
 
-SignalDock is intentionally local-first: imported log contents are processed in the browser, the application has no SignalDock backend, and the runtime Content Security Policy disables network connections with `connect-src 'none'`.
+SignalDock is a local-first browser application. Imported log contents are processed locally; there is no SignalDock ingestion backend. The application CSP restricts runtime network connections with `connect-src 'none'`. Browser storage, exported investigations and the host computer remain within the user's own security boundary.
 
 ## Reporting a vulnerability
 
-Please avoid publishing exploit details in a public issue before a fix is available. Open a GitHub issue with the minimum information needed to establish contact and clearly mark it as a security report; do not attach real production logs, credentials, tokens, personal data or other secrets.
+**Do not disclose exploit steps, credentials, production logs or personal data in public GitHub issues.**
 
-A useful report includes:
+Use GitHub's private vulnerability reporting through the repository **Security** tab, if enabled. If that option is unavailable, open a public issue requesting a private reporting channel, but share no exploit payload or sensitive reproduction data there. Prefer synthetic data and the smallest possible reproducer.
 
-- affected SignalDock version or commit;
-- browser and operating system;
-- minimal reproduction steps using synthetic data;
-- expected vs. observed behavior;
-- security impact;
-- a suggested fix, if known.
+Please include the affected version/commit, browser/OS, impact, reproduction outline and a proposed remediation when available. Do not send real incident datasets or secret-bearing logs.
 
-## Security boundaries
+## Security boundaries and local data
 
-SignalDock is a developer investigation tool, not a sandbox for hostile JavaScript plugins and not a forensic chain-of-custody system. Parser plugins are bundled/trusted code. Local recovery and search-cache features may persist normalized log-derived data in the browser profile until cleared by the user.
+- Imported ZIP, text and JSON files, portable sessions and investigation bundles are **untrusted inputs**. Parse them only in a current supported browser, and keep the browser up to date.
+- ZIP ingestion limits archive and extracted sizes and validates archive metadata, but does not make malicious file contents safe for other programs.
+- Recovery and search-cache features can persist log-derived content in IndexedDB and/or local browser storage. This data is **not encrypted at rest by SignalDock**; browser-profile and device access controls protect it.
+- Copying, exporting and saving cases or workspaces can produce files containing sensitive raw log data. Inspect exports before sharing.
+- The app does not provide a remote multi-user authentication boundary, isolated plugin execution, evidentiary chain of custody or a general-purpose JavaScript sandbox. Bundled parser plugins are trusted application code.
+- On shared devices, use a separate protected OS/browser profile and clear local workspace/recovery data when it is no longer needed.
+
+## Maintainer validation
+
+Security-sensitive changes should include regression tests for untrusted input handling, browser CSP restrictions, storage integrity and worker message handling. GitHub CI and CodeQL reduce risk but are not substitutes for browser testing, targeted code review or a penetration test.

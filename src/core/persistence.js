@@ -70,7 +70,12 @@
         const tx = db.transaction(STORE, mode);
         const store = tx.objectStore(STORE);
         let result;
-        try { result = callback(store, tx); } catch (error) { reject(error); return; }
+        try { result = callback(store, tx); } catch (error) {
+          // A synchronous failure after queuing writes must not commit a partial snapshot.
+          try { tx.abort(); } catch { /* transaction might already be inactive */ }
+          reject(error);
+          return;
+        }
         tx.oncomplete = () => resolve(result);
         tx.onerror = () => reject(tx.error || new Error("Local recovery transaction failed."));
         tx.onabort = () => reject(tx.error || new Error("Local recovery transaction was aborted."));
