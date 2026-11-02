@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 2.8.36 — 2026-11-02
+
+### Security hardening
+- Bounded real ZIP/DEFLATE decompression output instead of relying solely on archive-declared sizes; rejected ZIP files above 300 MiB before loading the complete file into memory.
+- Validated ZIP central/local header consistency, directory bounds, entry names and offsets, unsupported archive features, actual uncompressed lengths and CRC-32 checksums.
+- Aborted IndexedDB write transactions when synchronous setup fails to avoid committing partially scheduled recovery writes.
+- Added an explicit `frame-src 'none'` restriction to the application and three public website content security policies.
+
+### Quality, privacy and maintainability
+- Added adversarial ZIP regression tests for forged sizes, corruption, unsafe paths, inconsistent headers, encrypted entries and ZIP64 metadata.
+- Added file-level JavaScript entrypoint reachability and duplicate script-tag checks; documented limitations of this heuristic dead-code audit.
+- Strengthened static CSP checks and updated `SECURITY.md` with private disclosure guidance and realistic local-storage confidentiality boundaries.
+- Added a security and dead-code audit report in `docs/SECURITY-AND-DEAD-CODE-AUDIT-2026-11-02.md`.
+- Aligned version identifiers across the browser runtime, README, technical documentation and public website.
+
 ## 2.8.35 — 2026-09-27
 
 ### Release workflow integrity
