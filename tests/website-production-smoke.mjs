@@ -42,10 +42,15 @@ for (const token of [
   'Current stable runtime',
   'Native installers',
   'Hosted backend / account sync',
-  `v${version} release integrity`,
+  'class="hardening-note"',
   'href="privacy.html"',
   'href="security.html"'
 ]) assert.ok(home.includes(token), "homepage token missing: " + token);
+
+const hardeningNote = home.match(/<div class="hardening-note">([\s\S]*?)<\/div>/)?.[1] || "";
+assert.ok(hardeningNote.includes(`v${version}`), "hardening note release version must match VERSION");
+assert.match(hardeningNote, /ZIP/i, "hardening note must describe the released ZIP safety controls");
+assert.match(hardeningNote, /recovery/i, "hardening note must describe local recovery safeguards");
 
 assert.ok(!home.includes('class="mock-window"'), "homepage must use the real application screenshot instead of a hand-built UI mock");
 
