@@ -45,6 +45,9 @@ for (const [name, html] of [["index.html", appHtml], ...websiteHtmlEntries]) {
   assert(!/\sstyle\s*=/i.test(html), `${name} contains inline style attributes`);
   assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html), `${name} contains inline script blocks`);
   assert(!/(?:src|href)=["']https?:\/\//i.test(html), `${name} contains external runtime resources`);
+  const csp = html.match(/<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*>/i)?.[0] || "";
+  assert(csp.includes("connect-src 'none'"), `${name} must prohibit runtime connections`);
+  assert(csp.includes("frame-src 'none'"), `${name} must prohibit embedded frames`);
 }
 
 const productionJs = [
